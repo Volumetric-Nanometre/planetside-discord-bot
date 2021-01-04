@@ -26,25 +26,32 @@ class Ps2EventClient(commands.Cog):
         """
         Starts event client and sets it to the self.client variable
         """
-        print(f'Starting event client for {triggerName}')
         if triggerName not in Ps2EventClient.client:
-            try:
-                print(f"{triggerName} client open attempt")
-                Ps2EventClient.client.update({triggerName :auraxium.EventClient(service_id=settings.PS2_SVS_ID)})
-            except:
-                print(f"{triggerName} client unable to be opened")
+            print(f'Starting event client for {triggerName}')
+            if triggerName not in Ps2EventClient.client:
+                try:
+                    print(f"{triggerName} client open attempt")
+                    Ps2EventClient.client.update({triggerName :auraxium.EventClient(service_id=settings.PS2_SVS_ID)})
+                except:
+                    print(f"{triggerName} client unable to be opened")
+                    return None
+                else:
+                    print(f"{triggerName} client opened")
             else:
-                print(f"{triggerName} client opened")
+                print(f"{triggerName} client already open")
+                
+        return Ps2EventClient.client[triggerName]
+        
+    def remove_trigger(self,client,trigger):
+        try:
+            client.find_trigger(trigger)
+        except:
+            print('Trigger not found')
+            pass
         else:
-            print(f"{triggerName} client already open")
-            
-        
-        
-    async def player_death_generic(event):
-        char_id = int(event.payload['character_id'])
-        char = await client.get_by_id(ps2.Character, char_id)
-
-        print(f'{await char.name_long()} has died')
+            print('Trigger found')
+            client.remove_trigger(trigger,keep_websocket_alive=True)
+            print('Trigger removed. Socket alive.')
             
 """        
 class Ps2OpsEvents(Ps2EventClient,commands.Cog):
@@ -90,17 +97,6 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
         else:
             dictVal.update(newitem)
             return dictVal
-        
-        
-    def trigger_remove(self,client,trigger):
-        try:
-            client.find_trigger('personal-logoff')
-        except:
-            print("No trigger found")
-            pass
-        else:
-            print(f'new trigger{self.membersBeingTracked_id}')
-            client.remove_trigger('personal-logoff',keep_websocket_alive=True)
         
     @commands.command(name='ps2-personal-stats')
     async def player_stats(self,ctx):
@@ -163,8 +159,11 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
                                 #self.trackingdata.update({char.name(): {}})
                 print("Loading stats")
                 await Ps2PersonalEvents.player_death(self,ctx,char)
+                print('Death loaded')
                 await Ps2PersonalEvents.player_basecap(self,ctx,char)
+                print('Basecap loaded')
                 await Ps2PersonalEvents.player_basedef(self,ctx,char)
+                print('Basedef loaded')
                 
                 print("Loading complete")
                 #
@@ -176,24 +175,13 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
     async def player_death(self,ctx,char):
         """
         Function to set trigger event for when player dies
-        """
-        print('player_death')
-        if 'personal-death' not in Ps2EventClient.client:
-            print("Creating client")
-            await Ps2EventClient.start_event_client('personal-death')
-            
-        client = Ps2EventClient.client['personal-death']
+        """            
+        client = await Ps2EventClient.start_event_client('personal-death')
         
         dictVal = Ps2PersonalEvents.stats_dictionary_insert(self,char,{'deaths':int(0)})
         self.trackingdata.update({char.name():dictVal})
-
-        try:
-            client.find_trigger('personal-death')
-        except:
-            pass
-        else:
-            print(f'new trigger{self.membersBeingTracked_id}')
-            client.remove_trigger('personal-death',keep_websocket_alive=True)
+        
+        Ps2EventClient.remove_trigger(self,client,'personal-death')
 
         @client.trigger(auraxium.EventType.DEATH,characters=self.membersBeingTracked_id,name='personal-death')
         async def player_death_generic(event):
@@ -214,11 +202,8 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
         Function to set trigger event for if a player logs off. this will then
         close out all data for the player
         """
-        if 'personal-logoff' not in Ps2EventClient.client:
-            print("Creating client")
-            await Ps2EventClient.start_event_client('personal-logoff')
             
-        client = Ps2EventClient.client['personal-logoff']
+        client = await Ps2EventClient.start_event_client('personal-logoff')
 
         try:
             client.find_trigger('personal-logoff')
@@ -253,29 +238,13 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
     async def player_basecap(self,ctx,char):
         """
         Function to set trigger event for if a player facility captures
-        """
-        if 'personal-basecap' not in Ps2EventClient.client:
-            print("Creating client")
-            await Ps2EventClient.start_event_client('personal-basecap')
-            
-        client = Ps2EventClient.client['personal-basecap']
-        
-        try:
-            dictVal = self.trackingdata[char.name()]
-            print(dictVal)
-        except:
-            print('fail')
-        
+        """            
+        client = await Ps2EventClient.start_event_client('personal-basecap')
+                
         dictVal = Ps2PersonalEvents.stats_dictionary_insert(self,char,{'basecap':int(0)})
         self.trackingdata.update({char.name():dictVal})
         
-        try:
-            client.find_trigger('personal-basecap')
-        except:
-            pass
-        else:
-            print(f'new trigger{self.membersBeingTracked_id}')
-            client.remove_trigger('personal-basecap',keep_websocket_alive=True)
+        Ps2EventClient.remove_trigger(self,client,'personal-basecap')
             
         @client.trigger(auraxium.EventType.PLAYER_FACILITY_CAPTURE ,characters=self.membersBeingTracked_id,name='personal-basecap')
         async def player_death_generic(event):
@@ -295,28 +264,15 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
         """
         Function to set trigger event for if a player facility defends
         """
-        if 'personal-basedef' not in Ps2EventClient.client:
-            print("Creating client")
-            await Ps2EventClient.start_event_client('personal-basedef')
             
-        client = Ps2EventClient.client['personal-basedef']
+        client = await Ps2EventClient.start_event_client('personal-basedef')
         
         dictVal = Ps2PersonalEvents.stats_dictionary_insert(self,char,{'basedef':int(0)})
-        print(f'def {dictVal}')
-        
-        
-        
-        
+         
         self.trackingdata.update({char.name(): dictVal})
-
         
-        try:
-            client.find_trigger('personal-basedef')
-        except:
-            pass
-        else:
-            print(f'new trigger{self.membersBeingTracked_id}')
-            client.remove_trigger('personal-basedef',keep_websocket_alive=True)
+        Ps2EventClient.remove_trigger(self,client,'personal-basedef')
+        
         @client.trigger(auraxium.EventType.PLAYER_FACILITY_DEFEND  ,characters=self.membersBeingTracked_id,name='personal-basedef')
         async def player_death_generic(event):
             char_id = int(event.payload['character_id'])
