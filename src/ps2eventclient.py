@@ -12,6 +12,7 @@ from datetime import datetime
 from discordbasics import channelManipulation
 
 import settings
+from prettytable import PrettyTable 
 
 class Ps2EventClient(commands.Cog):
     """
@@ -104,17 +105,19 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
         Function to retrive all measured stats for all participents
         """
         print("Checking stats")
-        TextOuput ='```'+'\n'
-        for player in self.trackingdata.items():
-            for stat in player:
-                print(stat)
-                TextOuput= TextOuput + str(stat) + '\n'
-                await ctx.send(f'{stat}')
+        table = PrettyTable() 
+        table.field_names=['Name','Deaths','BaseCaps','BaseDefs']
+        for player, stats in self.trackingdata.items():
+            mylist = []
+            mylist.append(str(player))
+            for stat in stats.values():
+                mylist.append(str(stat))
+            table.add_row(mylist) 
+
+        TextOuput ='```'+'\n'+ str(table) + '```'
                 
-        TextOuput =TextOuput + '```'
-        
         await ctx.send(f'{TextOuput}')
-        print("Complete")
+        print("Checking stats Complete")
         
         
     
@@ -164,7 +167,7 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
                 print('Basecap loaded')
                 await Ps2PersonalEvents.player_basedef(self,ctx,char)
                 print('Basedef loaded')
-                
+                await Ps2PersonalEvents.player_logoff(self,ctx,char)
                 print("Loading complete")
                 #
                 # Set up logoff trigger to remove stats if char logs off
@@ -195,6 +198,7 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
             self.trackingdata.update({char.name(): Ps2PersonalEvents.stats_dictionary_insert(self,char,{'deaths':total})})
 
             print(f'{char.name()} has died to {attack_char.name()}')
+            
 
 
     async def player_logoff(self,ctx,char):
@@ -205,20 +209,20 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
             
         client = await Ps2EventClient.start_event_client('personal-logoff')
 
-        try:
-            client.find_trigger('personal-logoff')
-        except:
-            pass
-        else:
-            print(f'new trigger{self.membersBeingTracked_id}')
-            client.remove_trigger('personal-logoff',keep_websocket_alive=True)
+        Ps2EventClient.remove_trigger(self,client,'personal-logoff')
 
         @client.trigger(auraxium.EventType.PLAYER_LOGOUT ,characters=self.membersBeingTracked_id,name='personal-logoff')
         async def player_logoff_triggered(event):
             char_id = int(event.payload['character_id'])
             char = await client.get_by_id(ps2.Character, char_id)
             print(f'{char.name()} has logged off')
-        
+            
+            if char.name() in self.trackingdata:
+                dictVal = self.trackingdata[char.name()]
+                print(dictVal)
+                
+                
+                   
         
         
     async def player_kill(self,ctx,char):
