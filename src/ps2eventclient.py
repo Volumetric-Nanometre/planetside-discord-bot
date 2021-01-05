@@ -99,6 +99,36 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
             dictVal.update(newitem)
             return dictVal
         
+        
+        
+    @commands.command(name='ps2-channel-track')
+    async def channel_track(self,ctx,category,channel):
+        """
+        Function to retrive all measured stats for all participents
+        """  
+        print(category)
+        existing_category = discord.utils.get(ctx.guild.categories,
+                                                      name=category)
+        print(existing_category)
+        if existing_category:
+            existing_channel=discord.utils.get(existing_category.voice_channels,
+                                       name=channel)
+            print(existing_channel)
+            if existing_channel:
+                members = existing_channel.members
+                nicknames = [member.nick for member in members]
+                
+                names = [member.name for member in members]
+                for i in range(len(members)):
+                    if not nicknames[i]:
+                        nicknames[i]=names[i]
+                
+                await Ps2PersonalEvents.player_tracking_start(self,ctx,nicknames)
+                
+        print('Channel track complete')
+        
+        
+        
     @commands.command(name='ps2-personal-stats')
     async def player_stats(self,ctx):
         """
@@ -106,7 +136,7 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
         """
         print("Checking stats")
         table = PrettyTable() 
-        table.field_names=['Name','Deaths','BaseCaps','BaseDefs']
+        table.field_names=['Name','Kills','Deaths','Team-Kills','BaseCaps','BaseDefs']
         for player, stats in self.trackingdata.items():
             mylist = []
             mylist.append(str(player))
@@ -122,7 +152,7 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
         
     
     @commands.command(name='ps2-track-start')
-    async def player_tracking_start(self,ctx,message):
+    async def player_tracking_start(self,ctx,*message):
         """
         Function to track the stats of players
         """
@@ -134,68 +164,88 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
             # If exists, check if already being tracked
             # If not tracked, add to tracking, else return
             #
-            print("Finding player")
-            try:
-                char = await client.get_by_name(ps2.Character, message)
-            except:
-                print("Player not found")
-                await ctx.send('Player not found')
-                return
-            else:
-                print(f"{char.name()} found")
+            flat_list = [item for sublist in message for item in sublist]
+            print(flat_list)
+            for player in flat_list:
+                print(player)
+                print("Finding player")
+                try:
+                    char = await client.get_by_name(ps2.Character, player)
+                except:
+                    print("Player not found")
+                    await ctx.send('Player not found')
+                    continue
+                else:
+                    print(f"{char.name()} found")
 
-            if int(char.id) in self.membersBeingTracked_id:
-                print("Player already tracking")
-                await ctx.send("Player already tracking")
-            else:
-                print("Player tracking started")
-                await ctx.send("Player tracking started")
-                self.membersBeingTracked_id.append(int(char.id))
+                if int(char.id) in self.membersBeingTracked_id:
+                    print("Player already tracking")
+                    await ctx.send("Player already tracking")
+                else:
+                    print("Player tracking started")
+                    await ctx.send("Player tracking started")
+                    self.membersBeingTracked_id.append(int(char.id))
+
+                    #
+                    # add death tracking
+                    # add kill tracking
+                    # add res tracking
+                    # add facdef tracking
+                    # add faccap tracking
+                    #
+                                    #self.trackingdata.update({char.name(): {}})
+                    print("Loading stats")
+                    await Ps2PersonalEvents.player_kill_death(self,ctx,char)
+                    print('Death loaded')
+                    await Ps2PersonalEvents.player_basecap(self,ctx,char)
+                    print('Basecap loaded')
+                    await Ps2PersonalEvents.player_basedef(self,ctx,char)
+                    print('Basedef loaded')
+                    await Ps2PersonalEvents.player_logoff(self,ctx,char)
+                    print("Loading complete")
+                    #
+                    # Set up logoff trigger to remove stats if char logs off
+                    #
                 
-                #
-                # add death tracking
-                # add kill tracking
-                # add res tracking
-                # add facdef tracking
-                # add faccap tracking
-                #
-                                #self.trackingdata.update({char.name(): {}})
-                print("Loading stats")
-                await Ps2PersonalEvents.player_death(self,ctx,char)
-                print('Death loaded')
-                await Ps2PersonalEvents.player_basecap(self,ctx,char)
-                print('Basecap loaded')
-                await Ps2PersonalEvents.player_basedef(self,ctx,char)
-                print('Basedef loaded')
-                await Ps2PersonalEvents.player_logoff(self,ctx,char)
-                print("Loading complete")
-                #
-                # Set up logoff trigger to remove stats if char logs off
-                #
                 
                 
-                
-    async def player_death(self,ctx,char):
+    async def player_kill_death(self,ctx,char):
         """
         Function to set trigger event for when player dies
         """            
-        client = await Ps2EventClient.start_event_client('personal-death')
+        client = await Ps2EventClient.start_event_client('personal-kill-death')
+                
+        dictVal = Ps2PersonalEvents.stats_dictionary_insert(self,char,{'kills':int(0)})
+        self.trackingdata.update({char.name():dictVal})
         
         dictVal = Ps2PersonalEvents.stats_dictionary_insert(self,char,{'deaths':int(0)})
         self.trackingdata.update({char.name():dictVal})
         
-        Ps2EventClient.remove_trigger(self,client,'personal-death')
+        dictVal = Ps2PersonalEvents.stats_dictionary_insert(self,char,{'team-kills':int(0)})
+        self.trackingdata.update({char.name():dictVal})
+        
+        Ps2EventClient.remove_trigger(self,client,'personal-kill-death')
 
-        @client.trigger(auraxium.EventType.DEATH,characters=self.membersBeingTracked_id,name='personal-death')
+        @client.trigger(auraxium.EventType.DEATH,characters=self.membersBeingTracked_id,name='personal-kill-death')
         async def player_death_generic(event):
             char_id = int(event.payload['character_id'])
             char = await client.get_by_id(ps2.Character, char_id)
             attacker_id = int(event.payload['attacker_character_id'])
             attack_char = await client.get_by_id(ps2.Character, attacker_id)
+            char_fac=await char.faction().resolve()
+            attack_fac=await attack_char.faction().resolve()
             
-            total = self.trackingdata[char.name()]['deaths'] + 1
-
-            self.trackingdata.update({char.name(): Ps2PersonalEvents.stats_dictionary_insert(self,char,{'deaths':total})})
+            print(char_fac)
+            print(attack_fac)
+            if char_id in self.membersBeingTracked_id:
+                total = self.trackingdata[char.name()]['deaths'] + 1
+                self.trackingdata.update({char.name(): Ps2PersonalEvents.stats_dictionary_insert(self,char,{'deaths':total})})
+            elif char_fac == attack_fac and attacker_id in self.membersBeingTracked_id:
+                total = self.trackingdata[attack_char.name()]['team-kills'] + 1
+                self.trackingdata.update({attack_char.name(): Ps2PersonalEvents.stats_dictionary_insert(self,attack_char,{'team-kills':total})})
+            else:
+                total = self.trackingdata[attack_char.name()]['kills'] + 1
+                self.trackingdata.update({attack_char.name(): Ps2PersonalEvents.stats_dictionary_insert(self,attack_char,{'kills':total})})
 
             print(f'{char.name()} has died to {attack_char.name()}')
             

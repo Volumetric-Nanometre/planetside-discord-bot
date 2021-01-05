@@ -85,7 +85,7 @@ async def player_history_data(player):
         print(char.id)
         name = char.name()
         outfit = char.outfit()
-        faction = char.faction()
+        faction = await char.faction().resolve()
         stat = await char.stat()
         facstat = await char.stat_by_faction()
         
