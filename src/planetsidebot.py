@@ -21,7 +21,6 @@ class Bot(commands.Bot):
         super(Bot, self).__init__(command_prefix=['!'])
 
         self.add_cog(opstart.opschannels(self))
-        self.add_cog(opstart.opstracking(self))
         self.add_cog(ps2eventclient.Ps2EventClient(self))
         self.add_cog(ps2eventclient.Ps2PersonalEvents(self))
 
