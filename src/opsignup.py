@@ -11,8 +11,6 @@ from dotenv import load_dotenv
 class OpSignUp(commands.Cog): 
     
     def __init__(self,bot):
-        self.soberdogsActive = False
-        self.armourdogsActive = False
         self.soberdogMessageText = ""
         self.soberdogMessageHandlerID = None
         self.signUpChannelName ='✍-sign-up'
@@ -43,13 +41,19 @@ class OpSignUp(commands.Cog):
         
         messageText  = self.soberdogMessageText
         message = await self.signUpChannel.fetch_message(self.soberdogMessageHandlerID)
+        
+        
+        
         if  str(payload.emoji) in self.soberReactions.keys() and str(payload.user_id) not in self.soberMembers:
-
+            
             self.soberMembers.append(str(payload.user_id))
-            self.soberMemberText.update({str(payload.user_id):f'\n{self.soberReactions[str(payload.emoji)]} - @{str(payload.member.nick)}'})
-
-
-
+            
+            if payload.member.nick != None:
+                self.soberMemberText.update({str(payload.user_id):f'\n{self.soberReactions[str(payload.emoji)]} - @{str(payload.member.nick)}'})
+            else:
+                self.soberMemberText.update({str(payload.user_id):f'\n{self.soberReactions[str(payload.emoji)]} - @{str(payload.member.name)}'})
+                
+            
             for player in self.soberMemberText.values():
                 messageText = messageText + str(player)
 
@@ -95,10 +99,9 @@ class OpSignUp(commands.Cog):
     
     @commands.command(name='ps2-sober-signup-reset')
     async def sober_dog_signup_reset(self,ctx):
+        message = await self.signUpChannel.fetch_message(self.soberdogMessageHandlerID)
         await message.delete()
         
-        self.soberdogsActive = False
-        self.armourdogsActive = False
         self.soberdogMessageText = ""
         self.soberdogMessageHandlerID = None
         self.signUpChannelName ='✍-sign-up'
@@ -148,26 +151,4 @@ class OpSignUp(commands.Cog):
     
         print('in sign-up')
         
-        
-        
-        
-    
-    
-            
-                
-            
-            
-            
-            
-            
-            
-        
-        
-        
-
-        
-        
-        
-        
-    
 

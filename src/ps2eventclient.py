@@ -136,13 +136,17 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
         """
         print("Checking stats")
         table = PrettyTable() 
-        table.field_names=['Name','Kills','Deaths','Team-Kills','BaseCaps','BaseDefs']
+        table.field_names=['Name','Kills','Team-Kills','BaseCaps','BaseDefs']
         for player, stats in self.trackingdata.items():
             mylist = []
             mylist.append(str(player))
-            for stat in stats.values():
-                mylist.append(str(stat))
-            table.add_row(mylist) 
+            for statName, stat in stats.items():
+                print(stat)
+                if statName == 'deaths':
+                    continue
+                print(stat)
+                mylist.append(stat)
+            table.add_row(mylist)
 
         TextOuput ='```'+'\n'+ str(table) + '```'
                 
