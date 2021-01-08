@@ -11,28 +11,8 @@ from dotenv import load_dotenv
 class OpSignUp(commands.Cog): 
     
     def __init__(self,bot):
-        self.soberdogMessageText = ""
-        self.soberdogMessageHandlerID = None
         self.signUpChannelName ='✍-sign-up'
-        self.signUpChannel = None
-        self.soberMembers = []
-        self.soberMemberText = {}
-        self.ignoreSoberRemove = False
-        self.soberReactions={'<:Icon_Heavy_Assault:795726910344003605>': 'Heavy','<:Icon_Combat_Medic:795726867960692806>' : 'Medic', '<:Icon_Infiltrator:795726922264215612>' : 'Infiltrator', '<:Icon_Light_Assault:795726936759468093>' : 'Light assault', '<:Icon_Engineer:795726888763916349>' : 'Engineer'}
-        
-        self.armourdogMessageText = ""
-        self.armourdogMessageHandlerID = None
-        self.armourMembers = []
-        self.armourMemberText = {}
-        self.armourReactions={'<:Icon_Vanguard:795727955896565781>':'Vanguard','<:ps2flash:795726333455237121>': 'Flash','<:Icon_Sunderer:795727911549272104>': 'Sunderer','<:Icon_Lightning:795727852875677776>':'Lightning','<:Icon_ANT:795727784239824896>' : 'ANT','<:Icon_Harasser:795727814220840970>' : 'Harasser' }
-        self.ignoreArmourRemove = False
-        
-        self.bastionMessageText = ""
-        self.bastionMessageHandlerID = None
-        self.bastionMembers = []
-        self.bastionMemberText = {}
-        self.bastionReactions={'<:NC:727306728470872075>':'NC'}
-        self.ignoreBastionRemove = False
+    
         self.soberObj = {}
         self.armourObj = {}
         self.bastionObj = {}
