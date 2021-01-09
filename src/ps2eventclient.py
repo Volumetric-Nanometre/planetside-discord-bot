@@ -136,13 +136,15 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
         """
         print("Checking stats")
         table = PrettyTable() 
-        table.field_names=['Name','Kills','Deaths','Team-Kills','BaseCaps','BaseDefs']
+        table.field_names=['Name','Kills','Team-Kills','Team-Deaths','BaseCaps','BaseDefs']
         for player, stats in self.trackingdata.items():
             mylist = []
             mylist.append(str(player))
-            for stat in stats.values():
-                mylist.append(str(stat))
-            table.add_row(mylist) 
+            for statName, stat in stats.items():
+                if statName == 'deaths':
+                    continue
+                mylist.append(stat)
+            table.add_row(mylist)
 
         TextOuput ='```'+'\n'+ str(table) + '```'
                 
@@ -164,8 +166,12 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
             # If exists, check if already being tracked
             # If not tracked, add to tracking, else return
             #
-            flat_list = [item for sublist in message for item in sublist]
-            print(flat_list)
+            if any(isinstance(x, list) for x in message):
+            
+                flat_list = [item for sublist in message for item in sublist]
+                print(flat_list)
+            else:
+                flat_list = message
             for player in flat_list:
                 print(player)
                 print("Finding player")
@@ -224,6 +230,9 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
         dictVal = Ps2PersonalEvents.stats_dictionary_insert(self,char,{'team-kills':int(0)})
         self.trackingdata.update({char.name():dictVal})
         
+        dictVal = Ps2PersonalEvents.stats_dictionary_insert(self,char,{'team-killed':int(0)})
+        self.trackingdata.update({char.name():dictVal})
+        
         Ps2EventClient.remove_trigger(self,client,'personal-kill-death')
 
         @client.trigger(auraxium.EventType.DEATH,characters=self.membersBeingTracked_id,name='personal-kill-death')
@@ -243,6 +252,9 @@ class Ps2PersonalEvents(Ps2EventClient,commands.Cog):
             elif char_fac == attack_fac and attacker_id in self.membersBeingTracked_id:
                 total = self.trackingdata[attack_char.name()]['team-kills'] + 1
                 self.trackingdata.update({attack_char.name(): Ps2PersonalEvents.stats_dictionary_insert(self,attack_char,{'team-kills':total})})
+            elif char_fac == attack_fac and char_id in self.membersBeingTracked_id:
+                total = self.trackingdata[attack_char.name()]['team-killed'] + 1
+                self.trackingdata.update({attack_char.name(): Ps2PersonalEvents.stats_dictionary_insert(self,attack_char,{'team-killed':total})})
             else:
                 total = self.trackingdata[attack_char.name()]['kills'] + 1
                 self.trackingdata.update({attack_char.name(): Ps2PersonalEvents.stats_dictionary_insert(self,attack_char,{'kills':total})})
