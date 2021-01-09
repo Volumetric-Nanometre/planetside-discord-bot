@@ -1,5 +1,5 @@
 import discord
-
+import settings
 class channelManipulation():
     
     def __init__(self):
@@ -25,17 +25,17 @@ class channelManipulation():
         """
         Check if category exists, then delete
         """
-        existing_category = discord.utils.get(ctx.guild.categories,
-                                              name=category_name)
-        print(existing_category)
-        if not existing_category:
-            print(f'{category_name} does not exist')
-        else:
-            print(f'Deleting: {category_name}')
-            try:
-                await category_name.delete()
-            except:
-                print(f'Deleting {category_name} failed')
+        #existing_category = discord.utils.get(ctx.guild.categories,
+        #                                      name=category_name)
+        #print(existing_category)
+        #if not existing_category:
+        #    print(f'{category_name} does not exist')
+       # else:
+        print(f'Deleting: {category_name}')
+        try:
+            await category_name.delete()
+        except:
+            print(f'Deleting {category_name} failed')
 
     async def create_voice_channel(ctx,channel_name, category=None):
         """
@@ -57,11 +57,11 @@ class channelManipulation():
         Assume if called the category exists. 
         Check if chennel exists in the intended category, then create
         """
-        print('does it exists')
-        existing_channel=discord.utils.get(category.voice_channels,
-                                           name=channel_name)
-        if existing_channel:
-            print(f'Deleting channel: {channel_name}')
-            await guild.create_voice_channel(channel_name,category=category) 
+        print(f'Deleting: {channel_name}')
+        try:
+            await channel_name.delete()
+        except:
+            print(f'Deleting {category_name} failed')
+
             
         
