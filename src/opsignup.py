@@ -16,6 +16,7 @@ class OpSignUp(commands.Cog):
         self.soberObj = {}
         self.armourObj = {}
         self.bastionObj = {}
+        self.squadObj = {}
         self.bot = bot
         super().__init__()
         
@@ -36,6 +37,10 @@ class OpSignUp(commands.Cog):
             print('Bastion remove react')
             bastion = self.bastionObj[payload.message_id]
             await OpSignUp.generic_react_remove(bastion,payload)
+        elif payload.message_id in self.squadObj:
+            print('Squad remove react')
+            squad = self.squadObj[payload.message_id]
+            await OpSignUp.generic_react_remove(squad,payload)
         else:
             pass
         
@@ -46,19 +51,23 @@ class OpSignUp(commands.Cog):
     @commands.Cog.listener('on_raw_reaction_add') 
     async def react_sign_up_check(self,payload):
         
-        print('reaction caught') 
+        print(f'reaction caught {str(payload.emoji)}') 
         if payload.message_id in self.soberObj:
-            print('Soberdogs remove react')
+            print('Soberdogs add react')
             sober = self.soberObj[payload.message_id]
             await OpSignUp.generic_react_add(sober,payload)
         elif payload.message_id in self.armourObj:
-            print('Soberdogs remove react')
+            print('Armourdogs add react')
             armour = self.armourObj[payload.message_id]
             await OpSignUp.generic_react_add(armour,payload)
         elif payload.message_id in self.bastionObj:
-            print('Soberdogs remove react')
+            print('Bastion add react')
             bastion = self.bastionObj[payload.message_id]
             await OpSignUp.generic_react_add(bastion,payload)
+        elif payload.message_id in self.squadObj:
+            print('Squad add react')
+            squad = self.squadObj[payload.message_id]
+            await OpSignUp.generic_react_add(squad,payload)
             
         else:
             pass
@@ -76,6 +85,9 @@ class OpSignUp(commands.Cog):
         elif payload.message_id in self.bastionObj:
             del self.bastionObj[payload.message_id]
             print(self.bastionObj)
+        elif payload.message_id in self.squadObj:
+            del self.squadObj[payload.message_id]
+            print(self.squadObj)
         else:
             pass
     
@@ -108,6 +120,13 @@ class OpSignUp(commands.Cog):
             print(f'Bastion messgae sent {bastion.messageHandlerID}')
             self.bastionObj.update( {bastion.messageHandlerID : bastion})
             print('Bastion added to dictionary')
+        elif signup == 'squad':
+            squad=SquadLead(channel)
+            print('squad instantiated')
+            await squad.send_message(ctx,date)
+            print(f'squad messgae sent {squad.messageHandlerID}')
+            self.squadObj.update( {squad.messageHandlerID : squad})
+            print('squad added to dictionary')
         else:
             print('Sign up type does not exist')
             
@@ -283,6 +302,38 @@ class Bastion:
 
     def get_message():
         with open('messages/bastion.txt','r') as f:
+            messageText = f.read()
+            return messageText
+    
+    async def send_message(self,ctx,date):
+        
+        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
+        roles = await ctx.guild.fetch_roles()
+        
+        for role in roles:
+            if role.name in self.mentionRoles:
+                self.messageText = f'{role.mention} ' + self.messageText 
+            else:
+                pass
+        messageHandler = await self.signUpChannel.send(self.messageText)
+        self.messageHandlerID = messageHandler.id
+        
+class SquadLead:
+    
+    def __init__(self,channel):
+        self.signUpChannel = channel
+        self.messageText = SquadLead.get_message()
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_A:795729153072431104>':'PL','<:Icon_B:795729164891062343>':'SL','<:Icon_C:795729176363270205>':'FL','<:Icon_D:795729189260754956>':'Reserve'}
+        self.maxReact={'<:Icon_A:795729153072431104>':[-1,0],'<:Icon_B:795729164891062343>':[-1,0],'<:Icon_C:795729176363270205>':[-1,0],'<:NC:727306728470872075>':[-1,0]}
+        self.mentionRoles =['Officer','Sergeant','Corporal','Lance-Corporal']
+   
+
+    def get_message():
+        with open('messages/opsnight.txt','r') as f:
             messageText = f.read()
             return messageText
     
