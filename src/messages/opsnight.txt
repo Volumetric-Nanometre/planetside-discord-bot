@@ -2,7 +2,7 @@
 **Platoon and Squad Lead Signup**
 
 React below with the following to sign up:
-Pl: <:Icon_A:795729153072431104>
+PL: <:Icon_A:795729153072431104>
 SL: <:Icon_B:795729164891062343>
 FL: <:Icon_C:795729176363270205>
 Reserve: <:Icon_D:795729189260754956>
