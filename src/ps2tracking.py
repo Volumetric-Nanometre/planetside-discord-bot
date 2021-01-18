@@ -119,6 +119,7 @@ class Ps2PersonalTrack(commands.Cog):
                 self.trackingdata.update({event[1]:tracking})  
                         
         print('Tracking started. Add players to track')
+        await ctx.send('Tracking started. Add players to track')
         
     @commands.command(name='ps2-tracking-end')
     async def tracking_end(self,ctx):
@@ -129,8 +130,11 @@ class Ps2PersonalTrack(commands.Cog):
         for key in self.trackingdata.keys():
             await self.trackingdata[key].eventTypeClient.close()
             print('Client closed')
+        self.membersBeingTracked_id.clear() 
         self.trackingdata.clear()
         print('Tracking Finished.')
+        await ctx.send('Tracking Finished.')
+
        
     
     @commands.command(name='ps2-track')
@@ -138,6 +142,10 @@ class Ps2PersonalTrack(commands.Cog):
         """
         Function to track the stats of players
         """       
+        
+        if not self.trackingdata:
+            await ctx.send('Tracking not running. Use ps2-tracking-start to initialise tracking')
+            return
         
         try:
             client = auraxium.Client(service_id=settings.PS2_SVS_ID)
@@ -163,7 +171,7 @@ class Ps2PersonalTrack(commands.Cog):
             if char == None:
                 print("Player not found")
                 await ctx.send('Player not found')
-                break
+                continue
             else:
                 print(f"{char.name()} found")
 
@@ -226,6 +234,8 @@ class Ps2PersonalTrack(commands.Cog):
                 print("Player not being tracked")
                 await ctx.send("Player not being tracked")
         
+        if not self.membersBeingTracked_id:
+            await self.tracking_end(ctx)
         await client.close()
         print('complete')
 
@@ -289,8 +299,36 @@ class TrackingItem():
         self.auraxiumEventType = auraxiumEventType
         self.triggerName = triggerName
         print('Initilaised')
+    
+    async def add_player(self,char):
+        """
+        Function to set trigger event when a player is added to tracking
+        """ 
         
+        self.membersBeingTracked_id.append(int(char.id))
+        self.trackingdata.update({char.name():int(0)})
+        await self.trigger_func()
+        
+            
+    async def remove_player(self,char):
+        """
+        Function to set trigger event when player is removed from tracking
+        """
+        
+        self.membersBeingTracked_id.remove(int(char.id))
+        
+        del self.trackingdata[char.name()]
+        
+        if self.membersBeingTracked_id == []:
+            print("final player")
+            self.remove_trigger(keep_websocket_alive=False)
+            
+            print('Trigger to be removed')            
+        else:
+            await self.trigger_func()
+    
     def remove_trigger(self,keep_websocket_alive):
+        print('shit')
         try:
             self.eventTypeClient.find_trigger(self.triggerName)
         except:
@@ -309,32 +347,6 @@ class TrackingItem():
         else:
             dictVal.update(newitem)
             return dictVal
-        
-        
-    async def add_player(self,char):
-        """
-        Function to set trigger event when a player is added to tracking
-        """ 
-        
-        self.membersBeingTracked_id.append(int(char.id))
-        self.trackingdata.update({char.name():int(0)})
-        await self.trigger_func()
-        
-            
-    async def remove_player(self,char):
-        """
-        Function to set trigger event when player is removed from tracking
-        """
-        self.membersBeingTracked_id.remove(int(char.id))
-        
-        del self.trackingdata[char.name()]
-        
-        if self.membersBeingTracked_id == None:
-            await self.remove_trigger(keep_websocket_alive=False)
-            print('Trigger to be removed')            
-        else:
-            await self.trigger_func(keep_websocket_alive=True)
-      
     
     
     async def trigger_func(self):
