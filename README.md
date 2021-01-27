@@ -21,7 +21,15 @@ managed to get by using the github interface and hoping for the best.
 Currently the bot doesn't do much, but I am hoping to add more as time goes on.
 
 ### Currently in
-Nothin, nope, nada. This is a new project. Come back in a few weeks!
+- Can control the sign-ups of various groups using PS2 reactions. 
+    - Soberdogs
+    - Squad Leads
+    - Armourdogs
+    - DogFighters
+    - Bastion 
+- Can create and destroy a 'school' with as many classrooms as needed
+- Can create and destroy 2 platoons worth of voice channels
+- Rudimentry tracking
 
 ### Planned
 
