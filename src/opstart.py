@@ -30,8 +30,7 @@ class opschannels(channelManipulation,commands.Cog):
     @commands.command(name='ps2-start-ops')
     async def create_plt(self,ctx,*args):
         """
-        Check if category exists. If it doesn't, create and fill with
-        channels. 
+        Create ops channels 
         """
         for category_name in self.platoon_setup.keys():
             await channelManipulation.create_category(ctx,category_name)
@@ -53,8 +52,7 @@ class opschannels(channelManipulation,commands.Cog):
     @commands.command(name='ps2-end-ops')
     async def destroy_plt(self,ctx):
         """
-        Check if category exists. If is does, delete all channels
-        followed by the category
+        Destroy ops channels 
         """
         
         print('start')
@@ -73,8 +71,8 @@ class opschannels(channelManipulation,commands.Cog):
     @commands.command(name='ps2-start-school')
     async def start_school(self,ctx,arg):        
         """
-        Check if category exists. If it doesn't, create and fill with
-        channels. 
+        Usage: !ps2-start-school <numberOfClassrooms>
+        Creates <numberOfClassrooms> channels, and one "headteacher" channel
         """
         print('School Opening')
         self.schoolrooms = ['Headteachers Office']
@@ -103,8 +101,8 @@ class opschannels(channelManipulation,commands.Cog):
     @commands.command(name='ps2-end-school')
     async def end_school(self,ctx):
         """
-        Check if category exists. If is does, delete all channels
-        followed by the category
+        Usage: !ps2-end-school
+        Destroys all school channels
         """
         
         print('School Closing')
