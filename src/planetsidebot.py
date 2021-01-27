@@ -29,40 +29,6 @@ class Bot(commands.Bot):
         print(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.DISCORD_GUILD}')
 bot = Bot()        
 
-@bot.command(name='ps2-add')
-@commands.has_role('bot-wrangler')
-async def add_user(ctx,message):
-    
-    users = message.split(",")
-    await ctx.send(f'Adding {users}.')
-    
-    for user in users:
-        if user in authedUsers:
-            await ctx.send(f'{user} already given access.')
-        else:
-            authedUsers.append(user)
-            await ctx.send(f'{user} given access.')
-            
-@bot.command(name='ps2-remove')
-@commands.has_role('bot-wrangler')
-async def remove_user(ctx,message):
-    
-    users = message.split(",")
-    await ctx.send(f'Removing {users}.')
-    
-    for user in users:
-        if user not in authedUsers:
-            await ctx.send(f'{user} never had access.')
-            
-        else:
-            authedUsers.remove(user)
-            await ctx.send(f'{user} access removed.')
-    
-@bot.command(name='ps2-list')
-async def list_users(ctx):
-    for user in authedUsers:
-        await ctx.send(f'{user} has access.')
-    
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):

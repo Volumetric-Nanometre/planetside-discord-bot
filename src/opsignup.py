@@ -130,10 +130,12 @@ class OpSignUp(commands.Cog):
         Usage: !ps2-sign <squadtype> <date>
         Squadtypes: squad, soberdogs, armourdogs, dogfighters
                     bastion
+        Notes: Only the "Squad Lead" role will allow this command
         
         Functions to begin signup sheet operation.
+        
         Creates the relevant squadtype object and stores in 
-        diction of form {message_id : squadObj}
+        dictionary of form {message_id : squadObj}
         """
         channel = await OpSignUp.locate_sign_up(self,ctx)
         

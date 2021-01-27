@@ -16,36 +16,10 @@ class Ps2PersonalTrack(commands.Cog):
     
     def __init__(self,bot):
         self.membersBeingTracked_id = []
+        self.membersBeingTracked_char_name = []
         self.trackingdata = {}
-        self.eventTypesToTrack = {auraxium.EventType.filter_experience(1)  :'Kills', auraxium.EventType.VEHICLE_DESTROY :'Lost Vehicles', auraxium.EventType.filter_experience(7)  :'Revives', auraxium.EventType.filter_experience(4)  :'Heals', auraxium.EventType.filter_experience(2)  :'Assists', auraxium.EventType.filter_experience(34)  :'Resupply Player', auraxium.EventType.filter_experience(30)  :'Transport Assist'}
+        self.eventTypesToTrack = {auraxium.EventType.filter_experience(1)  :'Kills', auraxium.EventType.DEATH :'Deaths', auraxium.EventType.VEHICLE_DESTROY :'Lost Vehicles', auraxium.EventType.filter_experience(7)  :'Revives', auraxium.EventType.filter_experience(4)  :'Heals', auraxium.EventType.filter_experience(2)  :'Assists', auraxium.EventType.filter_experience(34)  :'Resupply Player', auraxium.EventType.filter_experience(30)  :'Transport Assist'}
         self.bot = bot
-    
-    
-    
-    
-    
-    async def locate_player(self,ctx,client):
-    
-        for player in flat_list:
-            print(player)
-            print("Finding player")
-            try:
-                char = await client.get_by_name(ps2.Character, player)
-            except:
-                print("Player not found")
-                await ctx.send('Player not found')
-                continue
-            else:
-                print(f"{char.name()} found")
-
-            if int(char.id) in self.membersBeingTracked_id:
-                print("Player already tracking")
-                await ctx.send("Player already tracking")
-            else:
-                print("Player tracking started")
-                await ctx.send("Player tracking started")
-                self.membersBeingTracked_id.append(int(char.id))
-                
                 
                 
     async def start_event_client(self,triggerName):
@@ -77,10 +51,12 @@ class Ps2PersonalTrack(commands.Cog):
             print('Trigger removed. Socket alive.')
             
     
-    @commands.command(name='ps2-channel-track-mk2')
+    @commands.command(name='ps2-channel-track')
     async def channel_track(self,ctx,category,channel):
         """
-        Function to retrive all measured stats for all participents
+        Usage: !ps2-channel-track <CategoryChannelIsIn> <Channel>
+        Attempts to resolve discord names into planetside names
+        to begin tracking
         """  
         print(category)
         existing_category = discord.utils.get(ctx.guild.categories,
@@ -107,7 +83,7 @@ class Ps2PersonalTrack(commands.Cog):
     @commands.command(name='ps2-tracking-start')
     async def tracking_start(self,ctx):
         """
-        Function to track the stats of players
+        Allows tracking to begin. Must be called first
         """       
         
         if not self.trackingdata:
@@ -124,7 +100,7 @@ class Ps2PersonalTrack(commands.Cog):
     @commands.command(name='ps2-tracking-end')
     async def tracking_end(self,ctx):
         """
-        Function to track the stats of players
+        Stops all tracking
         """       
         print('Ending tracking')
         for key in self.trackingdata.keys():
@@ -140,7 +116,8 @@ class Ps2PersonalTrack(commands.Cog):
     @commands.command(name='ps2-track')
     async def player_tracking_start(self,ctx,*message):
         """
-        Function to track the stats of players
+        Usage: !ps2-track <player1> <player2> ...
+        Attempts to begin tracking on the list of players provided
         """       
         
         if not self.trackingdata:
@@ -174,6 +151,7 @@ class Ps2PersonalTrack(commands.Cog):
                 continue
             else:
                 print(f"{char.name()} found")
+                self.membersBeingTracked_char_name.append(char.name())
 
             if int(char.id) in self.membersBeingTracked_id:
                 print("Player already tracking")
@@ -182,7 +160,7 @@ class Ps2PersonalTrack(commands.Cog):
                 print("Player tracking started")
                 await ctx.send("Player tracking started")
                 self.membersBeingTracked_id.append(int(char.id))
-
+                
                 for trigger, trackingItem in self.trackingdata.items():
                     await trackingItem.add_player(char)
                 
@@ -193,7 +171,9 @@ class Ps2PersonalTrack(commands.Cog):
     @commands.command(name='ps2-untrack')
     async def player_tracking_end(self,ctx,*message):
         """
-        Function to track the stats of players
+        Usage: !ps2-untrack <player1> <player2> ...
+        Attempts to end tracking on the list of players provided.
+        If all players removed, calls ps2-tracking-end
         """       
         
         try:
@@ -239,24 +219,27 @@ class Ps2PersonalTrack(commands.Cog):
         await client.close()
         print('complete')
 
-    @commands.command(name='ps2-track-stats-mk2')
+    @commands.command(name='ps2-track-stats')
     async def player_stats(self,ctx):
         """
-        Function to retrive all measured stats for all participents
+        Displays all current tracked stats
         """
         print("Checking stats")
         aggregateData = {}
         isName = False
         
-        for key in self.trackingdata.keys():
-            print(key)
-            
         for trigger, itemTracked in self.trackingdata.items():
             
             if isName == False:
-                aggregateData.update({'Player':list(itemTracked.trackingdata.keys())})
+                playerList =self.membersBeingTracked_char_name.copy()
+                playerList.append('Total')
+                aggregateData.update({'Player':playerList})
                 isName=True
-            aggregateData.update({trigger:list(itemTracked.trackingdata.values())})  
+            theDataList = list(itemTracked.trackingdata.values())
+            sumation = sum(theDataList)
+            theDataList.append(sumation)
+            
+            aggregateData.update({trigger:theDataList})  
         
         fullTable = tabulate(aggregateData,headers="keys",tablefmt="github")
          
@@ -306,7 +289,7 @@ class TrackingItem():
         """ 
         
         self.membersBeingTracked_id.append(int(char.id))
-        self.trackingdata.update({char.name():int(0)})
+        self.trackingdata.update({int(char.id):int(0)})
         await self.trigger_func()
         
             
@@ -317,7 +300,7 @@ class TrackingItem():
         
         self.membersBeingTracked_id.remove(int(char.id))
         
-        del self.trackingdata[char.name()]
+        del self.trackingdata[int(char.id)]
         
         if self.membersBeingTracked_id == []:
             print("final player")
@@ -341,7 +324,7 @@ class TrackingItem():
     
     def stats_dictionary_insert(self,char,newitem):    
         try:
-            dictVal = self.trackingdata[char.name()]
+            dictVal = self.trackingdata[int(char.id)]
         except:
             return newitem
         else:
@@ -351,20 +334,20 @@ class TrackingItem():
     
     async def trigger_func(self):
         self.remove_trigger(keep_websocket_alive=True)
-        print(self.membersBeingTracked_id)
+        print(f'{self.triggerName}\n{self.membersBeingTracked_id}')
         @self.eventTypeClient.trigger(self.auraxiumEventType,characters=self.membersBeingTracked_id,name=self.triggerName)
         async def generic_trigger(event):
             char_id = int(event.payload['character_id'])
-            char = await self.eventTypeClient.get_by_id(ps2.Character, char_id)
+            event_name = str(event.payload['event_name'])
             
-                
+           
             try:
-                total = self.trackingdata[char.name()] + 1
-                self.trackingdata.update({char.name():total})
+                total = self.trackingdata[char_id] + 1
+                self.trackingdata.update({char_id:total})
             except:
                 print('ignored')
                 
-            else:
-                print(f'{char.name()} has done {event}')
+            finally:
+                print(f'{char_id} in {event_name} as trigger {self.triggerName}')
 
         print('Complete trigger')
