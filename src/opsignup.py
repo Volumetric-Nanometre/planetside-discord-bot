@@ -281,7 +281,7 @@ class SoberDogs:
         self.ignoreRemove = False
         self.reactions={'<:Icon_Heavy_Assault:795726910344003605>': 'Heavy','<:Icon_Combat_Medic:795726867960692806>' : 'Medic', '<:Icon_Infiltrator:795726922264215612>' : 'Infiltrator', '<:Icon_Light_Assault:795726936759468093>' : 'Light assault', '<:Icon_Engineer:795726888763916349>' : 'Engineer','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
         self.maxReact={'<:Icon_Heavy_Assault:795726910344003605>': [5,0],'<:Icon_Combat_Medic:795726867960692806>' : [4,0], '<:Icon_Infiltrator:795726922264215612>' : [1,0], '<:Icon_Light_Assault:795726936759468093>' :[0,0], '<:Icon_Engineer:795726888763916349>' : [2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
-        self.mentionRoles =['here','DrunkenDogs','Soberdogs']
+        self.mentionRoles =['TDKD','Soberdogs']
 
     def get_message():
         with open('messages/soberdogs.txt','r') as f:
@@ -327,7 +327,7 @@ class ArmourDogs:
         self.ignoreRemove = False
         self.reactions={'<:Icon_Vanguard:795727955896565781>':'Vanguard','<:ps2flash:795726333455237121>': 'Flash','<:Icon_Sunderer:795727911549272104>': 'Sunderer','<:Icon_Lightning:795727852875677776>':'Lightning','<:Icon_ANT:795727784239824896>' : 'ANT','<:Icon_Harasser:795727814220840970>' : 'Harasser' }
         self.maxReact={'<:Icon_Vanguard:795727955896565781>':[-1,0],'<:ps2flash:795726333455237121>': [-1,0],'<:Icon_Sunderer:795727911549272104>': [-1,0],'<:Icon_Lightning:795727852875677776>':[-1,0],'<:Icon_ANT:795727784239824896>' : [-1,0],'<:Icon_Harasser:795727814220840970>' : [-1,0] }
-        self.mentionRoles =['here','DrunkenDogs','ArmourDogs']
+        self.mentionRoles =['TDKD','ArmourDogs']
 
     def get_message():
         with open('messages/armourdogs.txt','r') as f:
@@ -359,7 +359,7 @@ class Bastion:
         self.ignoreRemove = False
         self.reactions={'<:NC:727306728470872075>':'NC'}
         self.maxReact={'<:NC:727306728470872075>':[-1,0]}
-        self.mentionRoles =['DrunkenDogs']
+        self.mentionRoles =['TDKD']
 
 
     def get_message():
@@ -424,7 +424,7 @@ class DogFighters:
         self.ignoreRemove = False
         self.reactions={'<:Icon_Valkyrie:795727937735098388>':'Valkyrie','<:Icon_Reaver:795727893342846986>': 'Reaver','<:Icon_Galaxy:795727799591239760>': 'Galaxy','<:Icon_Liberator:795727831605837874>':'Liberator'}
         self.maxReact={'<:Icon_Valkyrie:795727937735098388>':[-1,0],'<:Icon_Reaver:795727893342846986>': [-1,0],'<:Icon_Galaxy:795727799591239760>': [-1,0],'<:Icon_Liberator:795727831605837874>':[-1,0]}
-        self.mentionRoles =['DrunkenDogs','DogFighters']
+        self.mentionRoles =['TDKD','DogFighters']
 
     def get_message():
         with open('messages/dogfighters.txt','r') as f:
