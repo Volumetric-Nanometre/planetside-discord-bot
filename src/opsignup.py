@@ -238,7 +238,7 @@ class OpSignUp(commands.Cog):
 
 
 
-class GenericSimpleSignup:
+class GenericSignup:
 
     def __init__(self):
         pass
@@ -247,24 +247,6 @@ class GenericSimpleSignup:
         with open(messageLocation,'r') as f:
             messageText = f.read()
             return messageText
-
-    async def send_message(self,ctx,date):
-
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
-
-        self.messageText = f"Message ID {messageHandler.id}\n" + self.messageText
-
-        message = await self.signUpChannel.fetch_message(self.messageHandlerID)
-        await message.edit(content=self.messageText )
 
     async def get_reaction_details(self,ctx):
 
@@ -301,138 +283,15 @@ class GenericSimpleSignup:
         await self.get_reaction_details(ctx)
 
 
-class ArmourDogs(GenericSimpleSignup):
+class SimpleMessage(GenericSignup):
 
-    def __init__(self,channel):
-        super(ArmourDogs,self).__init__()
-        self.signUpChannel = channel
-        self.messageText = ArmourDogs.get_message('messages/armourdogs.txt')
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:Icon_Vanguard:795727955896565781>':'Vanguard','<:ps2flash:795726333455237121>': 'Flash','<:Icon_Sunderer:795727911549272104>': 'Sunderer','<:Icon_Lightning:795727852875677776>':'Lightning','<:Icon_ANT:795727784239824896>' : 'ANT','<:Icon_Harasser:795727814220840970>' : 'Harasser' }
-        self.maxReact={'<:Icon_Vanguard:795727955896565781>':[-1,0],'<:ps2flash:795726333455237121>': [-1,0],'<:Icon_Sunderer:795727911549272104>': [-1,0],'<:Icon_Lightning:795727852875677776>':[-1,0],'<:Icon_ANT:795727784239824896>' : [-1,0],'<:Icon_Harasser:795727814220840970>' : [-1,0] }
-        self.mentionRoles =['ArmourDogs']
-
-class Bastion(GenericSimpleSignup):
-
-    def __init__(self,channel):
-        super(Bastion,self).__init__()
-        self.signUpChannel = channel
-        self.messageText = Bastion.get_message('messages/bastion.txt')
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'NC'}
-        self.maxReact={'<:NC:727306728470872075>':[-1,0]}
-        self.mentionRoles =['TDKD']
-
-class DogFighters(GenericSimpleSignup):
-
-    def __init__(self,channel):
-        super(DogFighters,self).__init__()
-        self.signUpChannel = channel
-        self.messageText = DogFighters.get_message('messages/dogfighters.txt')
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:Icon_Reaver:795727893342846986>': 'Reaver','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
-        self.maxReact={'<:Icon_Reaver:795727893342846986>': [12,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
-        self.mentionRoles =['DogFighters']
-
-class Logidogs(GenericSimpleSignup):
-
-    def __init__(self,channel):
-        super(Logidogs,self).__init__()
-        self.signUpChannel = channel
-        self.messageText = Logidogs.get_message('messages/logidogs.txt')
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:Icon_Infiltrator:795726922264215612>':'Hacker', '<:Icon_Engineer:795726888763916349>':'Router','<:Icon_Spawn_Beacon_NC:795729269891530792>': 'Reserve'}
-        self.maxReact={ '<:Icon_Infiltrator:795726922264215612>' : [4,0], '<:Icon_Engineer:795726888763916349>' :[2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
-        self.mentionRoles =['LogiDogs']
-
-class RoyalAirWoof(GenericSimpleSignup):
-
-    def __init__(self,channel):
-        super(RoyalAirWoof,self).__init__()
-        self.signUpChannel = channel
-        self.messageText = RoyalAirWoof.get_message('messages/royalairwoof.txt')
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:Icon_Galaxy:795727799591239760>': 'Galaxy','<:Icon_Liberator:795727831605837874>':'Liberator','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
-        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [8,0],'<:Icon_Liberator:795727831605837874>':[0,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
-        self.mentionRoles =['RAW']
-
-class SoberDogs(GenericSimpleSignup):
-
-    def __init__(self,channel):
-        super(SoberDogs,self).__init__()
-        self.signUpChannel = channel
-        self.messageText = SoberDogs.get_message('messages/soberdogs.txt')
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:Icon_Heavy_Assault:795726910344003605>': 'Heavy','<:Icon_Combat_Medic:795726867960692806>' : 'Medic', '<:Icon_Infiltrator:795726922264215612>' : 'Infiltrator', '<:Icon_Light_Assault:795726936759468093>' : 'Light assault', '<:Icon_Engineer:795726888763916349>' : 'Engineer','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
-        self.maxReact={'<:Icon_Heavy_Assault:795726910344003605>': [5,0],'<:Icon_Combat_Medic:795726867960692806>' : [4,0], '<:Icon_Infiltrator:795726922264215612>' : [1,0], '<:Icon_Light_Assault:795726936759468093>' :[0,0], '<:Icon_Engineer:795726888763916349>' : [2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
-        self.mentionRoles =['Soberdogs']
-
-class SquadLead(GenericSimpleSignup):
-
-    def __init__(self,channel):
-        super(SquadLead,self).__init__()
-        self.signUpChannel = channel
-        self.messageText = SquadLead.get_message('messages/opsnight.txt')
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:Icon_A:795729153072431104>':'PL','<:Icon_B:795729164891062343>':'SL','<:Icon_C:795729176363270205>':'FL','<:Icon_D:795729189260754956>':'Reserve'}
-        self.maxReact={'<:Icon_A:795729153072431104>':[-1,0],'<:Icon_B:795729164891062343>':[-1,0],'<:Icon_C:795729176363270205>':[-1,0],'<:Icon_D:795729189260754956>':[-1,0]}
-        self.mentionRoles =['CO','Captain','Lieutenant','Sergeant','Corporal','Lance-Corporal']
-
-
-
-class Training:
-
-    def __init__(self,channel,trainingtype, message):
-        self.signUpChannel = channel
-        self.trainingtype=trainingtype
-        self.messageText = message#get_or_make_message(message)
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'NC'}
-        self.maxReact={'<:NC:727306728470872075>':[-1,0]}
-        self.mentionRoles =['TDKD','The Washed Masses']
-
-
-    def get_or_make_message(message):
-        print("getting message")
-        try:
-            print("Trying message")
-            with open(f'messages/{trainingtype}.txt','r') as f:
-                messageText = f.read()
-                return messageText
-        except:
-            print("Making new message")
-            with open(f'messages/{trainingtype}.txt','w') as f:
-                f.write(message)
-                return message
+    def __init__(self):
+        super(SimpleMessage,self).__init__()
+        pass
 
     async def send_message(self,ctx,date):
 
         self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        self.messageText = f'\n**Activity Type: {self.trainingtype}**' + self.messageText
         roles = await ctx.guild.fetch_roles()
 
         for role in roles:
@@ -440,126 +299,20 @@ class Training:
                 self.messageText = f'{role.mention} ' + self.messageText
             else:
                 pass
-        str =' '.join(list(self.reactions.keys()))
-        self.messageText = self.messageText + f'\n**Use the following emojis:** {str} \n'
         messageHandler = await self.signUpChannel.send(self.messageText)
         self.messageHandlerID = messageHandler.id
 
-class NCAF:
+        self.messageText = f"Message ID {messageHandler.id}\n" + self.messageText
 
-    def __init__(self,channel,opsType, message):
-        self.signUpChannel = channel
-        self.opsType=opsType
-        self.messageText = message
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'NCAF'}
-        self.maxReact={'<:NC:727306728470872075>':[24,0]}
-        self.mentionRoles =['TDKD']
+        message = await self.signUpChannel.fetch_message(self.messageHandlerID)
+        await message.edit(content=self.messageText )
 
 
-    def get_or_make_message(message):
-        print("getting message")
-        try:
-            print("Trying message")
-            with open(f'messages/{trainingtype}.txt','r') as f:
-                messageText = f.read()
-                return messageText
-        except:
-            print("Making new message")
-            with open(f'messages/{trainingtype}.txt','w') as f:
-                f.write(message)
-                return message
+class ComplexMessage(GenericSignup):
 
-    async def send_message(self,ctx,date):
-
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        self.messageText = f'\n**Activity Type: {self.opsType}**' + self.messageText
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-        str =' '.join(list(self.reactions.keys()))
-        self.messageText = self.messageText + f'\n**Use the following emojis:** {str} \n'
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
-
-class CobaltClash:
-
-    def __init__(self,channel,opsType, message):
-        self.signUpChannel = channel
-        self.opsType=opsType
-        self.messageText = message
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'Infantry'}
-        self.maxReact={'<:NC:727306728470872075>':[24,0]}
-        self.mentionRoles =['TDKD']
-
-
-    def get_or_make_message(message):
-        print("getting message")
-        try:
-            print("Trying message")
-            with open(f'messages/{trainingtype}.txt','r') as f:
-                messageText = f.read()
-                return messageText
-        except:
-            print("Making new message")
-            with open(f'messages/{trainingtype}.txt','w') as f:
-                f.write(message)
-                return message
-
-    async def send_message(self,ctx,date):
-
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        self.messageText = f'\n**Activity Type: {self.opsType}**' + self.messageText
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-        str =' '.join(list(self.reactions.keys()))
-        self.messageText = self.messageText + f'\n**Use the following emojis:** {str} \n'
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
-
-class JointOps:
-
-    def __init__(self,channel,opsType, message):
-        self.signUpChannel = channel
-        self.opsType=opsType
-        self.messageText = message
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'NC'}
-        self.maxReact={'<:NC:727306728470872075>':[-1,0]}
-        self.mentionRoles =['TDKD']
-
-
-    def get_or_make_message(message):
-        print("getting message")
-        try:
-            print("Trying message")
-            with open(f'messages/{trainingtype}.txt','r') as f:
-                messageText = f.read()
-                return messageText
-        except:
-            print("Making new message")
-            with open(f'messages/{trainingtype}.txt','w') as f:
-                f.write(message)
-                return message
+    def __init__(self):
+        super(ComplexMessage,self).__init__()
+        pass
 
     async def send_message(self,ctx,date):
 
@@ -576,3 +329,165 @@ class JointOps:
         self.messageText = self.messageText + f'\n**Use the following emojis:** {str} \n'
         messageHandler = await self.signUpChannel.send(self.messageText)
         self.messageHandlerID = messageHandler.id
+
+        self.messageText = f"Message ID {messageHandler.id}\n" + self.messageText
+
+        message = await self.signUpChannel.fetch_message(self.messageHandlerID)
+        await message.edit(content=self.messageText )
+
+
+class ArmourDogs(SimpleMessage):
+
+    def __init__(self,channel):
+        super(ArmourDogs,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = ArmourDogs.get_message('messages/armourdogs.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_Vanguard:795727955896565781>':'Vanguard','<:ps2flash:795726333455237121>': 'Flash','<:Icon_Sunderer:795727911549272104>': 'Sunderer','<:Icon_Lightning:795727852875677776>':'Lightning','<:Icon_ANT:795727784239824896>' : 'ANT','<:Icon_Harasser:795727814220840970>' : 'Harasser' }
+        self.maxReact={'<:Icon_Vanguard:795727955896565781>':[-1,0],'<:ps2flash:795726333455237121>': [-1,0],'<:Icon_Sunderer:795727911549272104>': [-1,0],'<:Icon_Lightning:795727852875677776>':[-1,0],'<:Icon_ANT:795727784239824896>' : [-1,0],'<:Icon_Harasser:795727814220840970>' : [-1,0] }
+        self.mentionRoles =['ArmourDogs']
+
+class Bastion(SimpleMessage):
+
+    def __init__(self,channel):
+        super(Bastion,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = Bastion.get_message('messages/bastion.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:NC:727306728470872075>':'NC'}
+        self.maxReact={'<:NC:727306728470872075>':[-1,0]}
+        self.mentionRoles =['TDKD']
+
+class DogFighters(SimpleMessage):
+
+    def __init__(self,channel):
+        super(DogFighters,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = DogFighters.get_message('messages/dogfighters.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_Reaver:795727893342846986>': 'Reaver','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_Reaver:795727893342846986>': [12,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
+        self.mentionRoles =['DogFighters']
+
+class Logidogs(SimpleMessage):
+
+    def __init__(self,channel):
+        super(Logidogs,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = Logidogs.get_message('messages/logidogs.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_Infiltrator:795726922264215612>':'Hacker', '<:Icon_Engineer:795726888763916349>':'Router','<:Icon_Spawn_Beacon_NC:795729269891530792>': 'Reserve'}
+        self.maxReact={ '<:Icon_Infiltrator:795726922264215612>' : [4,0], '<:Icon_Engineer:795726888763916349>' :[2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
+        self.mentionRoles =['LogiDogs']
+
+class RoyalAirWoof(SimpleMessage):
+
+    def __init__(self,channel):
+        super(RoyalAirWoof,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = RoyalAirWoof.get_message('messages/royalairwoof.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_Galaxy:795727799591239760>': 'Galaxy','<:Icon_Liberator:795727831605837874>':'Liberator','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [8,0],'<:Icon_Liberator:795727831605837874>':[0,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
+        self.mentionRoles =['RAW']
+
+class SoberDogs(SimpleMessage):
+
+    def __init__(self,channel):
+        super(SoberDogs,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = SoberDogs.get_message('messages/soberdogs.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_Heavy_Assault:795726910344003605>': 'Heavy','<:Icon_Combat_Medic:795726867960692806>' : 'Medic', '<:Icon_Infiltrator:795726922264215612>' : 'Infiltrator', '<:Icon_Light_Assault:795726936759468093>' : 'Light assault', '<:Icon_Engineer:795726888763916349>' : 'Engineer','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_Heavy_Assault:795726910344003605>': [5,0],'<:Icon_Combat_Medic:795726867960692806>' : [4,0], '<:Icon_Infiltrator:795726922264215612>' : [1,0], '<:Icon_Light_Assault:795726936759468093>' :[0,0], '<:Icon_Engineer:795726888763916349>' : [2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
+        self.mentionRoles =['Soberdogs']
+
+class SquadLead(SimpleMessage):
+
+    def __init__(self,channel):
+        super(SquadLead,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = SquadLead.get_message('messages/opsnight.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_A:795729153072431104>':'PL','<:Icon_B:795729164891062343>':'SL','<:Icon_C:795729176363270205>':'FL','<:Icon_D:795729189260754956>':'Reserve'}
+        self.maxReact={'<:Icon_A:795729153072431104>':[-1,0],'<:Icon_B:795729164891062343>':[-1,0],'<:Icon_C:795729176363270205>':[-1,0],'<:Icon_D:795729189260754956>':[-1,0]}
+        self.mentionRoles =['CO','Captain','Lieutenant','Sergeant','Corporal','Lance-Corporal']
+
+
+class CobaltClash(ComplexMessage):
+
+    def __init__(self,channel,opsType, message):
+        self.signUpChannel = channel
+        self.opsType=opsType
+        self.messageText = message
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:NC:727306728470872075>':'Infantry'}
+        self.maxReact={'<:NC:727306728470872075>':[24,0]}
+        self.mentionRoles =['TDKD']
+
+
+class JointOps(ComplexMessage):
+
+    def __init__(self,channel,opsType, message):
+        self.signUpChannel = channel
+        self.opsType=opsType
+        self.messageText = message
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:NC:727306728470872075>':'NC'}
+        self.maxReact={'<:NC:727306728470872075>':[-1,0]}
+        self.mentionRoles =['TDKD']
+
+class NCAF(ComplexMessage):
+
+    def __init__(self,channel,opsType, message):
+        self.signUpChannel = channel
+        self.opsType=opsType
+        self.messageText = message
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:NC:727306728470872075>':'NCAF'}
+        self.maxReact={'<:NC:727306728470872075>':[24,0]}
+        self.mentionRoles =['TDKD']
+
+class Training(ComplexMessage):
+
+    def __init__(self,channel,trainingtype, message):
+        self.signUpChannel = channel
+        self.trainingtype=trainingtype
+        self.messageText = message#get_or_make_message(message)
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:NC:727306728470872075>':'NC'}
+        self.maxReact={'<:NC:727306728470872075>':[-1,0]}
+        self.mentionRoles =['TDKD','The Washed Masses']
