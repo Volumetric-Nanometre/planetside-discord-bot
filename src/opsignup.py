@@ -19,17 +19,8 @@ class OpSignUp(commands.Cog):
                                   'training':'✍-training', 'jointops':'✍-joint-ops',
                                   'raw':'✍-royal-air-woof','ncaf':'✍-ncaf',
                                   'cobaltclash':'✍-cobalt-clash'}
-        self.airObj = {}
-        self.armourObj = {}
-        self.bastionObj = {}
-        self.cobaltclashObj = {}
-        self.jointopsObj = {}
-        self.logisticsObj = {}
-        self.ncafObj = {}
-        self.soberObj = {}
-        self.squadObj = {}
-        self.trainingObj = {}
-        self.rawObj = {}
+
+        self.objDict = {}
         self.bot = bot
         super().__init__()
 
@@ -43,61 +34,10 @@ class OpSignUp(commands.Cog):
         """
         print('remove reaction caught')
 
-        if payload.message_id in self.airObj:
-            print('Air remove react')
-            obj = self.airObj[payload.message_id]
+        if payload.message_id in self.objDict:
+            print('Remove react')
+            obj = self.objDict[payload.message_id]
             await OpSignUp.generic_react_remove(obj,payload)
-
-        elif payload.message_id in self.armourObj:
-            print('Armourdogs remove react')
-            obj = self.armourObj[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
-
-        elif payload.message_id in self.bastionObj:
-            print('Bastion remove react')
-            obj = self.bastionObj[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
-
-        elif payload.message_id in self.cobaltclashObj:
-            print('Cobalt Clash remove react')
-            obj = self.cobaltclashObj[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
-
-        elif payload.message_id in self.jointopsObj:
-            print('JointOps remove react')
-            obj = self.jointopsObj[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
-
-        elif payload.message_id in self.logisticsObj:
-            print('Logidogs remove react')
-            obj = self.logisticsObj[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
-
-        elif payload.message_id in self.ncafObj:
-            print('NCAF remove react')
-            obj = self.ncafObj[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
-
-        elif payload.message_id in self.rawObj:
-            print('RAW remove react')
-            obj = self.rawObj[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
-
-        elif payload.message_id in self.soberObj:
-            print('Soberdogs remove react')
-            obj = self.soberObj[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
-
-        elif payload.message_id in self.squadObj:
-            print('Squad remove react')
-            obj = self.squadObj[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
-
-        elif payload.message_id in self.trainingObj:
-            print('training remove react')
-            obj = self.trainingObj[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
-
         else:
             pass
 
@@ -113,61 +53,10 @@ class OpSignUp(commands.Cog):
         signup functions
         """
         print(f'reaction caught {str(payload.emoji)}')
-        if payload.message_id in self.airObj:
-            print('Air add react')
-            obj = self.airObj[payload.message_id]
+        if payload.message_id in self.objDict:
+            print('Add react')
+            obj = self.objDict[payload.message_id]
             await OpSignUp.generic_react_add(obj,payload)
-
-        elif payload.message_id in self.armourObj:
-            print('Armourdogs add react')
-            obj = self.armourObj[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
-
-        elif payload.message_id in self.bastionObj:
-            print('Bastion add react')
-            obj = self.bastionObj[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
-
-        elif payload.message_id in self.cobaltclashObj:
-            print('Cobalt Clash remove react')
-            obj = self.cobaltclashObj[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
-
-        elif payload.message_id in self.jointopsObj:
-            print('JointOps add react')
-            obj = self.jointopsObj[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
-
-        elif payload.message_id in self.logisticsObj:
-            print('Logidogs add react')
-            obj = self.logisticsObj[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
-
-        elif payload.message_id in self.ncafObj:
-            print('NCAF add react')
-            obj = self.ncafObj[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
-
-        elif payload.message_id in self.rawObj:
-            print('RAW add react')
-            obj = self.rawObj[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
-
-        elif payload.message_id in self.soberObj:
-            print('Soberdogs add react')
-            obj = self.soberObj[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
-
-        elif payload.message_id in self.squadObj:
-            print('Squad add react')
-            obj = self.squadObj[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
-
-        elif payload.message_id in self.trainingObj:
-            print('training add react')
-            obj = self.trainingObj[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
-
         else:
             pass
 
@@ -183,39 +72,9 @@ class OpSignUp(commands.Cog):
 
         Function then cleans up the objects
         """
-        if payload.message_id in self.airObj:
-            del self.airObj[payload.message_id]
-
-        elif payload.message_id in self.armourObj:
-            del self.armourObj[payload.message_id]
-
-        elif payload.message_id in self.bastionObj:
-            del self.bastionObj[payload.message_id]
-
-        elif payload.message_id in self.cobaltclashObj:
-            del self.cobaltclashObj[payload.message_id]
-
-        elif payload.message_id in self.jointopsObj:
-            del self.jointopsObj[payload.message_id]
-
-        elif payload.message_id in self.logisticsObj:
-            del self.logisticsObj[payload.message_id]
-
-        elif payload.message_id in self.ncafObj:
-            del self.ncafObj[payload.message_id]
-
-        elif payload.message_id in self.rawObj:
-            del self.rawObj[payload.message_id]
-
-        elif payload.message_id in self.soberObj:
-            del self.soberObj[payload.message_id]
-
-        elif payload.message_id in self.squadObj:
-            del self.squadObj[payload.message_id]
-
-        elif payload.message_id in self.trainingObj:
-            del self.trainingObj[payload.message_id]
-
+        if payload.message_id in self.objDict:
+            del self.objDict[payload.message_id]
+            print('Message Deleted')
         else:
             pass
 
@@ -246,7 +105,7 @@ class OpSignUp(commands.Cog):
             print('air instantiated')
             await obj.send_message(ctx,date)
             print(f'air message sent {obj.messageHandlerID}')
-            self.airObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('air added to dictionary')
 
         elif signup == 'armourdogs':
@@ -254,7 +113,7 @@ class OpSignUp(commands.Cog):
             print('Armourdogs instantiated')
             await obj.send_message(ctx,date)
             print(f'Armourdogs message sent {obj.messageHandlerID}')
-            self.armourObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('Armourdogs added to dictionary')
 
         elif signup == 'bastion':
@@ -262,7 +121,7 @@ class OpSignUp(commands.Cog):
             print('Bastion instantiated')
             await obj.send_message(ctx,date)
             print(f'Bastion message sent {obj.messageHandlerID}')
-            self.bastionObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('Bastion added to dictionary')
 
         elif signup == 'cobaltclash':
@@ -270,7 +129,7 @@ class OpSignUp(commands.Cog):
             print('Cobalt Clash instantiated')
             await obj.send_message(ctx,date)
             print(f'Cobalt Clash message sent {obj.messageHandlerID}')
-            self.cobaltclashObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('Cobalt Clash added to dictionary')
 
         elif signup == 'jointops':
@@ -278,7 +137,7 @@ class OpSignUp(commands.Cog):
             print('JointOps instantiated')
             await obj.send_message(ctx,date)
             print(f'JointOps message sent {obj.messageHandlerID}')
-            self.jointopsObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('JointOps added to dictionary')
 
         elif signup == 'logidogs':
@@ -286,7 +145,7 @@ class OpSignUp(commands.Cog):
             print('Logidogs instantiated')
             await obj.send_message(ctx,date)
             print(f'Logidogs message sent {obj.messageHandlerID}')
-            self.logisticsObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('Logidogs added to dictionary')
 
         elif signup == 'ncaf':
@@ -294,7 +153,7 @@ class OpSignUp(commands.Cog):
             print('NCAF instantiated')
             await obj.send_message(ctx,date)
             print(f'NCAF message sent {obj.messageHandlerID}')
-            self.ncafObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('NCAF added to dictionary')
 
         elif signup == 'raw':
@@ -302,7 +161,7 @@ class OpSignUp(commands.Cog):
             print('RAW instantiated')
             await obj.send_message(ctx,date)
             print(f'RAW message sent {obj.messageHandlerID}')
-            self.rawObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('RAW added to dictionary')
 
         elif signup == 'soberdogs':
@@ -310,7 +169,7 @@ class OpSignUp(commands.Cog):
             print('Soberdogs instantiated')
             await obj.send_message(ctx,date)
             print(f'Soberdogs message sent {obj.messageHandlerID}')
-            self.soberObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('Soberdogs added to dictionary')
 
         elif signup == 'squadleaders':
@@ -318,7 +177,7 @@ class OpSignUp(commands.Cog):
             print('squad instantiated')
             await obj.send_message(ctx,date)
             print(f'squad message sent {obj.messageHandlerID}')
-            self.squadObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('squad added to dictionary')
 
         elif signup == 'training':
@@ -326,7 +185,7 @@ class OpSignUp(commands.Cog):
             print('training instantiated')
             await obj.send_message(ctx,date)
             print(f'training message sent {obj.messageHandlerID}')
-            self.trainingObj.update( {obj.messageHandlerID : obj})
+            self.objDict.update( {obj.messageHandlerID : obj})
             print('training added to dictionary')
         else:
             print('Sign up type does not exist')
