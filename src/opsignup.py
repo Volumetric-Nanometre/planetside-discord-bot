@@ -204,10 +204,15 @@ class OpSignUp(commands.Cog):
             print('fail')
             return None
         print('Got text channel list')
+
+
         for channel in channels:
-            if self.signUpChannelName[signup][0] == channel.name:
-                print('Channel Found')
-                return channel
+            try:
+                if self.signUpChannelName[signup][0] == channel.name:
+                    print('Channel Found')
+                    return channel
+            except:
+                print("No channel found")
         print('Lookup complete')
 
     def react_max(self,payload):
