@@ -4,9 +4,10 @@ import discord
 
 import settings
 
+import traceback
+
 from discord.ext import commands
 from dotenv import load_dotenv
-
 
 class OpSignUp(commands.Cog):
     """
@@ -207,21 +208,13 @@ class OpSignUp(commands.Cog):
 
 
 
-class SoberDogs:
+class GenericSimpleSignup:
 
-    def __init__(self,channel):
-        self.signUpChannel = channel
-        self.messageText = SoberDogs.get_message()
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:Icon_Heavy_Assault:795726910344003605>': 'Heavy','<:Icon_Combat_Medic:795726867960692806>' : 'Medic', '<:Icon_Infiltrator:795726922264215612>' : 'Infiltrator', '<:Icon_Light_Assault:795726936759468093>' : 'Light assault', '<:Icon_Engineer:795726888763916349>' : 'Engineer','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
-        self.maxReact={'<:Icon_Heavy_Assault:795726910344003605>': [5,0],'<:Icon_Combat_Medic:795726867960692806>' : [4,0], '<:Icon_Infiltrator:795726922264215612>' : [1,0], '<:Icon_Light_Assault:795726936759468093>' :[0,0], '<:Icon_Engineer:795726888763916349>' : [2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
-        self.mentionRoles =['Soberdogs']
+    def __init__(self):
+        pass
 
-    def get_message():
-        with open('messages/soberdogs.txt','r') as f:
+    def get_message(messageLocation):
+        with open(messageLocation,'r') as f:
             messageText = f.read()
             return messageText
 
@@ -238,26 +231,13 @@ class SoberDogs:
         messageHandler = await self.signUpChannel.send(self.messageText)
         self.messageHandlerID = messageHandler.id
 
-    async def send_message(self,ctx,date):
 
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
-
-
-
-class ArmourDogs:
+class ArmourDogs(GenericSimpleSignup):
 
     def __init__(self,channel):
+        super(ArmourDogs,self).__init__()
         self.signUpChannel = channel
-        self.messageText = ArmourDogs.get_message()
+        self.messageText = ArmourDogs.get_message('messages/armourdogs.txt')
         self.messageHandlerID = None
         self.members = []
         self.memberText = {}
@@ -266,30 +246,12 @@ class ArmourDogs:
         self.maxReact={'<:Icon_Vanguard:795727955896565781>':[-1,0],'<:ps2flash:795726333455237121>': [-1,0],'<:Icon_Sunderer:795727911549272104>': [-1,0],'<:Icon_Lightning:795727852875677776>':[-1,0],'<:Icon_ANT:795727784239824896>' : [-1,0],'<:Icon_Harasser:795727814220840970>' : [-1,0] }
         self.mentionRoles =['ArmourDogs']
 
-    def get_message():
-        with open('messages/armourdogs.txt','r') as f:
-            messageText = f.read()
-            return messageText
-
-    async def send_message(self,ctx,date):
-
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
-
-
-class Bastion:
+class Bastion(GenericSimpleSignup):
 
     def __init__(self,channel):
+        super(Bastion,self).__init__()
         self.signUpChannel = channel
-        self.messageText = Bastion.get_message()
+        self.messageText = Bastion.get_message('messages/bastion.txt')
         self.messageHandlerID = None
         self.members = []
         self.memberText = {}
@@ -298,30 +260,68 @@ class Bastion:
         self.maxReact={'<:NC:727306728470872075>':[-1,0]}
         self.mentionRoles =['TDKD']
 
-
-    def get_message():
-        with open('messages/bastion.txt','r') as f:
-            messageText = f.read()
-            return messageText
-
-    async def send_message(self,ctx,date):
-
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
-
-class SquadLead:
+class DogFighters(GenericSimpleSignup):
 
     def __init__(self,channel):
+        super(DogFighters,self).__init__()
         self.signUpChannel = channel
-        self.messageText = SquadLead.get_message()
+        self.messageText = DogFighters.get_message('messages/dogfighters.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_Reaver:795727893342846986>': 'Reaver','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_Reaver:795727893342846986>': [12,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
+        self.mentionRoles =['DogFighters']
+
+class Logidogs(GenericSimpleSignup):
+
+    def __init__(self,channel):
+        super(Logidogs,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = Logidogs.get_message('messages/logidogs.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_Infiltrator:795726922264215612>':'Hacker', '<:Icon_Engineer:795726888763916349>':'Router','<:Icon_Spawn_Beacon_NC:795729269891530792>': 'Reserve'}
+        self.maxReact={ '<:Icon_Infiltrator:795726922264215612>' : [4,0], '<:Icon_Engineer:795726888763916349>' :[2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
+        self.mentionRoles =['LogiDogs']
+
+class RoyalAirWoof(GenericSimpleSignup):
+
+    def __init__(self,channel):
+        super(RoyalAirWoof,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = RoyalAirWoof.get_message('messages/royalairwoof.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_Galaxy:795727799591239760>': 'Galaxy','<:Icon_Liberator:795727831605837874>':'Liberator','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [8,0],'<:Icon_Liberator:795727831605837874>':[0,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
+        self.mentionRoles =['RAW']
+
+class SoberDogs(GenericSimpleSignup):
+
+    def __init__(self,channel):
+        super(SoberDogs,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = SoberDogs.get_message('messages/soberdogs.txt')
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_Heavy_Assault:795726910344003605>': 'Heavy','<:Icon_Combat_Medic:795726867960692806>' : 'Medic', '<:Icon_Infiltrator:795726922264215612>' : 'Infiltrator', '<:Icon_Light_Assault:795726936759468093>' : 'Light assault', '<:Icon_Engineer:795726888763916349>' : 'Engineer','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_Heavy_Assault:795726910344003605>': [5,0],'<:Icon_Combat_Medic:795726867960692806>' : [4,0], '<:Icon_Infiltrator:795726922264215612>' : [1,0], '<:Icon_Light_Assault:795726936759468093>' :[0,0], '<:Icon_Engineer:795726888763916349>' : [2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
+        self.mentionRoles =['Soberdogs']
+
+class SquadLead(GenericSimpleSignup):
+
+    def __init__(self,channel):
+        super(SquadLead,self).__init__()
+        self.signUpChannel = channel
+        self.messageText = SquadLead.get_message('messages/opsnight.txt')
         self.messageHandlerID = None
         self.members = []
         self.memberText = {}
@@ -331,117 +331,6 @@ class SquadLead:
         self.mentionRoles =['CO','Captain','Lieutenant','Sergeant','Corporal','Lance-Corporal']
 
 
-    def get_message():
-        with open('messages/opsnight.txt','r') as f:
-            messageText = f.read()
-            return messageText
-
-    async def send_message(self,ctx,date):
-
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
-
-
-class DogFighters:
-
-    def __init__(self,channel):
-        self.signUpChannel = channel
-        self.messageText = DogFighters.get_message()
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:Icon_Reaver:795727893342846986>': 'Reaver','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
-        self.maxReact={'<:Icon_Reaver:795727893342846986>': [12,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
-        self.mentionRoles =['DogFighters']
-
-    def get_message():
-        with open('messages/dogfighters.txt','r') as f:
-            messageText = f.read()
-            return messageText
-
-    async def send_message(self,ctx,date):
-
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
-
-class RoyalAirWoof:
-
-    def __init__(self,channel):
-        self.signUpChannel = channel
-        self.messageText = RoyalAirWoof.get_message()
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:Icon_Galaxy:795727799591239760>': 'Galaxy','<:Icon_Liberator:795727831605837874>':'Liberator','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
-        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [8,0],'<:Icon_Liberator:795727831605837874>':[0,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
-        self.mentionRoles =['RAW']
-
-    def get_message():
-        with open('messages/royalairwoof.txt','r') as f:
-            messageText = f.read()
-            return messageText
-
-    async def send_message(self,ctx,date):
-
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
-
-class Logidogs:
-
-    def __init__(self,channel):
-        self.signUpChannel = channel
-        self.messageText = Logidogs.get_message()
-        self.messageHandlerID = None
-        self.members = []
-        self.memberText = {}
-        self.ignoreRemove = False
-        self.reactions={'<:Icon_Infiltrator:795726922264215612>':'Hacker', '<:Icon_Engineer:795726888763916349>':'Router','<:Icon_Spawn_Beacon_NC:795729269891530792>': 'Reserve'}
-        self.maxReact={ '<:Icon_Infiltrator:795726922264215612>' : [4,0], '<:Icon_Engineer:795726888763916349>' :[2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
-        self.mentionRoles =['LogiDogs']
-
-    def get_message():
-        with open('messages/logidogs.txt','r') as f:
-            messageText = f.read()
-            return messageText
-
-    async def send_message(self,ctx,date):
-
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
 
 class Training:
 
