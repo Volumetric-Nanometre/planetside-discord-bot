@@ -17,7 +17,8 @@ class OpSignUp(commands.Cog):
                                   'bastion':'📣-ps2-events','squadleaders':'✍-squadleaders',
                                   'dogfighters':'✍-dogfighters','logidogs':'✍-logistics',
                                   'training':'✍-training', 'jointops':'✍-joint-ops',
-                                  'ncaf':'✍-ncaf','cobaltclash':'✍-cobalt-clash'}
+                                  'raw':'✍-royal-air-woof','ncaf':'✍-ncaf',
+                                  'cobaltclash':'✍-cobalt-clash'}
         self.airObj = {}
         self.armourObj = {}
         self.bastionObj = {}
@@ -28,6 +29,7 @@ class OpSignUp(commands.Cog):
         self.soberObj = {}
         self.squadObj = {}
         self.trainingObj = {}
+        self.rawObj = {}
         self.bot = bot
         super().__init__()
 
@@ -74,6 +76,11 @@ class OpSignUp(commands.Cog):
         elif payload.message_id in self.ncafObj:
             print('NCAF remove react')
             obj = self.ncafObj[payload.message_id]
+            await OpSignUp.generic_react_remove(obj,payload)
+
+        elif payload.message_id in self.rawObj:
+            print('RAW remove react')
+            obj = self.rawObj[payload.message_id]
             await OpSignUp.generic_react_remove(obj,payload)
 
         elif payload.message_id in self.soberObj:
@@ -141,6 +148,11 @@ class OpSignUp(commands.Cog):
             obj = self.ncafObj[payload.message_id]
             await OpSignUp.generic_react_add(obj,payload)
 
+        elif payload.message_id in self.rawObj:
+            print('RAW add react')
+            obj = self.rawObj[payload.message_id]
+            await OpSignUp.generic_react_add(obj,payload)
+
         elif payload.message_id in self.soberObj:
             print('Soberdogs add react')
             obj = self.soberObj[payload.message_id]
@@ -191,6 +203,9 @@ class OpSignUp(commands.Cog):
 
         elif payload.message_id in self.ncafObj:
             del self.ncafObj[payload.message_id]
+
+        elif payload.message_id in self.rawObj:
+            del self.rawObj[payload.message_id]
 
         elif payload.message_id in self.soberObj:
             del self.soberObj[payload.message_id]
@@ -281,6 +296,14 @@ class OpSignUp(commands.Cog):
             print(f'NCAF message sent {obj.messageHandlerID}')
             self.ncafObj.update( {obj.messageHandlerID : obj})
             print('NCAF added to dictionary')
+
+        elif signup == 'raw':
+            obj=RoyalAirWoof(channel)
+            print('RAW instantiated')
+            await obj.send_message(ctx,date)
+            print(f'RAW message sent {obj.messageHandlerID}')
+            self.rawObj.update( {obj.messageHandlerID : obj})
+            print('RAW added to dictionary')
 
         elif signup == 'soberdogs':
             obj=SoberDogs(channel)
@@ -410,7 +433,7 @@ class SoberDogs:
         self.ignoreRemove = False
         self.reactions={'<:Icon_Heavy_Assault:795726910344003605>': 'Heavy','<:Icon_Combat_Medic:795726867960692806>' : 'Medic', '<:Icon_Infiltrator:795726922264215612>' : 'Infiltrator', '<:Icon_Light_Assault:795726936759468093>' : 'Light assault', '<:Icon_Engineer:795726888763916349>' : 'Engineer','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
         self.maxReact={'<:Icon_Heavy_Assault:795726910344003605>': [5,0],'<:Icon_Combat_Medic:795726867960692806>' : [4,0], '<:Icon_Infiltrator:795726922264215612>' : [1,0], '<:Icon_Light_Assault:795726936759468093>' :[0,0], '<:Icon_Engineer:795726888763916349>' : [2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
-        self.mentionRoles =['TDKD','Soberdogs']
+        self.mentionRoles =['Soberdogs']
 
     def get_message():
         with open('messages/soberdogs.txt','r') as f:
@@ -456,7 +479,7 @@ class ArmourDogs:
         self.ignoreRemove = False
         self.reactions={'<:Icon_Vanguard:795727955896565781>':'Vanguard','<:ps2flash:795726333455237121>': 'Flash','<:Icon_Sunderer:795727911549272104>': 'Sunderer','<:Icon_Lightning:795727852875677776>':'Lightning','<:Icon_ANT:795727784239824896>' : 'ANT','<:Icon_Harasser:795727814220840970>' : 'Harasser' }
         self.maxReact={'<:Icon_Vanguard:795727955896565781>':[-1,0],'<:ps2flash:795726333455237121>': [-1,0],'<:Icon_Sunderer:795727911549272104>': [-1,0],'<:Icon_Lightning:795727852875677776>':[-1,0],'<:Icon_ANT:795727784239824896>' : [-1,0],'<:Icon_Harasser:795727814220840970>' : [-1,0] }
-        self.mentionRoles =['TDKD','ArmourDogs']
+        self.mentionRoles =['ArmourDogs']
 
     def get_message():
         with open('messages/armourdogs.txt','r') as f:
@@ -551,12 +574,43 @@ class DogFighters:
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:Icon_Valkyrie:795727937735098388>':'Valkyrie','<:Icon_Reaver:795727893342846986>': 'Reaver','<:Icon_Galaxy:795727799591239760>': 'Galaxy','<:Icon_Liberator:795727831605837874>':'Liberator'}
-        self.maxReact={'<:Icon_Valkyrie:795727937735098388>':[-1,0],'<:Icon_Reaver:795727893342846986>': [-1,0],'<:Icon_Galaxy:795727799591239760>': [-1,0],'<:Icon_Liberator:795727831605837874>':[-1,0]}
-        self.mentionRoles =['TDKD','DogFighters']
+        self.reactions={'<:Icon_Reaver:795727893342846986>': 'Reaver','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_Reaver:795727893342846986>': [12,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
+        self.mentionRoles =['DogFighters']
 
     def get_message():
         with open('messages/dogfighters.txt','r') as f:
+            messageText = f.read()
+            return messageText
+
+    async def send_message(self,ctx,date):
+
+        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
+        roles = await ctx.guild.fetch_roles()
+
+        for role in roles:
+            if role.name in self.mentionRoles:
+                self.messageText = f'{role.mention} ' + self.messageText
+            else:
+                pass
+        messageHandler = await self.signUpChannel.send(self.messageText)
+        self.messageHandlerID = messageHandler.id
+
+class RoyalAirWoof:
+
+    def __init__(self,channel):
+        self.signUpChannel = channel
+        self.messageText = RoyalAirWoof.get_message()
+        self.messageHandlerID = None
+        self.members = []
+        self.memberText = {}
+        self.ignoreRemove = False
+        self.reactions={'<:Icon_Galaxy:795727799591239760>': 'Galaxy','<:Icon_Liberator:795727831605837874>':'Liberator','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [8,0],'<:Icon_Liberator:795727831605837874>':[0,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
+        self.mentionRoles =['RAW']
+
+    def get_message():
+        with open('messages/royalairwoof.txt','r') as f:
             messageText = f.read()
             return messageText
 
@@ -584,7 +638,7 @@ class Logidogs:
         self.ignoreRemove = False
         self.reactions={'<:Icon_Infiltrator:795726922264215612>':'Hacker', '<:Icon_Engineer:795726888763916349>':'Router','<:Icon_Spawn_Beacon_NC:795729269891530792>': 'Reserve'}
         self.maxReact={ '<:Icon_Infiltrator:795726922264215612>' : [4,0], '<:Icon_Engineer:795726888763916349>' :[2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
-        self.mentionRoles =['TDKD','LogiDogs']
+        self.mentionRoles =['LogiDogs']
 
     def get_message():
         with open('messages/logidogs.txt','r') as f:
@@ -702,8 +756,8 @@ class CobaltClash:
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'CC'}
-        self.maxReact={'<:NC:727306728470872075>':[48,0]}
+        self.reactions={'<:NC:727306728470872075>':'Infantry'}
+        self.maxReact={'<:NC:727306728470872075>':[24,0]}
         self.mentionRoles =['TDKD']
 
 
