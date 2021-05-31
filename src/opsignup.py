@@ -114,6 +114,31 @@ class OpSignUp(commands.Cog):
                 print(f'{signup} message sent {obj.messageHandlerID}')
                 self.objDict.update( {obj.messageHandlerID : obj})
                 print(f'{signup} added to dictionary')
+
+        elif signup == 'current-limits':
+            try:
+                obj = self.objDict[int(date)]
+                print(obj)
+                print(obj.messageHandlerID)
+                await obj.get_reaction_details(ctx)
+
+            except Exception:
+                traceback.print_exc()
+                print("Object does not exist")
+                print(self.objDict)
+
+        elif signup == 'set-limits':
+            try:
+                obj = self.objDict[int(date)]
+                print(obj)
+                print(obj.messageHandlerID)
+                await obj.set_reaction_details(ctx,*args)
+
+            except Exception:
+                traceback.print_exc()
+                print("Object does not exist")
+                print(self.objDict)
+
         else:
             print('Sign up type does not exist')
 
