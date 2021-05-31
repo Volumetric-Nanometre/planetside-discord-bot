@@ -13,12 +13,12 @@ class OpSignUp(commands.Cog):
     Class to generate automated signup sheets
     """
     def __init__(self,bot):
-        self.signUpChannelName = {'soberdogs':'✍-soberdogs','armourdogs':'✍-armourdogs',
-                                  'bastion':'📣-ps2-events','squadleaders':'✍-squadleaders',
-                                  'dogfighters':'✍-dogfighters','logidogs':'✍-logistics',
-                                  'training':'✍-training', 'jointops':'✍-joint-ops',
-                                  'raw':'✍-royal-air-woof','ncaf':'✍-ncaf',
-                                  'cobaltclash':'✍-cobalt-clash'}
+        self.signUpChannelName = {'soberdogs':['✍-soberdogs',SoberDogs],'armourdogs':['✍-armourdogs',ArmourDogs],
+                                  'bastion':['📣-ps2-events',Bastion],'squadleaders':['✍-squadleaders',SquadLead],
+                                  'dogfighters':['✍-dogfighters',DogFighters],'logidogs':['✍-logistics', Logidogs],
+                                  'training':['✍-training',Training], 'jointops':['✍-joint-ops',JointOps],
+                                  'raw':['✍-royal-air-woof', RoyalAirWoof],'ncaf':['✍-ncaf',NCAF],
+                                  'cobaltclash':['✍-cobalt-clash',CobaltClash]}
 
         self.objDict = {}
         self.bot = bot
@@ -100,93 +100,19 @@ class OpSignUp(commands.Cog):
 
         channel = await OpSignUp.locate_sign_up(self,ctx,signup)
 
-        if signup == 'dogfighters':
-            obj=DogFighters(channel)
-            print('air instantiated')
-            await obj.send_message(ctx,date)
-            print(f'air message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('air added to dictionary')
-
-        elif signup == 'armourdogs':
-            obj=ArmourDogs(channel)
-            print('Armourdogs instantiated')
-            await obj.send_message(ctx,date)
-            print(f'Armourdogs message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('Armourdogs added to dictionary')
-
-        elif signup == 'bastion':
-            obj=Bastion(channel)
-            print('Bastion instantiated')
-            await obj.send_message(ctx,date)
-            print(f'Bastion message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('Bastion added to dictionary')
-
-        elif signup == 'cobaltclash':
-            obj=CobaltClash(channel,args[0],args[1])
-            print('Cobalt Clash instantiated')
-            await obj.send_message(ctx,date)
-            print(f'Cobalt Clash message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('Cobalt Clash added to dictionary')
-
-        elif signup == 'jointops':
-            obj=JointOps(channel,args[0],args[1])
-            print('JointOps instantiated')
-            await obj.send_message(ctx,date)
-            print(f'JointOps message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('JointOps added to dictionary')
-
-        elif signup == 'logidogs':
-            obj=Logidogs(channel)
-            print('Logidogs instantiated')
-            await obj.send_message(ctx,date)
-            print(f'Logidogs message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('Logidogs added to dictionary')
-
-        elif signup == 'ncaf':
-            obj=NCAF(channel,args[0],args[1])
-            print('NCAF instantiated')
-            await obj.send_message(ctx,date)
-            print(f'NCAF message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('NCAF added to dictionary')
-
-        elif signup == 'raw':
-            obj=RoyalAirWoof(channel)
-            print('RAW instantiated')
-            await obj.send_message(ctx,date)
-            print(f'RAW message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('RAW added to dictionary')
-
-        elif signup == 'soberdogs':
-            obj=SoberDogs(channel)
-            print('Soberdogs instantiated')
-            await obj.send_message(ctx,date)
-            print(f'Soberdogs message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('Soberdogs added to dictionary')
-
-        elif signup == 'squadleaders':
-            obj=SquadLead(channel)
-            print('squad instantiated')
-            await obj.send_message(ctx,date)
-            print(f'squad message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('squad added to dictionary')
-
-        elif signup == 'training':
-            obj=Training(channel,args[0],args[1])
-            print('training instantiated')
-            await obj.send_message(ctx,date)
-            print(f'training message sent {obj.messageHandlerID}')
-            self.objDict.update( {obj.messageHandlerID : obj})
-            print('training added to dictionary')
+        if signup in self.signUpChannelName:
+            print('Sign up found')
+            try:
+                obj=self.signUpChannelName[signup][1](channel,*args)
+            except Exception:
+                traceback.print_exc()
+                print('Sign up failed')
+            else:
+                print(f'{signup} instantiated')
+                await obj.send_message(ctx,date)
+                print(f'{signup} message sent {obj.messageHandlerID}')
+                self.objDict.update( {obj.messageHandlerID : obj})
+                print(f'{signup} added to dictionary')
         else:
             print('Sign up type does not exist')
 
@@ -253,7 +179,7 @@ class OpSignUp(commands.Cog):
             return None
         print('Got text channel list')
         for channel in channels:
-            if self.signUpChannelName[signup] == channel.name:
+            if self.signUpChannelName[signup][0] == channel.name:
                 print('Channel Found')
                 return channel
         print('Lookup complete')
