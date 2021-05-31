@@ -88,7 +88,7 @@ class OpSignUp(commands.Cog):
         Usage: !ps2-signup <squadtype> <date> <args>
         squadtype: squadleaders, soberdogs, armourdogs, dogfighters
                     bastion, training
-        date: Cannot be space separated. E.g. 21/06/2021-20:30GMT
+        date: Type as a string within quotation marks, e.g "Monday 8:30"
         Notes: Only the 'CO', 'Captain', 'Lieutenant', 'Sergeant' roles
         will allow this command
 
