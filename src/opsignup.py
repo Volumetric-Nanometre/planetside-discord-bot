@@ -261,6 +261,40 @@ class GenericSimpleSignup:
         message = await self.signUpChannel.fetch_message(self.messageHandlerID)
         await message.edit(content=self.messageText )
 
+    async def get_reaction_details(self,ctx):
+
+        message = "Reaction : Max Number\n"
+        for react in self.maxReact:
+
+            if self.maxReact[react][0] == -1:
+                message = message + f"{react} : (-1) Unlimited\n"
+            else:
+                message = message + f"{react} : {self.maxReact[react][0]}\n"
+
+        await ctx.channel.send(message)
+
+    async def set_reaction_details(self,ctx,*args):
+
+        for index, value in enumerate(args):
+
+            try:
+                print(f"Changing {value}")
+                if value in self.maxReact:
+                    currentUsed = self.maxReact[value][1]
+                    print(f"Current val {currentUsed}")
+
+                    print(f"New val {args[index+1]}")
+                    self.maxReact.update( {value: [int(args[index+1]),currentUsed]})
+                    print(f"{self.maxReact[value]}")
+
+                else:
+                    print("React does not exist")
+            except Exception:
+                traceback.print_exc()
+
+        await ctx.channel.send("New Values:")
+        await self.get_reaction_details(ctx)
+
 
 class ArmourDogs(GenericSimpleSignup):
 
