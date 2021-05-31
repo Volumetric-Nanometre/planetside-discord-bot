@@ -231,6 +231,11 @@ class GenericSimpleSignup:
         messageHandler = await self.signUpChannel.send(self.messageText)
         self.messageHandlerID = messageHandler.id
 
+        self.messageText = f"Message ID {messageHandler.id}\n" + self.messageText
+
+        message = await self.signUpChannel.fetch_message(self.messageHandlerID)
+        await message.edit(content=self.messageText )
+
 
 class ArmourDogs(GenericSimpleSignup):
 
