@@ -325,8 +325,12 @@ class ComplexMessage(GenericSignup):
                 self.messageText = f'{role.mention} ' + self.messageText
             else:
                 pass
-        str =' '.join(list(self.reactions.keys()))
-        self.messageText = self.messageText + f'\n**Use the following emojis:** {str} \n'
+
+        reactStr=str()
+        for reaction in self.reactions.keys():
+            reactStr = reactStr + f'{self.reactions[reaction]} {reaction}\n'
+
+        self.messageText = self.messageText + f'\n**Use the following emojis:**\n{reactStr}'
         messageHandler = await self.signUpChannel.send(self.messageText)
         self.messageHandlerID = messageHandler.id
 
@@ -360,8 +364,8 @@ class Bastion(SimpleMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'NC'}
-        self.maxReact={'<:NC:727306728470872075>':[-1,0]}
+        self.reactions={'<:tdkdsmall:803387734172762143>':'Woof'}
+        self.maxReact={'<:tdkdsmall:803387734172762143>':[-1,0]}
         self.mentionRoles =['TDKD']
 
 class DogFighters(SimpleMessage):
@@ -402,8 +406,8 @@ class RoyalAirWoof(SimpleMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:Icon_Galaxy:795727799591239760>': 'Galaxy','<:Icon_Liberator:795727831605837874>':'Liberator','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
-        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [8,0],'<:Icon_Liberator:795727831605837874>':[0,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
+        self.reactions={'<:Icon_Galaxy:795727799591239760>': 'Gal-Pilot','<:Icon_Liberator:795727831605837874>':'Lib-Pilot','<:Icon_Engineer:795726888763916349>':'Gunner' ,'<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [4,0],'<:Icon_Liberator:795727831605837874>':[0,0], '<:Icon_Engineer:795726888763916349>':[4,0] ,'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
         self.mentionRoles =['RAW']
 
 class SoberDogs(SimpleMessage):
@@ -480,14 +484,14 @@ class NCAF(ComplexMessage):
 
 class Training(ComplexMessage):
 
-    def __init__(self,channel,trainingtype, message):
+    def __init__(self,channel,opsType, message):
         self.signUpChannel = channel
-        self.trainingtype=trainingtype
-        self.messageText = message#get_or_make_message(message)
+        self.opsType=opsType
+        self.messageText = message
         self.messageHandlerID = None
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'NC'}
-        self.maxReact={'<:NC:727306728470872075>':[-1,0]}
+        self.reactions={'<:tdkdsmall:803387734172762143>': 'TDKD','<:NC:727306728470872075>':'Guest'}
+        self.maxReact={'<:tdkdsmall:803387734172762143>':[-1,0],'<:NC:727306728470872075>':[-1,0]}
         self.mentionRoles =['TDKD','The Washed Masses']
