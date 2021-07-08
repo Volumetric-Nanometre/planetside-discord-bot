@@ -12,7 +12,8 @@ Guests are always welcome
 
 Main Reacts:
 Gal Pilots <:Icon_Galaxy:795727799591239760>
-Lib Pilots <:Icon_Engineer:795726888763916349>
+Lib Pilots <:Icon_Liberator:795727831605837874>
+Derv Pilots <:Icon_Dervish:861303237062950942>
 Gunners <:Icon_Engineer:795726888763916349>
 Reserves <:Icon_Spawn_Beacon_NC:795729269891530792>
 

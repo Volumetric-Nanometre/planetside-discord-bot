@@ -406,8 +406,8 @@ class RoyalAirWoof(SimpleMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:Icon_Galaxy:795727799591239760>': 'Gal-Pilot','<:Icon_Liberator:795727831605837874>':'Lib-Pilot','<:Icon_Engineer:795726888763916349>':'Gunner' ,'<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
-        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [4,0],'<:Icon_Liberator:795727831605837874>':[0,0], '<:Icon_Engineer:795726888763916349>':[4,0] ,'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
+        self.reactions={'<:Icon_Galaxy:795727799591239760>': 'Gal-Pilot','<:Icon_Liberator:795727831605837874>':'Lib-Pilot', '<:Icon_Dervish:861303237062950942>':'Derv-Pilot' ,'<:Icon_Engineer:795726888763916349>':'Gunner','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [4,0],'<:Icon_Liberator:795727831605837874>':[0,0], '<:Icon_Dervish:861303237062950942>':[2,0], '<:Icon_Engineer:795726888763916349>':[6,0] ,'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
         self.mentionRoles =['RAW']
 
 class SoberDogs(SimpleMessage):
@@ -420,8 +420,8 @@ class SoberDogs(SimpleMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:Icon_Heavy_Assault:795726910344003605>': 'Heavy','<:Icon_Combat_Medic:795726867960692806>' : 'Medic', '<:Icon_Infiltrator:795726922264215612>' : 'Infiltrator', '<:Icon_Light_Assault:795726936759468093>' : 'Light assault', '<:Icon_Engineer:795726888763916349>' : 'Engineer','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
-        self.maxReact={'<:Icon_Heavy_Assault:795726910344003605>': [5,0],'<:Icon_Combat_Medic:795726867960692806>' : [4,0], '<:Icon_Infiltrator:795726922264215612>' : [1,0], '<:Icon_Light_Assault:795726936759468093>' :[0,0], '<:Icon_Engineer:795726888763916349>' : [2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
+        self.reactions={'<:Icon_MAX:795726948365631559>': 'MAX','<:Icon_Heavy_Assault:795726910344003605>': 'Heavy','<:Icon_Combat_Medic:795726867960692806>' : 'Medic', '<:Icon_Infiltrator:795726922264215612>' : 'Infiltrator', '<:Icon_Light_Assault:795726936759468093>' : 'Light assault', '<:Icon_Engineer:795726888763916349>' : 'Engineer','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.maxReact={'<:Icon_MAX:795726948365631559>': [0,0],'<:Icon_Heavy_Assault:795726910344003605>': [5,0],'<:Icon_Combat_Medic:795726867960692806>' : [4,0], '<:Icon_Infiltrator:795726922264215612>' : [1,0], '<:Icon_Light_Assault:795726936759468093>' :[0,0], '<:Icon_Engineer:795726888763916349>' : [2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
         self.mentionRoles =['Soberdogs']
 
 class SquadLead(SimpleMessage):
