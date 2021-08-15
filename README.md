@@ -27,6 +27,12 @@ Currently the bot doesn't do much, but I am hoping to add more as time goes on.
     - Armourdogs
     - DogFighters
     - Bastion 
+    - Royal Air Woof (RAW)
+    - Logidogs
+    - Training
+    - NCAF
+    - Cobalt Clash
+    - Joint Ops
 - Can create and destroy a 'school' with as many classrooms as needed
 - Can create and destroy 2 platoons worth of voice channels
 - ~~Rudimentry tracking~~ Disabled
