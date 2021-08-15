@@ -15,6 +15,7 @@ import opstart
 import settings
 import opsignup
 import ps2tracking
+import outfittracking
 
 class Bot(commands.Bot):
 
@@ -23,7 +24,8 @@ class Bot(commands.Bot):
 
         self.add_cog(opstart.opschannels(self))
         self.add_cog(opsignup.OpSignUp(self))
-        self.add_cog(ps2tracking.Ps2PersonalTrack(self))
+        self.add_cog(outfittracking.PS2OutfitTracker(self))
+        #self.add_cog(ps2tracking.Ps2PersonalTrack(self))
 
     async def on_ready(self):
         print(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.DISCORD_GUILD}')
