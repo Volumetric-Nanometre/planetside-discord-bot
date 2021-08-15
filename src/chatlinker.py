@@ -91,6 +91,8 @@ class ChatLinker(commands.Cog):
 
             else:
                 print("Chat channel does not exist.")
+        except discord.errors.Forbidden:
+            print("Changing this permission is forbiden")
         except discord.errors.NotFound:
             print("Channel entry exists, but not found. Removing entry")
             del self.charDict[previousState.channel.id]
@@ -127,6 +129,8 @@ class ChatLinker(commands.Cog):
                 self.charDict.update({newState.channel.id : chatChannel})
 
                 print("Chat channel does not exist.")
+        except discord.errors.Forbidden:
+            print("Changing this permission is forbiden")
         except discord.errors.NotFound:
             print("Channel entry exists, but not found. Removing entry")
             del self.charDict[previousState.channel.id]   
