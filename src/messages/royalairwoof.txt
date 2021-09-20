@@ -1,21 +1,7 @@
-
-
 **Royal Air Woof (RAW) Sign Up**
 
 Welcome to TDKD's Bomber wing!
 
 There are a limited (but variable) amount of slots available.
-If the signup react you used does not add your name, then that signup is full,
-try a different react.
 
 Guests are always welcome
-
-Main Reacts:
-Gal Pilots <:Icon_Galaxy:795727799591239760>
-Lib Pilots <:Icon_Liberator:795727831605837874>
-Derv Pilots <:Icon_Dervish:861303237062950942>
-Gunners <:Icon_Engineer:795726888763916349>
-Reserves <:Icon_Spawn_Beacon_NC:795729269891530792>
-
-**If your name does not appear, your signup has not happened.**
-**To remove or change signup, unreact.**
