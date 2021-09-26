@@ -86,10 +86,30 @@ class OpSignUp(commands.Cog):
     @commands.has_any_role('CO','Captain','Lieutenant','Sergeant')
     async def generic_signup(self,ctx,signup,date,*args):
         """
-        Usage: !ps2-signup <squadtype> <date> <args>
-        squadtype: squadleaders, soberdogs, armourdogs, dogfighters
-                    bastion, training
+        Usage 1: !ps2-signup <squadtype-1> <date>
+        Usage 2: !ps2-signup <squadtype-2> <date> <op-type> <description>
+        
+        Usage 3: !ps2-signup <limit-type> <message ID> <react-1> <limit-1> ... <react-n> <limit-n>
+        squadtype-1: squadleaders, soberdogs, armourdogs, dogfighters
+                    bastion, raw
+        squadtype-2: training, ncaf, cobaltclash
+        limit-type: current-limits, set-limits 
+                    
         date: Type as a string within quotation marks, e.g "Monday 8:30"
+        
+        op-type: A string describing the op type, e.g "Galaxy drop training"
+        
+        description: A string describing the op in detail. Can be multiline
+                     so long as they remain within quotation marks 
+        
+        message ID: The message ID of the message you wish to change the react
+                    limits on
+        
+        react-n: The reaction for the limit to be changed on
+        
+        limit-n: The new max limit for the reacts. -1 is unlimited. 0 is zero
+                 limit>0 will enforce limit
+        
         Notes: Only the 'CO', 'Captain', 'Lieutenant', 'Sergeant' roles
         will allow this command
 
@@ -384,7 +404,7 @@ class DogFighters(SimpleMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:Icon_Reaver:795727893342846986>': 'Reaver','<:Icon_Dervish:861303237062950942>':'Dervish','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.reactions={'<:Icon_Reaver:795727893342846986>': 'Reaver','<:Icon_Dervish:861303237062950942>':'Dervish','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve/Maybe'}
         self.maxReact={'<:Icon_Reaver:795727893342846986>': [-1,0],'<:Icon_Dervish:861303237062950942>':[-1,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
         self.mentionRoles =['DogFighters']
 
@@ -398,7 +418,7 @@ class Logidogs(SimpleMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:Icon_Infiltrator:795726922264215612>':'Hacker', '<:Icon_Engineer:795726888763916349>':'Router','<:Icon_Spawn_Beacon_NC:795729269891530792>': 'Reserve'}
+        self.reactions={'<:Icon_Infiltrator:795726922264215612>':'Hacker', '<:Icon_Engineer:795726888763916349>':'Router','<:Icon_Spawn_Beacon_NC:795729269891530792>': 'Reserve/Maybe'}
         self.maxReact={ '<:Icon_Infiltrator:795726922264215612>' : [4,0], '<:Icon_Engineer:795726888763916349>' :[2,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>': [-1,0]}
         self.mentionRoles =['LogiDogs']
 
@@ -413,8 +433,8 @@ class RoyalAirWoof(SimpleMessage):
         self.memberText = {}
         self.ignoreRemove = False
         self.reactions={'<:Icon_Galaxy:795727799591239760>': 'Gal-Pilot','<:Icon_Liberator:795727831605837874>':'Lib-Pilot'
-                        ,'<:Icon_Engineer:795726888763916349>':'Gunner','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
-        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [4,0],'<:Icon_Liberator:795727831605837874>':[0,0], '<:Icon_Engineer:795726888763916349>':[6,0] ,'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
+                        ,'<:Icon_Engineer:795726888763916349>':'Gunner','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve/Maybe'}
+        self.maxReact={'<:Icon_Galaxy:795727799591239760>': [4,0],'<:Icon_Liberator:795727831605837874>':[0,0], '<:Icon_Engineer:795726888763916349>':[-1,0] ,'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
         self.mentionRoles =['RAW']
 
 class SoberDogs(SimpleMessage):
@@ -430,7 +450,7 @@ class SoberDogs(SimpleMessage):
         self.reactions={'<:Icon_MAX:795726948365631559>': 'MAX','<:Icon_Heavy_Assault:795726910344003605>': 'Heavy'
                         ,'<:Icon_Combat_Medic:795726867960692806>' : 'Medic', '<:Icon_Infiltrator:795726922264215612>' : 'Infiltrator'
                         , '<:Icon_Light_Assault:795726936759468093>' : 'Light assault', '<:Icon_Engineer:795726888763916349>' : 'Engineer'
-                        ,'<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+                        ,'<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve/Maybe'}
         self.maxReact={'<:Icon_MAX:795726948365631559>': [0,0],'<:Icon_Heavy_Assault:795726910344003605>': [5,0]
                        ,'<:Icon_Combat_Medic:795726867960692806>' : [4,0], '<:Icon_Infiltrator:795726922264215612>' : [1,0]
                        , '<:Icon_Light_Assault:795726936759468093>' :[0,0], '<:Icon_Engineer:795726888763916349>' : [2,0]
@@ -447,12 +467,14 @@ class SquadLead(SimpleMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:Icon_A:795729153072431104>':'PL','<:Icon_B:795729164891062343>':'SL','<:Icon_C:795729176363270205>':'FL'
-                        ,'<:Icon_D:795729189260754956>':'Reserve','<:Icon_Heavy_Assault:795726910344003605>': 'Soberdog S/FL'
-                       ,'<:Icon_Galaxy:795727799591239760>': 'RAW S/FL','<:Icon_Vanguard:795727955896565781>':'Armour S/FL'}
-        self.maxReact={'<:Icon_A:795729153072431104>':[-1,0],'<:Icon_B:795729164891062343>':[-1,0],'<:Icon_C:795729176363270205>':[-1,0]
-                       ,'<:Icon_D:795729189260754956>':[-1,0],'<:Icon_Heavy_Assault:795726910344003605>': [-1,0]
-                       ,'<:Icon_Galaxy:795727799591239760>': [-1,0],'<:Icon_Vanguard:795727955896565781>':[-1,0]}
+        self.reactions={'<:Icon_A:795729153072431104>':'PL','<:Icon_B:795729164891062343>':'SL','<:Icon_C:795729176363270205>':'FL',
+                        '<:Icon_D:795729189260754956>':'Reserve','<:Icon_Heavy_Assault:795726910344003605>': 'Soberdog S/FL',
+                        '<:Icon_Galaxy:795727799591239760>': 'RAW S/FL','<:Icon_Reaver:795727893342846986>': 'Dog Fighter S/FL',
+                        '<:Icon_Vanguard:795727955896565781>':'Armour S/FL'}
+        self.maxReact={'<:Icon_A:795729153072431104>':[-1,0],'<:Icon_B:795729164891062343>':[-1,0],
+                       '<:Icon_C:795729176363270205>':[-1,0],'<:Icon_D:795729189260754956>':[-1,0],
+                       '<:Icon_Heavy_Assault:795726910344003605>': [-1,0], '<:Icon_Galaxy:795727799591239760>': [-1,0],
+                       '<:Icon_Reaver:795727893342846986>':  [-1,0],'<:Icon_Vanguard:795727955896565781>':[-1,0]}
         self.mentionRoles =['CO','Captain','Lieutenant','Sergeant','Corporal']
 
 
@@ -466,7 +488,7 @@ class CobaltClash(ComplexMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'Coming','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.reactions={'<:NC:727306728470872075>':'Coming','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve/Maybe'}
         self.maxReact={'<:NC:727306728470872075>':[-1,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
         self.mentionRoles =['TDKD']
 
@@ -481,7 +503,7 @@ class JointOps(ComplexMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'Coming','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.reactions={'<:NC:727306728470872075>':'Coming','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve/Maybe'}
         self.maxReact={'<:NC:727306728470872075>':[-1,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
         self.mentionRoles =['TDKD']
 
@@ -495,7 +517,7 @@ class NCAF(ComplexMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:NC:727306728470872075>':'Coming','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.reactions={'<:NC:727306728470872075>':'Coming','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve/Maybe'}
         self.maxReact={'<:NC:727306728470872075>':[-1,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
         self.mentionRoles =['TDKD']
 
@@ -509,6 +531,6 @@ class Training(ComplexMessage):
         self.members = []
         self.memberText = {}
         self.ignoreRemove = False
-        self.reactions={'<:tdkdsmall:803387734172762143>': 'TDKD','<:NC:727306728470872075>':'Guest','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve'}
+        self.reactions={'<:tdkdsmall:803387734172762143>': 'TDKD','<:NC:727306728470872075>':'Guest','<:Icon_Spawn_Beacon_NC:795729269891530792>':'Reserve/Maybe'}
         self.maxReact={'<:tdkdsmall:803387734172762143>':[-1,0],'<:NC:727306728470872075>':[-1,0],'<:Icon_Spawn_Beacon_NC:795729269891530792>':[-1,0]}
         self.mentionRoles =['TDKD','The Washed Masses']

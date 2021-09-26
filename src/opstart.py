@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands
 
 import asyncio
-import auraxium
-from auraxium import ps2
+#import auraxium
+#from auraxium import ps2
 from dotenv import load_dotenv
 import os
 
@@ -18,7 +18,7 @@ class opschannels(channelManipulation,commands.Cog):
     creation and destructioin routines for voice channels in discord
     """
     def __init__(self,bot):
-        self.platoon_setup ={'Headquarters':['Command'],'Standard':['Alpha','Bravo','Charlie','Delta'],'Specialist':['SoberDogs','ArmourDogs','DogFighters','LogiDogs']}    
+        self.platoon_setup ={'Headquarters':['Command'],'Standard':['Alpha','Bravo','Charlie','Delta'],'Specialist':['SoberDogs A','SoberDogs B','ArmourDogs','Royal Air Woof','DogFighters','LogiDogs']}    
         self.school={'School':['Headteachers Office']}
         self.members = []
         self.isRecording = False
