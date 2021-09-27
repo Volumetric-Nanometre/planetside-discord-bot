@@ -1,6 +1,5 @@
 import traceback
-from opsignup import SimpleMessage
-from opsignup import ComplexMessage
+from opsignup import GenericMessage
 
 class ReactionData():
     """
@@ -41,7 +40,7 @@ class ReactionData():
             return False    
         
         
-class ArmourDogs(SimpleMessage):
+class ArmourDogs(GenericMessage):
 
     def __init__(self,channel):
         super(ArmourDogs,self).__init__()
@@ -57,7 +56,7 @@ class ArmourDogs(SimpleMessage):
                        ]
         self.mentionRoles =['ArmourDogs']
 
-class Bastion(SimpleMessage):
+class Bastion(GenericMessage):
 
     def __init__(self,channel):
         super(Bastion,self).__init__()
@@ -68,7 +67,7 @@ class Bastion(SimpleMessage):
         self.reactions=[ReactionData('Woof','<:tdkdsmall:803387734172762143>',-1)]
         self.mentionRoles =['TDKD']
 
-class DogFighters(SimpleMessage):
+class DogFighters(GenericMessage):
 
     def __init__(self,channel):
         super(DogFighters,self).__init__()
@@ -82,7 +81,7 @@ class DogFighters(SimpleMessage):
                        ]
         self.mentionRoles =['DogFighters']
 
-class Logidogs(SimpleMessage):
+class Logidogs(GenericMessage):
 
     def __init__(self,channel):
         super(Logidogs,self).__init__()
@@ -96,7 +95,7 @@ class Logidogs(SimpleMessage):
                        ]
         self.mentionRoles =['LogiDogs']
 
-class RoyalAirWoof(SimpleMessage):
+class RoyalAirWoof(GenericMessage):
 
     def __init__(self,channel):
         super(RoyalAirWoof,self).__init__()
@@ -111,7 +110,7 @@ class RoyalAirWoof(SimpleMessage):
                        ]
         self.mentionRoles =['RAW']
 
-class SoberDogs(SimpleMessage):
+class SoberDogs(GenericMessage):
 
     def __init__(self,channel):
         super(SoberDogs,self).__init__()
@@ -129,7 +128,7 @@ class SoberDogs(SimpleMessage):
                         ]
         self.mentionRoles =['Soberdogs']
 
-class SquadLead(SimpleMessage):
+class SquadLead(GenericMessage):
 
     def __init__(self,channel):
         super(SquadLead,self).__init__()
@@ -150,7 +149,7 @@ class SquadLead(SimpleMessage):
         self.mentionRoles =['CO','Captain','Lieutenant','Sergeant','Corporal']
 
 
-class CobaltClash(ComplexMessage):
+class CobaltClash(GenericMessage):
 
     def __init__(self,channel,opsType, message):
         self.signUpChannel = channel
@@ -165,7 +164,7 @@ class CobaltClash(ComplexMessage):
         self.mentionRoles =['TDKD']
 
 
-class JointOps(ComplexMessage):
+class JointOps(GenericMessage):
 
     def __init__(self,channel,opsType, message):
         self.signUpChannel = channel
@@ -178,7 +177,7 @@ class JointOps(ComplexMessage):
                         ]
         self.mentionRoles =['TDKD']
 
-class NCAF(ComplexMessage):
+class NCAF(GenericMessage):
 
     def __init__(self,channel,opsType, message):
         self.signUpChannel = channel
@@ -191,7 +190,7 @@ class NCAF(ComplexMessage):
                         ]
         self.mentionRoles =['TDKD']
 
-class Training(ComplexMessage):
+class Training(GenericMessage):
 
     def __init__(self,channel,opsType, message):
         self.signUpChannel = channel

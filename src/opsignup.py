@@ -303,14 +303,19 @@ class GenericSignup:
         await self.get_reaction_details(ctx)
 
 
-class SimpleMessage(GenericSignup):
+class GenericMessage(GenericSignup):
 
     def __init__(self):
-        super(SimpleMessage,self).__init__()
+        super().__init__()
         pass
 
     async def send_message(self,ctx,date):
-
+        
+        try:
+            self.messageText = f'\n**Activity Type: {self.opsType}**' + self.messageText
+        except:
+            print("opsType does not exist")
+        
         self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
         roles = await ctx.guild.fetch_roles()
 
@@ -329,35 +334,3 @@ class SimpleMessage(GenericSignup):
         
         messageHandler = await self.signUpChannel.send(self.messageText)
         self.messageHandlerID = messageHandler.id
-
-
-
-class ComplexMessage(GenericSignup):
-
-    def __init__(self):
-        super(ComplexMessage,self).__init__()
-        pass
-
-    async def send_message(self,ctx,date):
-
-        self.messageText = f'\n**Activity Type: {self.opsType}**' + self.messageText
-        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
-
-        roles = await ctx.guild.fetch_roles()
-
-        for role in roles:
-            if role.name in self.mentionRoles:
-                self.messageText = f'{role.mention} ' + self.messageText
-            else:
-                pass
-
-        reactStr=str()
-        for reaction in self.reactions.keys():
-            reactStr = reactStr + f'{self.reactions[reaction]} {reaction}\n'
-
-        self.messageText = self.messageText + f'\n\n**Use the following reacts:**\n{reactStr}'
-        self.messageText = self.messageText + f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**'
-
-        messageHandler = await self.signUpChannel.send(self.messageText)
-        self.messageHandlerID = messageHandler.id
-        
