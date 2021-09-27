@@ -171,30 +171,33 @@ class OpSignUp(commands.Cog):
         messageText  = self.messageText
         message = await self.signUpChannel.fetch_message(self.messageHandlerID)
 
-        print([self.reactions[react].check_member(str(payload.user_id)) for react in self.reactions])
-
         if ( str(payload.emoji) in self.reactions.keys()
         and not sum([self.reactions[react].check_member(str(payload.user_id)) for react in self.reactions]) 
         and not OpSignUp.react_max(self,payload)):
 
+            self.reactions[str(payload.emoji)].add_member(str(payload.user_id),f'{str(payload.member.mention)}\n')
+            
+#-------------------------------------------------------------------------------           
+            embedOrig = message.embeds[0]
+            embed_dict = embedOrig.to_dict()
+            embed_fields = embed_dict['fields']
+            
+            for index,field in enumerate(embed_fields):
+                #print(field['name'])
+                #print(f'{payload.emoji.name} {self.reactions[str(payload.emoji)].name}')
+                if field['name'] == f':{payload.emoji.name}: {self.reactions[str(payload.emoji)].name}':
+                    
+                    memberString = ""
+                    for member in self.reactions[str(payload.emoji)].members.values():
+                        memberString = memberString + f"{member}"
+                    embed_dict['fields'][index].update({'value': str(memberString)})
+            
+            embedNew = discord.Embed().from_dict(embed_dict)
+            await message.edit(embed = embedNew)
 
-
-
-            OpSignUp.update_react_num(self,payload,'add')
-
-            self.reactions[str(payload.emoji)].add_member(str(payload.user_id),f'\n{self.reactions[str(payload.emoji)].symbol} - {str(payload.member.mention)}')
+#----------------------------------------------------------------------------------
             
             
-            for react in self.reactions.values():
-                for player in react.members.values():
-                    messageText = messageText + str(player)
-
-
-            print(messageText)
-
-            await message.edit(content=messageText)
-
-            print('Reaction accepted')
         else:
             self.ignoreRemove = True
             await message.remove_reaction(payload.emoji,payload.member)
@@ -210,13 +213,23 @@ class OpSignUp(commands.Cog):
         if str(payload.emoji) in self.reactions.keys():
 
             message = await self.signUpChannel.fetch_message(self.messageHandlerID)
-            messageText  = self.messageText
             self.reactions[str(payload.emoji)].remove_member(str(payload.user_id))
-            OpSignUp.update_react_num(self,payload,'remove')
-            for react in self.reactions.values():
-                for player in react.members.values():
-                    messageText = messageText + str(player)
-            await message.edit(content=messageText)
+            embedOrig = message.embeds[0]
+            embed_dict = embedOrig.to_dict()
+            embed_fields = embed_dict['fields']
+            
+            for index,field in enumerate(embed_fields):
+                #print(field['name'])
+                #print(f'{payload.emoji.name} {self.reactions[str(payload.emoji)].name}')
+                if field['name'] == f':{payload.emoji.name}: {self.reactions[str(payload.emoji)].name}':
+                    
+                    memberString = ""
+                    for member in self.reactions[str(payload.emoji)].members.values():
+                        memberString = memberString + f"\n{member}"
+                    embed_dict['fields'][index].update({'value': str(memberString)})
+            
+            embedNew = discord.Embed().from_dict(embed_dict)
+            await message.edit(embed = embedNew)
 
 
     async def locate_sign_up(self,ctx,signup):
@@ -247,16 +260,5 @@ class OpSignUp(commands.Cog):
         else:
             return True
 
-    def update_react_num(self,payload,operation=str):
-
-        maxReact = self.reactions[str(payload.emoji)].maxReact
-        current = self.reactions[str(payload.emoji)].currentReact
-        #if operation == 'add':
-        #    current = current + 1
-        #elif operation == 'remove':
-        #    current = current - 1
-
-        #self.reactions[str(payload.emoji)].currentReact = current
-        print(current)
 
 

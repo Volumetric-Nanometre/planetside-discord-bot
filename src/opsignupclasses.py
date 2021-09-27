@@ -1,3 +1,4 @@
+import discord
 import traceback
 
 class GenericSignup:
@@ -88,6 +89,47 @@ class GenericMessage(GenericSignup):
         
         messageHandler = await self.signUpChannel.send(self.messageText)
         self.messageHandlerID = messageHandler.id
+        
+        
+        
+class GenericEmbed(GenericSignup):
+    """
+    Class to generate a embed for the signups.
+
+    """
+    def __init__(self):
+        super().__init__()
+        pass
+
+    async def send_message(self,ctx,date):
+                
+        roles = await ctx.guild.fetch_roles()
+        
+        roleText = ""
+        for role in roles:
+            
+            if role.name in self.mentionRoles:
+                roleText = f'{role.mention} ' + roleText
+            else:
+                pass
+        
+        embed = discord.Embed(title = date, description =self.messageText ,color=0xff0000)
+        
+        try:
+            embed.add_field( name = "Op Type", value = self.opsType, inline=False)
+        except:
+            pass
+        
+        embed.add_field( name = "Date", value = date, inline=False)
+        
+        for reaction in self.reactions.keys():
+            embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'{self.reactions[reaction].members["perm"]}', inline=True)  
+        
+        embed.set_footer(text=f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**')        
+        
+        
+        messageHandler = await self.signUpChannel.send(roleText,embed=embed)
+        self.messageHandlerID = messageHandler.id
 
         
 class ReactionData():
@@ -103,7 +145,7 @@ class ReactionData():
         self.symbol = emoji
         self.maxReact = maxReact
         self.currentReact = 0
-        self.members = {}
+        self.members = {'perm':'\u200b'}
         
     def add_member(self, userID,userNameText):
         """
@@ -131,7 +173,7 @@ class ReactionData():
             return False    
         
         
-class ArmourDogs(GenericMessage):
+class ArmourDogs(GenericEmbed):
 
     def __init__(self,channel):
         super(ArmourDogs,self).__init__()
