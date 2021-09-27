@@ -175,28 +175,11 @@ class OpSignUp(commands.Cog):
         and not sum([self.reactions[react].check_member(str(payload.user_id)) for react in self.reactions]) 
         and not OpSignUp.react_max(self,payload)):
 
-            self.reactions[str(payload.emoji)].add_member(str(payload.user_id),f'{str(payload.member.mention)}\n')
-            
-#-------------------------------------------------------------------------------           
-            embedOrig = message.embeds[0]
-            embed_dict = embedOrig.to_dict()
-            embed_fields = embed_dict['fields']
-            
-            for index,field in enumerate(embed_fields):
-                #print(field['name'])
-                #print(f'{payload.emoji.name} {self.reactions[str(payload.emoji)].name}')
-                if field['name'] == f':{payload.emoji.name}: {self.reactions[str(payload.emoji)].name}':
-                    
-                    memberString = ""
-                    for member in self.reactions[str(payload.emoji)].members.values():
-                        memberString = memberString + f"{member}"
-                    embed_dict['fields'][index].update({'value': str(memberString)})
-            
-            embedNew = discord.Embed().from_dict(embed_dict)
-            await message.edit(embed = embedNew)
 
-#----------------------------------------------------------------------------------
-            
+
+            self.reactions[str(payload.emoji)].add_member(str(payload.user_id),f'{str(payload.member.mention)}\n')
+
+            await OpSignUp.generic_update_embed(self,message,payload)
             
         else:
             self.ignoreRemove = True
@@ -214,22 +197,26 @@ class OpSignUp(commands.Cog):
 
             message = await self.signUpChannel.fetch_message(self.messageHandlerID)
             self.reactions[str(payload.emoji)].remove_member(str(payload.user_id))
-            embedOrig = message.embeds[0]
-            embed_dict = embedOrig.to_dict()
-            embed_fields = embed_dict['fields']
+            await OpSignUp.generic_update_embed(self,message,payload)
+
             
-            for index,field in enumerate(embed_fields):
-                #print(field['name'])
-                #print(f'{payload.emoji.name} {self.reactions[str(payload.emoji)].name}')
-                if field['name'] == f':{payload.emoji.name}: {self.reactions[str(payload.emoji)].name}':
-                    
-                    memberString = ""
-                    for member in self.reactions[str(payload.emoji)].members.values():
-                        memberString = memberString + f"\n{member}"
-                    embed_dict['fields'][index].update({'value': str(memberString)})
+    async def generic_update_embed(self, message,payload):
+        embedOrig = message.embeds[0]
+        embed_dict = embedOrig.to_dict()
+        embed_fields = embed_dict['fields']
+
+        for index,field in enumerate(embed_fields):
             
-            embedNew = discord.Embed().from_dict(embed_dict)
-            await message.edit(embed = embedNew)
+            if field['name'] == f':{payload.emoji.name}: {self.reactions[str(payload.emoji)].name}':
+
+                memberString = ""
+                for member in self.reactions[str(payload.emoji)].members.values():
+                    memberString = memberString + f"{member}"
+                embed_dict['fields'][index].update({'value': str(memberString)})
+
+        embedNew = discord.Embed().from_dict(embed_dict)
+        await message.edit(embed = embedNew)
+
 
 
     async def locate_sign_up(self,ctx,signup):
