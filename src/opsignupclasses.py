@@ -11,7 +11,7 @@ class ReactionData():
     """
     def __init__(self,name,emoji,maxReact):
         self.name = name
-        self.reactSymbol = emoji
+        self.symbol = emoji
         self.maxReact = maxReact
         self.currentReact = 0
         self.members = {}
