@@ -189,7 +189,7 @@ class ArmourDogs(GenericEmbed):
                        }
         self.mentionRoles =['ArmourDogs']
 
-class Bastion(GenericMessage):
+class Bastion(GenericEmbed):
 
     def __init__(self,channel):
         super(Bastion,self).__init__()
@@ -200,7 +200,7 @@ class Bastion(GenericMessage):
         self.reactions={'<:tdkdsmall:803387734172762143>' : ReactionData('Woof','<:tdkdsmall:803387734172762143>',-1)}
         self.mentionRoles =['TDKD']
 
-class DogFighters(GenericMessage):
+class DogFighters(GenericEmbed):
 
     def __init__(self,channel):
         super(DogFighters,self).__init__()
@@ -214,7 +214,7 @@ class DogFighters(GenericMessage):
                        }
         self.mentionRoles =['DogFighters']
 
-class Logidogs(GenericMessage):
+class Logidogs(GenericEmbed):
 
     def __init__(self,channel):
         super(Logidogs,self).__init__()
@@ -228,7 +228,7 @@ class Logidogs(GenericMessage):
                        }
         self.mentionRoles =['LogiDogs']
 
-class RoyalAirWoof(GenericMessage):
+class RoyalAirWoof(GenericEmbed):
 
     def __init__(self,channel):
         super(RoyalAirWoof,self).__init__()
@@ -243,7 +243,7 @@ class RoyalAirWoof(GenericMessage):
                        }
         self.mentionRoles =['RAW']
 
-class SoberDogs(GenericMessage):
+class SoberDogs(GenericEmbed):
 
     def __init__(self,channel):
         super(SoberDogs,self).__init__()
@@ -261,7 +261,7 @@ class SoberDogs(GenericMessage):
                        }
         self.mentionRoles =['Soberdogs']
 
-class SquadLead(GenericMessage):
+class SquadLead(GenericEmbed):
 
     def __init__(self,channel):
         super(SquadLead,self).__init__()
@@ -282,7 +282,7 @@ class SquadLead(GenericMessage):
         self.mentionRoles =['CO','Captain','Lieutenant','Sergeant','Corporal']
 
 
-class CobaltClash(GenericMessage):
+class CobaltClash(GenericEmbed):
 
     def __init__(self,channel,opsType, message):
         self.signUpChannel = channel
@@ -297,7 +297,7 @@ class CobaltClash(GenericMessage):
         self.mentionRoles =['TDKD']
 
 
-class JointOps(GenericMessage):
+class JointOps(GenericEmbed):
 
     def __init__(self,channel,opsType, message):
         self.signUpChannel = channel
@@ -310,7 +310,7 @@ class JointOps(GenericMessage):
                        }
         self.mentionRoles =['TDKD']
 
-class NCAF(GenericMessage):
+class NCAF(GenericEmbed):
 
     def __init__(self,channel,opsType, message):
         self.signUpChannel = channel
@@ -323,7 +323,7 @@ class NCAF(GenericMessage):
                        }
         self.mentionRoles =['TDKD']
 
-class Training(GenericMessage):
+class Training(GenericEmbed):
 
     def __init__(self,channel,opsType, message):
         self.signUpChannel = channel
