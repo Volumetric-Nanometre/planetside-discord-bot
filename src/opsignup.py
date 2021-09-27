@@ -120,9 +120,9 @@ class OpSignUp(commands.Cog):
         dictionary of form {message_id : squadObj}
         """
 
-        channel = await OpSignUp.locate_sign_up(self,ctx,signup)
 
         if signup in self.signUpChannelName:
+            channel = await OpSignUp.locate_sign_up(self,ctx,signup)
             print('Sign up found')
             try:
                 obj=self.signUpChannelName[signup][1](channel,*args)
