@@ -171,21 +171,23 @@ class OpSignUp(commands.Cog):
         messageText  = self.messageText
         message = await self.signUpChannel.fetch_message(self.messageHandlerID)
 
+        print([self.reactions[react].check_member(str(payload.user_id)) for react in self.reactions])
 
-
-        if  str(payload.emoji) in self.reactions.keys() and str(payload.user_id) not in self.members and not OpSignUp.react_max(self,payload):
+        if ( str(payload.emoji) in self.reactions.keys()
+        and not sum([self.reactions[react].check_member(str(payload.user_id)) for react in self.reactions]) 
+        and not OpSignUp.react_max(self,payload)):
 
 
 
 
             OpSignUp.update_react_num(self,payload,'add')
 
-            self.members.append(str(payload.user_id))
-
-            self.memberText.update({str(payload.user_id):f'\n{self.reactions[str(payload.emoji)]} - {str(payload.member.mention)}'})
-
-            for player in self.memberText.values():
-                messageText = messageText + str(player)
+            self.reactions[str(payload.emoji)].add_member(str(payload.user_id),f'\n{self.reactions[str(payload.emoji)].symbol} - {str(payload.member.mention)}')
+            
+            
+            for react in self.reactions.values():
+                for player in react.members.values():
+                    messageText = messageText + str(player)
 
 
             print(messageText)
@@ -209,11 +211,11 @@ class OpSignUp(commands.Cog):
 
             message = await self.signUpChannel.fetch_message(self.messageHandlerID)
             messageText  = self.messageText
-            del self.memberText[str(payload.user_id)]
-            self.members.remove(str(payload.user_id))
+            self.reactions[str(payload.emoji)].remove_member(str(payload.user_id))
             OpSignUp.update_react_num(self,payload,'remove')
-            for player in self.memberText.values():
-                messageText = messageText + str(player)
+            for react in self.reactions.values():
+                for player in react.members.values():
+                    messageText = messageText + str(player)
             await message.edit(content=messageText)
 
 
@@ -238,22 +240,23 @@ class OpSignUp(commands.Cog):
 
     def react_max(self,payload):
 
-        if self.maxReact[str(payload.emoji)][0] < 0:
+        if self.reactions[str(payload.emoji)].maxReact < 0:
             return False
-        elif self.maxReact[str(payload.emoji)][1] < self.maxReact[str(payload.emoji)][0]:
+        elif self.reactions[str(payload.emoji)].currentReact < self.reactions[str(payload.emoji)].maxReact:
             return False
         else:
             return True
 
     def update_react_num(self,payload,operation=str):
 
-        maxReact = self.maxReact[str(payload.emoji)][0]
-        current = self.maxReact[str(payload.emoji)][1]
-        if operation == 'add':
-            current = current + 1
-        elif operation == 'remove':
-            current = current - 1
+        maxReact = self.reactions[str(payload.emoji)].maxReact
+        current = self.reactions[str(payload.emoji)].currentReact
+        #if operation == 'add':
+        #    current = current + 1
+        #elif operation == 'remove':
+        #    current = current - 1
 
-        self.maxReact.update({str(payload.emoji):[maxReact,current]})
+        #self.reactions[str(payload.emoji)].currentReact = current
+        print(current)
 
 

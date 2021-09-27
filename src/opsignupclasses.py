@@ -20,7 +20,7 @@ class GenericSignup:
 
         message = "Reaction : Max Number\n"
         
-        for reaction in self.reactions:
+        for reaction in self.reactions.values():
             
             if reaction.maxReact == -1:
                 message = message + f"{reaction.symbol} : (-1) Unlimited\n"
@@ -35,13 +35,11 @@ class GenericSignup:
 
             try:
                 print(f"Changing {value}")
-                if value in self.maxReact:
-                    currentUsed = self.maxReact[value][1]
-                    print(f"Current val {currentUsed}")
-
+                if value in self.reactions.keys():
+                    
                     print(f"New val {args[index+1]}")
-                    self.maxReact.update( {value: [int(args[index+1]),currentUsed]})
-                    print(f"{self.maxReact[value]}")
+                    self.reactions[value].maxReact =int(args[index+1])
+                    print(f"{self.reactions[value].maxReact}")
 
                 else:
                     print("React does not exist")
@@ -82,8 +80,8 @@ class GenericMessage(GenericSignup):
                 pass
             
         reactStr=str()
-        for reaction in self.reactions:
-            reactStr = reactStr + f'{reaction.symbol} {reaction.name}\n'
+        for reaction in self.reactions.keys():
+            reactStr = reactStr + f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}\n'
 
         self.messageText = self.messageText + f'\n\n**Use the following reacts:**\n{reactStr}'
         self.messageText = self.messageText + f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**'
@@ -112,20 +110,22 @@ class ReactionData():
         Adds a user to the member dictionary as a dict
         of the form {userID : userNameText}
         """
-        self.member.update({userID:userNameText})
+        self.members.update({userID:userNameText})
+        self.currentReact += 1
     
     def remove_member(self, userID):
         """
         Removes a user to the member dictionary 
         """
-        del self.member[userID]
+        del self.members[userID]
+        self.currentReact -= 1
         
         
     def check_member(self, userID):
         """
         Checks if the user is in the dict already
         """
-        if userID in self.member.keys():
+        if userID in self.members.keys():
             return True
         else:
             return False    
@@ -139,12 +139,12 @@ class ArmourDogs(GenericMessage):
         self.messageText = ArmourDogs.get_message('messages/armourdogs.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions=[ReactionData('Vanguard','<:Icon_Vanguard:795727955896565781>',-1),
-                        ReactionData('Sunderer','<:Icon_Sunderer:795727911549272104>',-1),
-                        ReactionData('Lightning','<:Icon_Lightning:795727852875677776>',-1),
-                        ReactionData('Harasser','<:Icon_Harasser:795727814220840970>',-1),
-                        ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
-                       ]
+        self.reactions={'<:Icon_Vanguard:795727955896565781>' : ReactionData('Vanguard','<:Icon_Vanguard:795727955896565781>',-1),
+                        '<:Icon_Sunderer:795727911549272104>' : ReactionData('Sunderer','<:Icon_Sunderer:795727911549272104>',-1),
+                        '<:Icon_Lightning:795727852875677776>' : ReactionData('Lightning','<:Icon_Lightning:795727852875677776>',-1),
+                        '<:Icon_Harasser:795727814220840970>' : ReactionData('Harasser','<:Icon_Harasser:795727814220840970>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
+                       }
         self.mentionRoles =['ArmourDogs']
 
 class Bastion(GenericMessage):
@@ -155,7 +155,7 @@ class Bastion(GenericMessage):
         self.messageText = Bastion.get_message('messages/bastion.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions=[ReactionData('Woof','<:tdkdsmall:803387734172762143>',-1)]
+        self.reactions={'<:tdkdsmall:803387734172762143>' : ReactionData('Woof','<:tdkdsmall:803387734172762143>',-1)}
         self.mentionRoles =['TDKD']
 
 class DogFighters(GenericMessage):
@@ -166,10 +166,10 @@ class DogFighters(GenericMessage):
         self.messageText = DogFighters.get_message('messages/dogfighters.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions=[ReactionData('Reaver','<:Icon_Reaver:795727893342846986>',-1),
-                        ReactionData('Dervish','<:Icon_Dervish:861303237062950942>',-1),
-                        ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
-                       ]
+        self.reactions={'<:Icon_Reaver:795727893342846986>' : ReactionData('Reaver','<:Icon_Reaver:795727893342846986>',-1),
+                        '<:Icon_Dervish:861303237062950942>' : ReactionData('Dervish','<:Icon_Dervish:861303237062950942>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
+                       }
         self.mentionRoles =['DogFighters']
 
 class Logidogs(GenericMessage):
@@ -180,10 +180,10 @@ class Logidogs(GenericMessage):
         self.messageText = Logidogs.get_message('messages/logidogs.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions=[ReactionData('Hacker','<:Icon_Infiltrator:795726922264215612>',4),
-                        ReactionData('Router','<:Icon_Engineer:795726888763916349>',2),
-                        ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
-                       ]
+        self.reactions={'<:Icon_Infiltrator:795726922264215612>' : ReactionData('Hacker','<:Icon_Infiltrator:795726922264215612>',4),
+                        '<:Icon_Engineer:795726888763916349>' : ReactionData('Router','<:Icon_Engineer:795726888763916349>',2),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
+                       }
         self.mentionRoles =['LogiDogs']
 
 class RoyalAirWoof(GenericMessage):
@@ -194,11 +194,11 @@ class RoyalAirWoof(GenericMessage):
         self.messageText = RoyalAirWoof.get_message('messages/royalairwoof.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions=[ReactionData('Gal-Pilot','<:Icon_Galaxy:795727799591239760>',4),
-                        ReactionData('Lib-Pilot','<:Icon_Liberator:795727831605837874>',0),
-                        ReactionData('Gunner','<:Icon_Engineer:795726888763916349>',-1),
-                        ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
-                       ]
+        self.reactions={'<:Icon_Galaxy:795727799591239760>' : ReactionData('Gal-Pilot','<:Icon_Galaxy:795727799591239760>',4),
+                        '<:Icon_Liberator:795727831605837874>' : ReactionData('Lib-Pilot','<:Icon_Liberator:795727831605837874>',0),
+                        '<:Icon_Engineer:795726888763916349>' : ReactionData('Gunner','<:Icon_Engineer:795726888763916349>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
+                       }
         self.mentionRoles =['RAW']
 
 class SoberDogs(GenericMessage):
@@ -209,14 +209,14 @@ class SoberDogs(GenericMessage):
         self.messageText = SoberDogs.get_message('messages/soberdogs.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions=[ReactionData('Heavy','<:Icon_Heavy_Assault:795726910344003605>',5),
-                        ReactionData('Medic','<:Icon_Combat_Medic:795726867960692806>',4),
-                        ReactionData('Engineer','<:Icon_Engineer:795726888763916349>',2),
-                        ReactionData('Infiltrator','<:Icon_Infiltrator:795726922264215612>',1),
-                        ReactionData('Light assault','<:Icon_Light_Assault:795726936759468093>',0),
-                        ReactionData('MAX','<:Icon_MAX:795726948365631559>',0),
-                        ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
-                        ]
+        self.reactions={'<:Icon_Heavy_Assault:795726910344003605>' : ReactionData('Heavy','<:Icon_Heavy_Assault:795726910344003605>',5),
+                        '<:Icon_Combat_Medic:795726867960692806>' : ReactionData('Medic','<:Icon_Combat_Medic:795726867960692806>',4),
+                        '<:Icon_Engineer:795726888763916349>' : ReactionData('Engineer','<:Icon_Engineer:795726888763916349>',2),
+                        '<:Icon_Infiltrator:795726922264215612>' : ReactionData('Infiltrator','<:Icon_Infiltrator:795726922264215612>',1),
+                        '<:Icon_Light_Assault:795726936759468093>' : ReactionData('Light assault','<:Icon_Light_Assault:795726936759468093>',0),
+                        '<:Icon_MAX:795726948365631559>' : ReactionData('MAX','<:Icon_MAX:795726948365631559>',0),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
+                       }
         self.mentionRoles =['Soberdogs']
 
 class SquadLead(GenericMessage):
@@ -228,15 +228,15 @@ class SquadLead(GenericMessage):
         self.messageHandlerID = None
         self.ignoreRemove = False
         
-        self.reactions=[ReactionData('PL','<:Icon_A:795729153072431104>',-1),
-                        ReactionData('SL','<:Icon_B:795729164891062343>',-1),
-                        ReactionData('FL','<:Icon_C:795729176363270205>',-1),
-                        ReactionData('Reserve','<:Icon_D:795729189260754956>',-1),
-                        ReactionData('Soberdog S/FL','<:Icon_Heavy_Assault:795726910344003605>',-1),
-                        ReactionData('RAW S/FL','<:Icon_Galaxy:795727799591239760>',-1),
-                        ReactionData('Armourdog S/FL','<:Icon_Vanguard:795727955896565781>',-1),
-                        ReactionData('Dogfighter S/FL','<:Icon_Reaver:795727893342846986>',-1)
-                        ]
+        self.reactions={'<:Icon_A:795729153072431104>' : ReactionData('PL','<:Icon_A:795729153072431104>',-1),
+                        '<:Icon_B:795729164891062343>' : ReactionData('SL','<:Icon_B:795729164891062343>',-1),
+                        '<:Icon_C:795729176363270205>' : ReactionData('FL','<:Icon_C:795729176363270205>',-1),
+                        '<:Icon_D:795729189260754956>' : ReactionData('Reserve','<:Icon_D:795729189260754956>',-1),
+                        '<:Icon_Heavy_Assault:795726910344003605>' : ReactionData('Soberdog S/FL','<:Icon_Heavy_Assault:795726910344003605>',-1),
+                        '<:Icon_Galaxy:795727799591239760>' : ReactionData('RAW S/FL','<:Icon_Galaxy:795727799591239760>',-1),
+                        '<:Icon_Vanguard:795727955896565781>' : ReactionData('Armourdog S/FL','<:Icon_Vanguard:795727955896565781>',-1),
+                        '<:Icon_Reaver:795727893342846986>' : ReactionData('Dogfighter S/FL','<:Icon_Reaver:795727893342846986>',-1)
+                       }
         self.mentionRoles =['CO','Captain','Lieutenant','Sergeant','Corporal']
 
 
@@ -248,9 +248,9 @@ class CobaltClash(GenericMessage):
         self.messageText = message
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions=[ReactionData('Coming','<:NC:727306728470872075>',-1),
-                        ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
-                        ]
+        self.reactions={'<:NC:727306728470872075>' : ReactionData('Coming','<:NC:727306728470872075>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
+                       }
 
         self.mentionRoles =['TDKD']
 
@@ -263,9 +263,9 @@ class JointOps(GenericMessage):
         self.messageText = message
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions=[ReactionData('Coming','<:NC:727306728470872075>',-1),
-                        ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
-                        ]
+        self.reactions={'<:NC:727306728470872075>' : ReactionData('Coming','<:NC:727306728470872075>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
+                       }
         self.mentionRoles =['TDKD']
 
 class NCAF(GenericMessage):
@@ -276,9 +276,9 @@ class NCAF(GenericMessage):
         self.messageText = message
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions=[ReactionData('Coming','<:NC:727306728470872075>',-1),
-                        ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
-                        ]
+        self.reactions={'<:NC:727306728470872075>' : ReactionData('Coming','<:NC:727306728470872075>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
+                       }
         self.mentionRoles =['TDKD']
 
 class Training(GenericMessage):
@@ -289,7 +289,7 @@ class Training(GenericMessage):
         self.messageText = message
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions=[ReactionData('Coming','<:NC:727306728470872075>',-1),
-                        ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
-                        ]
+        self.reactions={'<:NC:727306728470872075>' : ReactionData('Coming','<:NC:727306728470872075>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
+                       }
         self.mentionRoles =[]
