@@ -1,6 +1,97 @@
 import traceback
-from opsignup import GenericMessage
 
+class GenericSignup:
+    """
+    Overarching signup class.
+    This class allows one to query the max reacts,
+    and then change them.
+    
+    This class also grabs pregen messages when required
+    """
+    def __init__(self):
+        pass
+
+    def get_message(messageLocation):
+        with open(messageLocation,'r') as f:
+            messageText = f.read()
+            return messageText
+
+    async def get_reaction_details(self,ctx):
+
+        message = "Reaction : Max Number\n"
+        
+        for reaction in self.reactions:
+            
+            if reaction.maxReact == -1:
+                message = message + f"{reaction.symbol} : (-1) Unlimited\n"
+            else:
+                message = message + f"{reaction.symbol} : {reaction.maxReact}\n"
+
+        await ctx.channel.send(message)
+
+    async def set_reaction_details(self,ctx,*args):
+
+        for index, value in enumerate(args):
+
+            try:
+                print(f"Changing {value}")
+                if value in self.maxReact:
+                    currentUsed = self.maxReact[value][1]
+                    print(f"Current val {currentUsed}")
+
+                    print(f"New val {args[index+1]}")
+                    self.maxReact.update( {value: [int(args[index+1]),currentUsed]})
+                    print(f"{self.maxReact[value]}")
+
+                else:
+                    print("React does not exist")
+            except Exception:
+                traceback.print_exc()
+
+        await ctx.channel.send("New Values:")
+        await self.get_reaction_details(ctx)
+
+
+class GenericMessage(GenericSignup):
+    """
+    Class to generate a message for the signups.
+    These messages can come from various sources,
+    and so this class handles the main 2. 
+    
+    The first source is the premade messages.
+    The second is user entered messages
+    """
+    def __init__(self):
+        super().__init__()
+        pass
+
+    async def send_message(self,ctx,date):
+        
+        try:
+            self.messageText = f'\n**Activity Type: {self.opsType}**' + self.messageText
+        except:
+            print("opsType does not exist")
+        
+        self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
+        roles = await ctx.guild.fetch_roles()
+
+        for role in roles:
+            if role.name in self.mentionRoles:
+                self.messageText = f'{role.mention} ' + self.messageText
+            else:
+                pass
+            
+        reactStr=str()
+        for reaction in self.reactions:
+            reactStr = reactStr + f'{reaction.symbol} {reaction.name}\n'
+
+        self.messageText = self.messageText + f'\n\n**Use the following reacts:**\n{reactStr}'
+        self.messageText = self.messageText + f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**'
+        
+        messageHandler = await self.signUpChannel.send(self.messageText)
+        self.messageHandlerID = messageHandler.id
+
+        
 class ReactionData():
     """
     Contains all the data for storing the reactions
