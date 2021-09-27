@@ -3,3 +3,10 @@
 Soberdogs is our tactical infantry squad!
 For the hour and a half of the OPS we ask for seriousness. 
 Correct use of call outs, listening to SL and FL carefully and following orders, keeping comms discipline. 
+MAX <:Icon_Engineer:795726888763916349>
+Heavy <:Icon_Engineer:795726888763916349>
+Medic <:Icon_Engineer:795726888763916349>
+Infiltrator <:Icon_Engineer:795726888763916349>
+Light assault <:Icon_Engineer:795726888763916349>
+Engineer <:Icon_Engineer:795726888763916349>
+Reserve/Maybe <:Icon_Engineer:795726888763916349>

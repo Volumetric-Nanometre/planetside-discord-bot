@@ -178,6 +178,8 @@ class OpSignUp(commands.Cog):
 
 
             self.reactions[str(payload.emoji)].add_member(str(payload.user_id),f'{str(payload.member.mention)}\n')
+            
+            print(self.reactions[str(payload.emoji)].members.values())
 
             await OpSignUp.generic_update_embed(self,message,payload)
             
@@ -201,13 +203,16 @@ class OpSignUp(commands.Cog):
 
             
     async def generic_update_embed(self, message,payload):
+        
+        
         embedOrig = message.embeds[0]
+        
         embed_dict = embedOrig.to_dict()
         embed_fields = embed_dict['fields']
 
         for index,field in enumerate(embed_fields):
-            
-            if field['name'] == f':{payload.emoji.name}: {self.reactions[str(payload.emoji)].name}':
+            if field['name'] == f'{self.reactions[str(payload.emoji)].symbol} {self.reactions[str(payload.emoji)].name}':
+                print(self.reactions[str(payload.emoji)].members.values())
 
                 memberString = ""
                 for member in self.reactions[str(payload.emoji)].members.values():
@@ -215,6 +220,10 @@ class OpSignUp(commands.Cog):
                 embed_dict['fields'][index].update({'value': str(memberString)})
 
         embedNew = discord.Embed().from_dict(embed_dict)
+        
+        #for field in embed_dict.values():
+            
+        #    print(field)
         await message.edit(embed = embedNew)
 
 
