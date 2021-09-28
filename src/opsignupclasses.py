@@ -1,5 +1,6 @@
 import discord
 import traceback
+from datetime import datetime
 
 class GenericSignup:
     """
@@ -51,6 +52,8 @@ class GenericSignup:
         await self.get_reaction_details(ctx)
 
 
+        
+        
 class GenericMessage(GenericSignup):
     """
     Class to generate a message for the signups.
@@ -100,9 +103,24 @@ class GenericEmbed(GenericSignup):
     def __init__(self):
         super().__init__()
         pass
-
+    
+    def convert_date_to_unix(self,date):
+        
+        #message_date='Tuesday 27/09/21 16:00 bst' # Example
+        date_string=date.replace('bst','+0100').replace('BST', '+0100').replace('gmt','+0000').replace('GMT','+0000') 
+        try:
+            dtfloat=datetime.strptime(date_string,'%A %d/%m/%y %H:%M %z').timestamp()
+            dtint=int(dtfloat) #the output is a float which doesn't work with <t:time:R>
+        except:
+            try:
+                dtfloat=datetime.strptime(date_string,'%A %d/%m/%y %H:%M%z').timestamp()
+                dtint=int(dtfloat) #the output is a float which doesn't work with <t:time:R>
+            except:
+                raise
+        return dtint
+    
     async def send_message(self,ctx,date):
-                
+        
         roles = await ctx.guild.fetch_roles()
         
         roleText = ""
@@ -116,12 +134,16 @@ class GenericEmbed(GenericSignup):
         embed = discord.Embed(title = date, description =self.messageText ,color=0xff0000)
         
         try:
+            startTime = self.convert_date_to_unix(date)
+            embed.add_field( name = "Time till start", value = f'<t:{startTime}:R>', inline=False)
+        except:
+            traceback.print_exc()
+        
+        try:
             embed.add_field( name = "Op Type", value = self.opsType, inline=False)
         except:
             pass
-        
-        embed.add_field( name = "Date", value = date, inline=False)
-        
+                
         for reaction in self.reactions.keys():
             embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'{self.reactions[reaction].members["perm"]}', inline=True)  
         
@@ -273,28 +295,29 @@ class SquadLead(GenericEmbed):
         self.reactions={'<:Icon_A:795729153072431104>' : ReactionData('PL','<:Icon_A:795729153072431104>',-1),
                         '<:Icon_B:795729164891062343>' : ReactionData('SL','<:Icon_B:795729164891062343>',-1),
                         '<:Icon_C:795729176363270205>' : ReactionData('FL','<:Icon_C:795729176363270205>',-1),
-                        '<:Icon_D:795729189260754956>' : ReactionData('Reserve','<:Icon_D:795729189260754956>',-1),
-                        '<:Icon_Heavy_Assault:795726910344003605>' : ReactionData('Soberdog S/FL','<:Icon_Heavy_Assault:795726910344003605>',-1),
-                        '<:Icon_Galaxy:795727799591239760>' : ReactionData('RAW S/FL','<:Icon_Galaxy:795727799591239760>',-1),
-                        '<:Icon_Vanguard:795727955896565781>' : ReactionData('Armourdog S/FL','<:Icon_Vanguard:795727955896565781>',-1),
-                        '<:Icon_Reaver:795727893342846986>' : ReactionData('Dogfighter S/FL','<:Icon_Reaver:795727893342846986>',-1)
+                        '<:Icon_D:795729189260754956>' : ReactionData('Specialist SL','<:Icon_D:795729189260754956>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
+                        #'<:Icon_Heavy_Assault:795726910344003605>' : ReactionData('Soberdog S/FL','<:Icon_Heavy_Assault:795726910344003605>',-1),
+                        #'<:Icon_Galaxy:795727799591239760>' : ReactionData('RAW S/FL','<:Icon_Galaxy:795727799591239760>',-1),
+                        #'<:Icon_Vanguard:795727955896565781>' : ReactionData('Armourdog S/FL','<:Icon_Vanguard:795727955896565781>',-1),
+                        #'<:Icon_Reaver:795727893342846986>' : ReactionData('Dogfighter S/FL','<:Icon_Reaver:795727893342846986>',-1)
                        }
         self.mentionRoles =['CO','Captain','Lieutenant','Sergeant','Corporal']
 
 
 class CobaltClash(GenericEmbed):
 
-    def __init__(self,channel,opsType, message):
+    def __init__(self,channel,opsType, message,additionalRoles=[]):
         self.signUpChannel = channel
         self.opsType=opsType
         self.messageText = message
         self.messageHandlerID = None
         self.ignoreRemove = False
         self.reactions={'<:NC:727306728470872075>' : ReactionData('Coming','<:NC:727306728470872075>',-1),
-                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
                        }
 
-        self.mentionRoles =['TDKD']
+        self.mentionRoles = additionalRoles
 
 
 class JointOps(GenericEmbed):
@@ -306,32 +329,32 @@ class JointOps(GenericEmbed):
         self.messageHandlerID = None
         self.ignoreRemove = False
         self.reactions={'<:NC:727306728470872075>' : ReactionData('Coming','<:NC:727306728470872075>',-1),
-                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
                        }
         self.mentionRoles =['TDKD']
 
 class NCAF(GenericEmbed):
 
-    def __init__(self,channel,opsType, message):
+    def __init__(self,channel,opsType, message,additionalRoles=[]):
         self.signUpChannel = channel
         self.opsType=opsType
         self.messageText = message
         self.messageHandlerID = None
         self.ignoreRemove = False
         self.reactions={'<:NC:727306728470872075>' : ReactionData('Coming','<:NC:727306728470872075>',-1),
-                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
                        }
-        self.mentionRoles =['TDKD']
+        self.mentionRoles = additionalRoles
 
 class Training(GenericEmbed):
 
-    def __init__(self,channel,opsType, message):
+    def __init__(self,channel,opsType, message,additionalRoles=[]):
         self.signUpChannel = channel
         self.opsType=opsType
         self.messageText = message
         self.messageHandlerID = None
         self.ignoreRemove = False
         self.reactions={'<:NC:727306728470872075>' : ReactionData('Coming','<:NC:727306728470872075>',-1),
-                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
                        }
-        self.mentionRoles =[]
+        self.mentionRoles = additionalRoles
