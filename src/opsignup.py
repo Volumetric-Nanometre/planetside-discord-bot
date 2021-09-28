@@ -18,7 +18,7 @@ class OpSignUp(commands.Cog):
         self.signUpChannelName = {'soberdogs':['✍-soberdogs',SoberDogs],'armourdogs':['✍-armourdogs',ArmourDogs],
                                   'bastion':['📣-ps2-events',Bastion],'squadleaders':['✍-squadleaders',SquadLead],
                                   'dogfighters':['✍-dogfighters',DogFighters],'logidogs':['✍-logistics', Logidogs],
-                                  'training':['✍-training',Training], 'jointops':['✍-joint-ops',JointOps],
+                                  'training':['✍-live-exercises',Training], 'jointops':['✍-joint-ops',JointOps],
                                   'raw':['✍-royal-air-woof', RoyalAirWoof],'ncaf':['✍-ncaf',NCAF],
                                   'cobaltclash':['✍-cobalt-clash',CobaltClash]}
 
@@ -88,7 +88,7 @@ class OpSignUp(commands.Cog):
     async def generic_signup(self,ctx,signup,date,*args):
         """
         Usage 1: !ps2-signup <squadtype-1> <date>
-        Usage 2: !ps2-signup <squadtype-2> <date> <op-type> <description>
+        Usage 2: !ps2-signup <squadtype-2> <date> <op-type> <description> <additonal-roles>
         
         Usage 3: !ps2-signup <limit-type> <message ID> <react-1> <limit-1> ... <react-n> <limit-n>
         squadtype-1: squadleaders, soberdogs, armourdogs, dogfighters
@@ -102,6 +102,9 @@ class OpSignUp(commands.Cog):
         
         description: A string describing the op in detail. Can be multiline
                      so long as they remain within quotation marks 
+        
+        additional-roles: The exact test string for additional roles. 
+                          e.g "TDKD Captain" will give @TDKD @Captain
         
         message ID: The message ID of the message you wish to change the react
                     limits on
