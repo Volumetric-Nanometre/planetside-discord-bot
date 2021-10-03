@@ -24,6 +24,7 @@ class opschannels(channelManipulation,commands.Cog):
         self.isRecording = False
         self.starttime = None
         self.bot = bot
+        self.lock = asyncio.Lock()
         super().__init__()
         
         
@@ -32,20 +33,21 @@ class opschannels(channelManipulation,commands.Cog):
         """
         Create ops channels 
         """
-        for category_name in self.platoon_setup.keys():
-            await channelManipulation.create_category(ctx,category_name)
-            existing_category = discord.utils.get(ctx.guild.categories,
-                                                  name=category_name)
-            
-            if existing_category:
-                #
-                # Fill categories with voice channels
-                #
-                for channel_name in self.platoon_setup[category_name]:
-                    await channelManipulation.create_voice_channel(
-                        ctx,
-                        channel_name,
-                        existing_category) 
+        async with self.lock:
+            for category_name in self.platoon_setup.keys():
+                await channelManipulation.create_category(ctx,category_name)
+                existing_category = discord.utils.get(ctx.guild.categories,
+                                                      name=category_name)
+
+                if existing_category:
+                    #
+                    # Fill categories with voice channels
+                    #
+                    for channel_name in self.platoon_setup[category_name]:
+                        await channelManipulation.create_voice_channel(
+                            ctx,
+                            channel_name,
+                            existing_category) 
 
         print('Platoon creation complete')
         
@@ -74,27 +76,28 @@ class opschannels(channelManipulation,commands.Cog):
         Usage: !ps2-start-school <numberOfClassrooms>
         Creates <numberOfClassrooms> channels, and one "headteacher" channel
         """
-        print('School Opening')
-        self.schoolrooms = ['Headteachers Office']
-        for classroom in range(int(arg)):
-            self.schoolrooms.append(f'Classroom {classroom+1}')
-        
-        self.school = {'School':self.schoolrooms}
-        
-        for category_name in self.school.keys():
-            await channelManipulation.create_category(ctx,category_name)
-            existing_category = discord.utils.get(ctx.guild.categories,
-                                                  name=category_name)
-            
-            if existing_category:
-                #
-                # Fill categories with voice channels
-                #
-                for channel_name in self.school[category_name]:
-                    await channelManipulation.create_voice_channel(
-                        ctx,
-                        channel_name,
-                        existing_category) 
+        async with self.lock:
+            print('School Opening')
+            self.schoolrooms = ['Headteachers Office']
+            for classroom in range(int(arg)):
+                self.schoolrooms.append(f'Classroom {classroom+1}')
+
+            self.school = {'School':self.schoolrooms}
+
+            for category_name in self.school.keys():
+                await channelManipulation.create_category(ctx,category_name)
+                existing_category = discord.utils.get(ctx.guild.categories,
+                                                      name=category_name)
+
+                if existing_category:
+                    #
+                    # Fill categories with voice channels
+                    #
+                    for channel_name in self.school[category_name]:
+                        await channelManipulation.create_voice_channel(
+                            ctx,
+                            channel_name,
+                            existing_category) 
 
         print('School Open')
     

@@ -24,6 +24,7 @@ class OpSignUp(commands.Cog):
 
         self.objDict = {}
         self.bot = bot
+        self.lock = asyncio.Lock()
         super().__init__()
 
 
@@ -40,8 +41,9 @@ class OpSignUp(commands.Cog):
             pass
         if payload.message_id in self.objDict:
             print('Remove react')
-            obj = self.objDict[payload.message_id]
-            await OpSignUp.generic_react_remove(obj,payload)
+            async with self.lock:
+                obj = self.objDict[payload.message_id]
+                await OpSignUp.generic_react_remove(obj,payload)
         else:
             pass
 
@@ -62,8 +64,9 @@ class OpSignUp(commands.Cog):
             pass
         elif payload.message_id in self.objDict:
             print('Add react')
-            obj = self.objDict[payload.message_id]
-            await OpSignUp.generic_react_add(obj,payload)
+            async with self.lock:
+                obj = self.objDict[payload.message_id]
+                await OpSignUp.generic_react_add(obj,payload)
         else:
             pass
 
@@ -80,7 +83,8 @@ class OpSignUp(commands.Cog):
         Function then cleans up the objects
         """
         if payload.message_id in self.objDict:
-            del self.objDict[payload.message_id]
+            async with self.lock:
+                del self.objDict[payload.message_id]
             print('Message Deleted')
         else:
             pass
@@ -128,48 +132,48 @@ class OpSignUp(commands.Cog):
         dictionary of form {message_id : squadObj}
         """
 
+        async with self.lock:
+            if signup in self.signUpChannelName:
+                channel = await OpSignUp.locate_sign_up(self,ctx,signup)
+                print('Sign up found')
+                try:
+                    obj=self.signUpChannelName[signup][1](channel,*args)
+                except Exception:
+                    traceback.print_exc()
+                    print('Sign up failed')
+                else:
+                    print(f'{signup} instantiated')
+                    await obj.send_message(ctx,date)
+                    print(f'{signup} message sent {obj.messageHandlerID}')
+                    self.objDict.update( {obj.messageHandlerID : obj})
+                    print(f'{signup} added to dictionary')
 
-        if signup in self.signUpChannelName:
-            channel = await OpSignUp.locate_sign_up(self,ctx,signup)
-            print('Sign up found')
-            try:
-                obj=self.signUpChannelName[signup][1](channel,*args)
-            except Exception:
-                traceback.print_exc()
-                print('Sign up failed')
+            elif signup == 'current-limits':
+                try:
+                    obj = self.objDict[int(date)]
+                    print(obj)
+                    print(obj.messageHandlerID)
+                    await obj.get_reaction_details(ctx)
+
+                except Exception:
+                    traceback.print_exc()
+                    print("Object does not exist")
+                    print(self.objDict)
+
+            elif signup == 'set-limits':
+                try:
+                    obj = self.objDict[int(date)]
+                    print(obj)
+                    print(obj.messageHandlerID)
+                    await obj.set_reaction_details(ctx,*args)
+
+                except Exception:
+                    traceback.print_exc()
+                    print("Object does not exist")
+                    print(self.objDict)
+
             else:
-                print(f'{signup} instantiated')
-                await obj.send_message(ctx,date)
-                print(f'{signup} message sent {obj.messageHandlerID}')
-                self.objDict.update( {obj.messageHandlerID : obj})
-                print(f'{signup} added to dictionary')
-
-        elif signup == 'current-limits':
-            try:
-                obj = self.objDict[int(date)]
-                print(obj)
-                print(obj.messageHandlerID)
-                await obj.get_reaction_details(ctx)
-
-            except Exception:
-                traceback.print_exc()
-                print("Object does not exist")
-                print(self.objDict)
-
-        elif signup == 'set-limits':
-            try:
-                obj = self.objDict[int(date)]
-                print(obj)
-                print(obj.messageHandlerID)
-                await obj.set_reaction_details(ctx,*args)
-
-            except Exception:
-                traceback.print_exc()
-                print("Object does not exist")
-                print(self.objDict)
-
-        else:
-            print('Sign up type does not exist')
+                print('Sign up type does not exist')
 
         print('Complete')
 
