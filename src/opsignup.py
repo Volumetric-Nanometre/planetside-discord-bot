@@ -35,7 +35,9 @@ class OpSignUp(commands.Cog):
         signup functions
         """
         print('remove reaction caught')
-
+        if payload.user_id == 797809584604446740:
+            print('Passing bot reacts')
+            pass
         if payload.message_id in self.objDict:
             print('Remove react')
             obj = self.objDict[payload.message_id]
@@ -55,7 +57,10 @@ class OpSignUp(commands.Cog):
         signup functions
         """
         print(f'reaction caught {str(payload.emoji)}')
-        if payload.message_id in self.objDict:
+        if payload.user_id == 797809584604446740:
+            print('Passing bot reacts')
+            pass
+        elif payload.message_id in self.objDict:
             print('Add react')
             obj = self.objDict[payload.message_id]
             await OpSignUp.generic_react_add(obj,payload)

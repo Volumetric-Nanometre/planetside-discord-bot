@@ -152,6 +152,15 @@ class GenericEmbed(GenericSignup):
         
         messageHandler = await self.signUpChannel.send(roleText,embed=embed)
         self.messageHandlerID = messageHandler.id
+        
+        
+        try:
+            message = await self.signUpChannel.fetch_message(self.messageHandlerID)
+            for reaction in self.reactions.keys():
+                await message.add_reaction(f"{reaction}")
+        except:
+            traceback.print_exc()
+        
 
         
 class ReactionData():
