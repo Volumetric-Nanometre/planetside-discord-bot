@@ -130,14 +130,14 @@ class GenericEmbed(GenericSignup):
                 roleText = f'{role.mention} ' + roleText
             else:
                 pass
-        
-        embed = discord.Embed(title = date, description =self.messageText ,color=0xff0000)
-        
         try:
             startTime = self.convert_date_to_unix(date)
+            embed = discord.Embed(title = f'Local time: <t:{startTime}:F>', description =self.messageText ,color=0xff0000)
             embed.add_field( name = "Time till start", value = f'<t:{startTime}:R>', inline=False)
+
+
         except:
-            traceback.print_exc()
+            embed = discord.Embed(title = f"UK time: {date}", description =self.messageText ,color=0xff0000)
         
         try:
             embed.add_field( name = "Op Type", value = self.opsType, inline=False)
