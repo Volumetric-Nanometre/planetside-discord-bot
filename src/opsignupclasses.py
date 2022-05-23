@@ -7,7 +7,7 @@ class GenericSignup:
     Overarching signup class.
     This class allows one to query the max reacts,
     and then change them.
-    
+
     This class also grabs pregen messages when required
     """
     def __init__(self):
@@ -21,9 +21,9 @@ class GenericSignup:
     async def get_reaction_details(self,ctx):
 
         message = "Reaction : Max Number\n"
-        
+
         for reaction in self.reactions.values():
-            
+
             if reaction.maxReact == -1:
                 message = message + f"{reaction.symbol} : (-1) Unlimited\n"
             else:
@@ -38,7 +38,7 @@ class GenericSignup:
             try:
                 print(f"Changing {value}")
                 if value in self.reactions.keys():
-                    
+
                     print(f"New val {args[index+1]}")
                     self.reactions[value].maxReact =int(args[index+1])
                     print(f"{self.reactions[value].maxReact}")
@@ -52,14 +52,14 @@ class GenericSignup:
         await self.get_reaction_details(ctx)
 
 
-        
-        
+
+
 class GenericMessage(GenericSignup):
     """
     Class to generate a message for the signups.
     These messages can come from various sources,
-    and so this class handles the main 2. 
-    
+    and so this class handles the main 2.
+
     The first source is the premade messages.
     The second is user entered messages
     """
@@ -68,12 +68,12 @@ class GenericMessage(GenericSignup):
         pass
 
     async def send_message(self,ctx,date):
-        
+
         try:
             self.messageText = f'\n**Activity Type: {self.opsType}**' + self.messageText
         except:
             print("opsType does not exist")
-        
+
         self.messageText = f'\n**Date of activity: {date}**\n' + self.messageText
         roles = await ctx.guild.fetch_roles()
 
@@ -82,19 +82,19 @@ class GenericMessage(GenericSignup):
                 self.messageText = f'{role.mention} ' + self.messageText
             else:
                 pass
-            
+
         reactStr=str()
         for reaction in self.reactions.keys():
             reactStr = reactStr + f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}\n'
 
         self.messageText = self.messageText + f'\n\n**Use the following reacts:**\n{reactStr}'
         self.messageText = self.messageText + f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**'
-        
+
         messageHandler = await self.signUpChannel.send(self.messageText)
         self.messageHandlerID = messageHandler.id
-        
-        
-        
+
+
+
 class GenericEmbed(GenericSignup):
     """
     Class to generate a embed for the signups.
@@ -103,11 +103,11 @@ class GenericEmbed(GenericSignup):
     def __init__(self):
         super().__init__()
         pass
-    
+
     def convert_date_to_unix(self,date):
-        
+
         #message_date='Tuesday 27/09/21 16:00 bst' # Example
-        date_string=date.replace('bst','+0100').replace('BST', '+0100').replace('gmt','+0000').replace('GMT','+0000') 
+        date_string=date.replace('bst','+0100').replace('BST', '+0100').replace('gmt','+0000').replace('GMT','+0000')
         try:
             dtfloat=datetime.strptime(date_string,'%A %d/%m/%y %H:%M %z').timestamp()
             dtint=int(dtfloat) #the output is a float which doesn't work with <t:time:R>
@@ -118,14 +118,14 @@ class GenericEmbed(GenericSignup):
             except:
                 raise
         return dtint
-    
+
     async def send_message(self,ctx,date):
-        
+
         roles = await ctx.guild.fetch_roles()
-        
+
         roleText = ""
         for role in roles:
-            
+
             if role.name in self.mentionRoles:
                 roleText = f'{role.mention} ' + roleText
             else:
@@ -138,36 +138,36 @@ class GenericEmbed(GenericSignup):
 
         except:
             embed = discord.Embed(title = f"UK time: {date}", description =self.messageText ,color=0xff0000)
-        
+
         try:
             embed.add_field( name = "Op Type", value = self.opsType, inline=False)
         except:
             pass
-                
+
         for reaction in self.reactions.keys():
-            embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'{self.reactions[reaction].members["perm"]}', inline=True)  
-        
-        embed.set_footer(text=f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**')        
-        
-        
+            embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'{self.reactions[reaction].members["perm"]}', inline=True)
+
+        embed.set_footer(text=f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**')
+
+
         messageHandler = await self.signUpChannel.send(roleText,embed=embed)
         self.messageHandlerID = messageHandler.id
-        
-        
+
+
         try:
             message = await self.signUpChannel.fetch_message(self.messageHandlerID)
             for reaction in self.reactions.keys():
                 await message.add_reaction(f"{reaction}")
         except:
             traceback.print_exc()
-        
 
-        
+
+
 class ReactionData():
     """
     Contains all the data for storing the reactions
     from a signup for a specific react.
-    
+
     Also contains the functions to access and alter
     this data.
     """
@@ -177,7 +177,7 @@ class ReactionData():
         self.maxReact = maxReact
         self.currentReact = 0
         self.members = {'perm':'\u200b'}
-        
+
     def add_member(self, userID,userNameText):
         """
         Adds a user to the member dictionary as a dict
@@ -185,15 +185,15 @@ class ReactionData():
         """
         self.members.update({userID:userNameText})
         self.currentReact += 1
-    
+
     def remove_member(self, userID):
         """
-        Removes a user to the member dictionary 
+        Removes a user to the member dictionary
         """
         del self.members[userID]
         self.currentReact -= 1
-        
-        
+
+
     def check_member(self, userID):
         """
         Checks if the user is in the dict already
@@ -201,9 +201,9 @@ class ReactionData():
         if userID in self.members.keys():
             return True
         else:
-            return False    
-        
-        
+            return False
+
+
 class ArmourDogs(GenericEmbed):
 
     def __init__(self,channel):
@@ -267,8 +267,9 @@ class RoyalAirWoof(GenericEmbed):
         self.messageText = RoyalAirWoof.get_message('messages/royalairwoof.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions={'<:Icon_Galaxy:795727799591239760>' : ReactionData('Gal-Pilot','<:Icon_Galaxy:795727799591239760>',4),
-                        '<:Icon_Liberator:795727831605837874>' : ReactionData('Lib-Pilot','<:Icon_Liberator:795727831605837874>',0),
+        self.reactions={'<:Icon_Galaxy:795727799591239760>' : ReactionData('Gal-Pilot','<:Icon_Galaxy:795727799591239760>',-1),
+                        '<:Icon_Liberator:795727831605837874>' : ReactionData('Lib-Pilot','<:Icon_Liberator:795727831605837874>',-1),
+                        '<:Icon_Valkyrie:795727937735098388> ' : ReactionData('Valk-Pilot','<:Icon_Valkyrie:795727937735098388> ',-1),
                         '<:Icon_Engineer:795726888763916349>' : ReactionData('Gunner','<:Icon_Engineer:795726888763916349>',-1),
                         '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
                        }
@@ -300,7 +301,7 @@ class SquadLead(GenericEmbed):
         self.messageText = SquadLead.get_message('messages/opsnight.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
-        
+
         self.reactions={'<:Icon_A:795729153072431104>' : ReactionData('PL','<:Icon_A:795729153072431104>',-1),
                         '<:Icon_B:795729164891062343>' : ReactionData('SL','<:Icon_B:795729164891062343>',-1),
                         '<:Icon_C:795729176363270205>' : ReactionData('FL','<:Icon_C:795729176363270205>',-1),
