@@ -39,7 +39,7 @@ class OpSignUp(commands.Cog):
         if payload.user_id == 797809584604446740:
             print('Passing bot reacts')
             pass
-        if payload.message_id in self.objDict:
+        elif payload.message_id in self.objDict:
             print('Remove react')
             async with self.lock:
                 obj = self.objDict[payload.message_id]
