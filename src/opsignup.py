@@ -43,7 +43,7 @@ class OpSignUp(commands.Cog):
             print('Remove react')
             async with self.lock:
                 obj = self.objDict[payload.message_id]
-                await OpSignUp.generic_react_remove(obj,payload)
+                await OpSignUp.generic_react_remove(self,obj,payload)
         else:
             pass
 
@@ -66,7 +66,7 @@ class OpSignUp(commands.Cog):
             print('Add react')
             async with self.lock:
                 obj = self.objDict[payload.message_id]
-                await OpSignUp.generic_react_add(obj,payload)
+                await OpSignUp.generic_react_add(self,obj,payload)
         else:
             pass
 
@@ -178,43 +178,47 @@ class OpSignUp(commands.Cog):
         print('Complete')
 
 
-    async def generic_react_add(self,payload):
+    async def generic_react_add(self,obj,payload):
 
-        messageText  = self.messageText
-        message = await self.signUpChannel.fetch_message(self.messageHandlerID)
+        messageText  = obj.messageText
 
-        if ( str(payload.emoji) in self.reactions.keys()
-        and not sum([self.reactions[react].check_member(str(payload.user_id)) for react in self.reactions])
-        and not OpSignUp.react_max(self,payload)):
+        message = await self.bot.get_channel(payload.channel_id).fetch_message(obj.messageHandlerID)
+        #message = await self.signUpChannel.fetch_message(self.messageHandlerID)
+
+        if ( str(payload.emoji) in obj.reactions.keys()
+        and not sum([obj.reactions[react].check_member(str(payload.user_id)) for react in obj.reactions])
+        and not OpSignUp.react_max(obj,payload)):
 
 
 
-            self.reactions[str(payload.emoji)].add_member(str(payload.user_id),f'{str(payload.member.mention)}\n')
+            obj.reactions[str(payload.emoji)].add_member(str(payload.user_id),f'{str(payload.member.mention)}\n')
 
-            print(self.reactions[str(payload.emoji)].members.values())
+            print(obj.reactions[str(payload.emoji)].members.values())
 
-            await OpSignUp.generic_update_embed(self,message,payload)
+            await OpSignUp.generic_update_embed(self,obj,message,payload)
+
+            OpSignUp.update_data_entry(obj,obj.messageHandlerID)
 
         else:
-            self.ignoreRemove = True
+            obj.ignoreRemove = True
             await message.remove_reaction(payload.emoji,payload.member)
             print('Reaction removed')
 
 
-    async def generic_react_remove(self,payload):
+    async def generic_react_remove(self,obj,payload):
 
-        if self.ignoreRemove:
-            self.ignoreRemove = False
+        if obj.ignoreRemove:
+            obj.ignoreRemove = False
             return
 
-        if str(payload.emoji) in self.reactions.keys():
+        if str(payload.emoji) in obj.reactions.keys():
 
-            message = await self.signUpChannel.fetch_message(self.messageHandlerID)
-            self.reactions[str(payload.emoji)].remove_member(str(payload.user_id))
-            await OpSignUp.generic_update_embed(self,message,payload)
+            message = await obj.signUpChannel.fetch_message(obj.messageHandlerID)
+            obj.reactions[str(payload.emoji)].remove_member(str(payload.user_id))
+            await OpSignUp.generic_update_embed(self,obj,message,payload)
 
 
-    async def generic_update_embed(self, message,payload):
+    async def generic_update_embed(self,obj, message,payload):
 
 
         embedOrig = message.embeds[0]
@@ -223,11 +227,11 @@ class OpSignUp(commands.Cog):
         embed_fields = embed_dict['fields']
 
         for index,field in enumerate(embed_fields):
-            if field['name'] == f'{self.reactions[str(payload.emoji)].symbol} {self.reactions[str(payload.emoji)].name}':
-                print(self.reactions[str(payload.emoji)].members.values())
+            if field['name'] == f'{obj.reactions[str(payload.emoji)].symbol} {obj.reactions[str(payload.emoji)].name}':
+                print(obj.reactions[str(payload.emoji)].members.values())
 
                 memberString = ""
-                for member in self.reactions[str(payload.emoji)].members.values():
+                for member in obj.reactions[str(payload.emoji)].members.values():
                     memberString = memberString + f"{member}"
                 embed_dict['fields'][index].update({'value': str(memberString)})
 
