@@ -269,7 +269,7 @@ class RoyalAirWoof(GenericEmbed):
         self.ignoreRemove = False
         self.reactions={'<:Icon_Galaxy:795727799591239760>' : ReactionData('Gal-Pilot','<:Icon_Galaxy:795727799591239760>',-1),
                         '<:Icon_Liberator:795727831605837874>' : ReactionData('Lib-Pilot','<:Icon_Liberator:795727831605837874>',-1),
-                        '<:Icon_Valkyrie:795727937735098388> ' : ReactionData('Valk-Pilot','<:Icon_Valkyrie:795727937735098388> ',-1),
+                        '<:Icon_Valkyrie:795727937735098388>' : ReactionData('Valk-Pilot','<:Icon_Valkyrie:795727937735098388>',-1),
                         '<:Icon_Engineer:795726888763916349>' : ReactionData('Gunner','<:Icon_Engineer:795726888763916349>',-1),
                         '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
                        }
