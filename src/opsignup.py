@@ -16,7 +16,7 @@ class OpSignUp(commands.Cog):
     """
     def __init__(self,bot):
         self.signUpChannelName = {'soberdogs':['✍-soberdogs',SoberDogs],'armourdogs':['✍-armourdogs',ArmourDogs],
-                                  'bastion':['📣-ps2-events',Bastion],'squadleaders':['✍-squadleaders',SquadLead],
+                                  'bastion':['✍-bastion',Bastion],'squadleaders':['✍-squadleaders',SquadLead],
                                   'dogfighters':['✍-dogfighters',DogFighters],'logidogs':['✍-logistics', Logidogs],
                                   'training':['✍-live-exercises',Training], 'jointops':['✍-joint-ops',JointOps],
                                   'raw':['✍-royal-air-woof', RoyalAirWoof],'ncaf':['✍-ncaf',NCAF],
@@ -98,31 +98,31 @@ class OpSignUp(commands.Cog):
         """
         Usage 1: !ps2-signup <squadtype-1> <date>
         Usage 2: !ps2-signup <squadtype-2> <date> <op-type> <description> <additonal-roles>
-        
+
         Usage 3: !ps2-signup <limit-type> <message ID> <react-1> <limit-1> ... <react-n> <limit-n>
         squadtype-1: squadleaders, soberdogs, armourdogs, dogfighters
                     bastion, raw
         squadtype-2: training, ncaf, cobaltclash
-        limit-type: current-limits, set-limits 
-                    
+        limit-type: current-limits, set-limits
+
         date: Type as a string within quotation marks, e.g "Monday 8:30"
-        
+
         op-type: A string describing the op type, e.g "Galaxy drop training"
-        
+
         description: A string describing the op in detail. Can be multiline
-                     so long as they remain within quotation marks 
-        
-        additional-roles: The exact test string for additional roles. 
+                     so long as they remain within quotation marks
+
+        additional-roles: The exact test string for additional roles.
                           e.g "TDKD Captain" will give @TDKD @Captain
-        
+
         message ID: The message ID of the message you wish to change the react
                     limits on
-        
+
         react-n: The reaction for the limit to be changed on
-        
+
         limit-n: The new max limit for the reacts. -1 is unlimited. 0 is zero
                  limit>0 will enforce limit
-        
+
         Notes: Only the 'CO', 'Captain', 'Lieutenant', 'Sergeant' roles
         will allow this command
 
@@ -184,17 +184,17 @@ class OpSignUp(commands.Cog):
         message = await self.signUpChannel.fetch_message(self.messageHandlerID)
 
         if ( str(payload.emoji) in self.reactions.keys()
-        and not sum([self.reactions[react].check_member(str(payload.user_id)) for react in self.reactions]) 
+        and not sum([self.reactions[react].check_member(str(payload.user_id)) for react in self.reactions])
         and not OpSignUp.react_max(self,payload)):
 
 
 
             self.reactions[str(payload.emoji)].add_member(str(payload.user_id),f'{str(payload.member.mention)}\n')
-            
+
             print(self.reactions[str(payload.emoji)].members.values())
 
             await OpSignUp.generic_update_embed(self,message,payload)
-            
+
         else:
             self.ignoreRemove = True
             await message.remove_reaction(payload.emoji,payload.member)
@@ -213,12 +213,12 @@ class OpSignUp(commands.Cog):
             self.reactions[str(payload.emoji)].remove_member(str(payload.user_id))
             await OpSignUp.generic_update_embed(self,message,payload)
 
-            
+
     async def generic_update_embed(self, message,payload):
-        
-        
+
+
         embedOrig = message.embeds[0]
-        
+
         embed_dict = embedOrig.to_dict()
         embed_fields = embed_dict['fields']
 
@@ -232,9 +232,9 @@ class OpSignUp(commands.Cog):
                 embed_dict['fields'][index].update({'value': str(memberString)})
 
         embedNew = discord.Embed().from_dict(embed_dict)
-        
+
         #for field in embed_dict.values():
-            
+
         #    print(field)
         await message.edit(embed = embedNew)
 
@@ -267,6 +267,3 @@ class OpSignUp(commands.Cog):
             return False
         else:
             return True
-
-
-
