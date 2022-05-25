@@ -90,7 +90,9 @@ class GenericMessage(GenericSignup):
         self.messageText = self.messageText + f'\n\n**Use the following reacts:**\n{reactStr}'
         self.messageText = self.messageText + f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**'
 
-        messageHandler = await self.signUpChannel.send(self.messageText)
+
+
+        messageHandler = await ctx.guild.get_channel(self.signUpChannelID).send(roleText,embed=embed)
         self.messageHandlerID = messageHandler.id
 
 
@@ -149,15 +151,16 @@ class GenericEmbed(GenericSignup):
 
         embed.set_footer(text=f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**')
 
-
-        messageHandler = await self.signUpChannel.send(roleText,embed=embed)
+        messageHandler = await ctx.guild.get_channel(self.signUpChannelID).send(roleText,embed=embed)
         self.messageHandlerID = messageHandler.id
 
 
         try:
-            message = await self.signUpChannel.fetch_message(self.messageHandlerID)
+            message = await ctx.guild.get_channel(self.signUpChannelID).fetch_message(self.messageHandlerID)
             for reaction in self.reactions.keys():
                 await message.add_reaction(f"{reaction}")
+
+            await message.add_reaction(f"💥")
         except:
             traceback.print_exc()
 
@@ -208,7 +211,7 @@ class ArmourDogs(GenericEmbed):
 
     def __init__(self,channel):
         super(ArmourDogs,self).__init__()
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.messageText = ArmourDogs.get_message('messages/armourdogs.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
@@ -224,7 +227,7 @@ class Bastion(GenericEmbed):
 
     def __init__(self,channel):
         super(Bastion,self).__init__()
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.messageText = Bastion.get_message('messages/bastion.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
@@ -235,7 +238,7 @@ class DogFighters(GenericEmbed):
 
     def __init__(self,channel):
         super(DogFighters,self).__init__()
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.messageText = DogFighters.get_message('messages/dogfighters.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
@@ -249,7 +252,7 @@ class Logidogs(GenericEmbed):
 
     def __init__(self,channel):
         super(Logidogs,self).__init__()
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.messageText = Logidogs.get_message('messages/logidogs.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
@@ -263,7 +266,7 @@ class RoyalAirWoof(GenericEmbed):
 
     def __init__(self,channel):
         super(RoyalAirWoof,self).__init__()
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.messageText = RoyalAirWoof.get_message('messages/royalairwoof.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
@@ -279,7 +282,7 @@ class SoberDogs(GenericEmbed):
 
     def __init__(self,channel):
         super(SoberDogs,self).__init__()
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.messageText = SoberDogs.get_message('messages/soberdogs.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
@@ -297,7 +300,7 @@ class SquadLead(GenericEmbed):
 
     def __init__(self,channel):
         super(SquadLead,self).__init__()
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.messageText = SquadLead.get_message('messages/opsnight.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
@@ -318,7 +321,7 @@ class SquadLead(GenericEmbed):
 class CobaltClash(GenericEmbed):
 
     def __init__(self,channel,opsType, message,additionalRoles=[]):
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.opsType=opsType
         self.messageText = message
         self.messageHandlerID = None
@@ -333,7 +336,7 @@ class CobaltClash(GenericEmbed):
 class JointOps(GenericEmbed):
 
     def __init__(self,channel,opsType, message):
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.opsType=opsType
         self.messageText = message
         self.messageHandlerID = None
@@ -346,7 +349,7 @@ class JointOps(GenericEmbed):
 class NCAF(GenericEmbed):
 
     def __init__(self,channel,opsType, message,additionalRoles=[]):
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.opsType=opsType
         self.messageText = message
         self.messageHandlerID = None
@@ -359,7 +362,7 @@ class NCAF(GenericEmbed):
 class Training(GenericEmbed):
 
     def __init__(self,channel,opsType, message,additionalRoles=[]):
-        self.signUpChannel = channel
+        self.signUpChannelID = channel.id
         self.opsType=opsType
         self.messageText = message
         self.messageHandlerID = None
