@@ -1,6 +1,7 @@
 import os
 import asyncio
 import discord
+import random
 
 import settings
 
@@ -9,6 +10,42 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from opsignupclasses import *
+
+
+getFuckedGifRotation = ["https://tenor.com/view/sosiska-gif-23857394",
+                        "https://tenor.com/view/twerk-chicken-gif-13392129",
+                        "https://tenor.com/view/spinning-squirrel-silly-spin-gif-16499914",
+                        "https://tenor.com/view/hilarious-fun-pet-pet-fun-fun-dog-dog-gif-23378410",
+                        "https://tenor.com/view/vines-vine-hot-dog-vine-im-just-saying-im-just-sayin-gif-15617403",
+                        "https://tenor.com/view/penguins-penguins-of-madagascar-madagascar-skipper-private-gif-22554041",
+                        "https://tenor.com/view/most-certainly-i-deny-it-jean-luc-picard-patrick-stewart-star-trek-the-next-generation-gif-23358017",
+                        "https://tenor.com/view/shrek-lord-farquaad-smug-walk-gif-4571303",
+                        "https://tenor.com/view/simpsons-nelson-haha-gif-8845145"
+                        ]
+
+getFuckedTextRotation = ["you little shit",
+                        "you require additional pylons",
+                        "you have no power here",
+                        "you ain't got rights to this shit",
+                        "take a run and jump",
+                        "how is there so much garbage in this village",
+                        "you didn't say the magic word!",
+                        "this has been reported to your local authorities. Please remain where you are.",
+                        "you make me sick",
+                        "I'm too old for this shit",
+                        "you lack diplomatic immunity",
+                        "the princess is in another castle",
+                        "begone thot!",
+                        "you are a sacrifice I am willing to make",
+                        "you don't know the muffin man",
+                        "our patience is wearing thin",
+                        "do you understand how long this took to make?",
+                        "I have the high ground!",
+                        "418 - I'm a teapot"]
+
+
+
+
 
 class OpSignUp(commands.Cog):
     """
@@ -185,7 +222,43 @@ class OpSignUp(commands.Cog):
         message = await self.bot.get_channel(payload.channel_id).fetch_message(obj.messageHandlerID)
         #message = await self.signUpChannel.fetch_message(self.messageHandlerID)
 
-        if ( str(payload.emoji) in obj.reactions.keys()
+        if  str(payload.emoji) == "💥":
+            """
+            Ping all names in list
+            """
+
+            if ('CO' in list([i.name for i in payload.member.roles])
+                or  'Captain' in list([i.name for i in payload.member.roles])
+                or 'Lieutenant'  in list([i.name for i in payload.member.roles])):
+                try:
+                    pingMessage=str()
+                    for react in obj.reactions:
+                        pingMessage+= ' '.join(list(obj.reactions[react].members.values()))
+
+                        #pingMessage=pingMessage.replace('','')
+                    pingMessage = f"Pinged by {payload.member.mention} for tonights Ops\n\n" + pingMessage
+
+                    await self.bot.get_channel(payload.channel_id).send(pingMessage)
+
+                except:
+                    traceback.print_exc()
+            else:
+
+                nanites = [i for i in message.guild.channels if i.name == '💩-nanites-posting']
+
+                randText =random.choice(getFuckedTextRotation)
+                randGif = random.choice(getFuckedGifRotation)
+
+
+                if randText == "you didn't say the magic word!":
+                    randGif = "https://tenor.com/view/you-didnt-say-the-magic-word-ah-ah-nope-wagging-finger-gif-17646607"
+
+                await self.bot.get_channel(nanites[0].id).send(f"Get fucked {payload.member.mention}, {randText}\n{randGif}")
+
+            await message.remove_reaction(payload.emoji,payload.member)
+
+
+        elif ( str(payload.emoji) in obj.reactions.keys()
         and not sum([obj.reactions[react].check_member(str(payload.user_id)) for react in obj.reactions])
         and not OpSignUp.react_max(obj,payload)):
 
@@ -197,7 +270,7 @@ class OpSignUp(commands.Cog):
 
             await OpSignUp.generic_update_embed(self,obj,message,payload)
 
-            OpSignUp.update_data_entry(obj,obj.messageHandlerID)
+            OpSignUp.update_data_entry(self,obj,obj.messageHandlerID)
 
         else:
             obj.ignoreRemove = True
@@ -212,8 +285,9 @@ class OpSignUp(commands.Cog):
             return
 
         if str(payload.emoji) in obj.reactions.keys():
+            message = await self.bot.get_channel(payload.channel_id).fetch_message(obj.messageHandlerID)
 
-            message = await obj.signUpChannel.fetch_message(obj.messageHandlerID)
+            #message = await obj.signUpChannel.fetch_message(obj.messageHandlerID)
             obj.reactions[str(payload.emoji)].remove_member(str(payload.user_id))
             await OpSignUp.generic_update_embed(self,obj,message,payload)
 
@@ -271,3 +345,24 @@ class OpSignUp(commands.Cog):
             return False
         else:
             return True
+
+
+    def update_data_entry(self,obj,messageID):
+
+        # Attempt to write a data entry.
+        #pickle.dump( self, open( "save.p", "wb" ) )
+
+        #loaded_objects = pickle.load( open( "save.p", "rb" )
+
+        print(obj.__dict__)
+        #print(self.signUpChannel.__dict__)
+        #def obj_dict(obj):
+    #        return obj.__dict__
+
+        #with open(f"{messageID}.pickle","w") as database:
+
+        #    pickle.dump(obj,database, protocol=pickle.HIGHEST_PROTOCOL)
+
+        #    testObj = pickle.load(database)
+        #    print(testObj)
+#
