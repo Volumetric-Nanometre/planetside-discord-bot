@@ -11,7 +11,9 @@ from datetime import datetime
 
 from discordbasics import channelManipulation
 import settings
- 
+import traceback
+
+
 class opschannels(channelManipulation,commands.Cog):
     """
     Class to create an ops channel object. This object in turn contains the
@@ -33,9 +35,25 @@ class opschannels(channelManipulation,commands.Cog):
         """
         Create ops channels 
         """
+        print("Attempting to start ops")
         async with self.lock:
+            try:
+                rulesRole=discord.utils.get(ctx.guild.roles, name="rules")
+                permsOW = discord.PermissionOverwrite(view_channel=True, connect=True, speak=True, use_voice_activation=True)
+                
+                print(rulesRole)
+                print(permsOW)
+                
+                overwrites ={rulesRole: permsOW}
+            except:
+                traceback.print_exc()
+                
+            
             for category_name in self.platoon_setup.keys():
-                await channelManipulation.create_category(ctx,category_name)
+                try:
+                    await channelManipulation.create_category(ctx,category_name,overwrites=overwrites)
+                except:
+                    traceback.print_exc()
                 existing_category = discord.utils.get(ctx.guild.categories,
                                                       name=category_name)
 
@@ -57,7 +75,7 @@ class opschannels(channelManipulation,commands.Cog):
         Destroy ops channels 
         """
         
-        print('start')
+        print('Attempting to end ops')
         existing_categories = ctx.guild.categories
         for cat in existing_categories:
             if cat.name in self.platoon_setup.keys():

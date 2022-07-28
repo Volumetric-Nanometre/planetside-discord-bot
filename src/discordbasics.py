@@ -1,11 +1,13 @@
 import discord
 import settings
+import traceback
+
 class channelManipulation():
     
     def __init__(self):
         self.bot=None
     
-    async def create_category(ctx,category_name):
+    async def create_category(ctx,category_name,overwrites):
         """
         Check if category exists, then create
         """
@@ -15,8 +17,9 @@ class channelManipulation():
         if not existing_category:
             print(f'Creating a new category: {category_name}')
             try:
-                await ctx.guild.create_category(name=category_name)
+                await ctx.guild.create_category(name=category_name,overwrites=overwrites)
             except:
+                traceback.print_exc()
                 print(f'Creating {category_name} failed')
         else:
             print(f'{category_name} already exists')
