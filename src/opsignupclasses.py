@@ -371,3 +371,17 @@ class Training(GenericEmbed):
                         '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
                        }
         self.mentionRoles = additionalRoles
+
+class OutfitWars(GenericEmbed):
+
+    def __init__(self,channel,opsType, message,additionalRoles=[]):
+        self.signUpChannelID = channel.id
+        self.opsType=opsType
+        self.messageText = message
+        self.messageHandlerID = None
+        self.ignoreRemove = False
+        self.reactions={'<:NC:727306728470872075>' : ReactionData('Coming','<:NC:727306728470872075>',-1),
+                        '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1),
+                       }
+
+        self.mentionRoles = additionalRoles

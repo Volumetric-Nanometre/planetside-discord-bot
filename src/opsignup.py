@@ -57,7 +57,7 @@ class OpSignUp(commands.Cog):
                                   'dogfighters':['✍-dogfighters',DogFighters],'logidogs':['✍-logistics', Logidogs],
                                   'training':['✍-live-exercises',Training], 'jointops':['✍-joint-ops',JointOps],
                                   'raw':['✍-royal-air-woof', RoyalAirWoof],'ncaf':['✍-ncaf',NCAF],
-                                  'cobaltclash':['✍-cobalt-clash',CobaltClash]}
+                                  'cobaltclash':['✍-cobalt-clash',CobaltClash], 'outfitwars':['✍-outfit-wars',OutfitWars]}
 
         self.objDict = {}
         self.bot = bot
@@ -72,8 +72,10 @@ class OpSignUp(commands.Cog):
         use only those that are pertinent to the
         signup functions
         """
+        
+        print()
         print('remove reaction caught')
-        if payload.user_id == 797809584604446740:
+        if payload.user_id == self.bot.user.id:
             print('Passing bot reacts')
             pass
         elif payload.message_id in self.objDict:
