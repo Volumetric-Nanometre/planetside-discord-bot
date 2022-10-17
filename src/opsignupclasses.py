@@ -309,13 +309,14 @@ class SquadLead(GenericEmbed):
                         '<:Icon_B:795729164891062343>' : ReactionData('SL','<:Icon_B:795729164891062343>',-1),
                         '<:Icon_C:795729176363270205>' : ReactionData('FL','<:Icon_C:795729176363270205>',-1),
                         '<:Icon_D:795729189260754956>' : ReactionData('Specialist SL','<:Icon_D:795729189260754956>',-1),
+                        '<:NC:727306728470872075>' : ReactionData('Guest SL','<:NC:727306728470872075>',2),
                         '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
                         #'<:Icon_Heavy_Assault:795726910344003605>' : ReactionData('Soberdog S/FL','<:Icon_Heavy_Assault:795726910344003605>',-1),
                         #'<:Icon_Galaxy:795727799591239760>' : ReactionData('RAW S/FL','<:Icon_Galaxy:795727799591239760>',-1),
                         #'<:Icon_Vanguard:795727955896565781>' : ReactionData('Armourdog S/FL','<:Icon_Vanguard:795727955896565781>',-1),
                         #'<:Icon_Reaver:795727893342846986>' : ReactionData('Dogfighter S/FL','<:Icon_Reaver:795727893342846986>',-1)
                        }
-        self.mentionRoles =['CO','Captain','Lieutenant','Sergeant','Corporal']
+        self.mentionRoles =['CO','Captain','Lieutenant','Sergeant','Corporal','Guest SL']
 
 
 class CobaltClash(GenericEmbed):

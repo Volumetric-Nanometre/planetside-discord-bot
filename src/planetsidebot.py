@@ -17,6 +17,7 @@ import opstart
 import settings
 import opsignup
 import chatlinker
+import bullybully
 #import outfittracking
 
 class Bot(commands.Bot):
@@ -27,6 +28,7 @@ class Bot(commands.Bot):
         self.add_cog(opstart.opschannels(self))
         self.add_cog(opsignup.OpSignUp(self))
         self.add_cog(chatlinker.ChatLinker(self))
+        #self.add_cog(bullybully.Bully(self))
         #self.add_cog(outfittracking.PS2OutfitTracker(self))
 
     async def on_ready(self):
