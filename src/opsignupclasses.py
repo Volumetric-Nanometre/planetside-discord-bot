@@ -147,10 +147,10 @@ class GenericEmbed(GenericSignup):
             pass
 
         for reaction in self.reactions.keys():
-			if self.reactions[reaction].maxReact > 0:
-				embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'LIMIT: {self.reactions[reaction].maxReact}\n{self.reactions[reaction].members["perm"]}', inline=True)
-			else:
-				embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'{self.reactions[reaction].members["perm"]}', inline=True)
+            if self.reactions[reaction].maxReact > 0:
+                embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'LIMIT: {self.reactions[reaction].maxReact}\n{self.reactions[reaction].members["perm"]}', inline=True)
+            else:
+                embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'{self.reactions[reaction].members["perm"]}', inline=True)
 
         embed.set_footer(text=f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**')
 
