@@ -306,7 +306,7 @@ class OpSignUp(commands.Cog):
             if field['name'] == f'{obj.reactions[str(payload.emoji)].symbol} {obj.reactions[str(payload.emoji)].name}':
                 print(obj.reactions[str(payload.emoji)].members.values())
 
-                memberString = "LIMIT: {obj.reactions[str(payload.emoji)].currentReact} / {obj.reactions[str(payload.emoji)].maxReact}\n"
+                memberString = f'LIMIT: {obj.reactions[str(payload.emoji)].currentReact} / {obj.reactions[str(payload.emoji)].maxReact}\n'
                 for member in obj.reactions[str(payload.emoji)].members.values():
                     memberString = memberString + f"{member}"
                 embed_dict['fields'][index].update({'value': str(memberString)})

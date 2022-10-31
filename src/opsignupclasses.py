@@ -148,7 +148,7 @@ class GenericEmbed(GenericSignup):
 
         for reaction in self.reactions.keys():
             if self.reactions[reaction].maxReact > 0:
-                embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'LIMIT: {self.reactions[reaction].maxReact}\n{self.reactions[reaction].members["perm"]}', inline=True)
+                embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'LIMIT: 0 / {self.reactions[reaction].maxReact}\n{self.reactions[reaction].members["perm"]}', inline=True)
             else:
                 embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'{self.reactions[reaction].members["perm"]}', inline=True)
 
