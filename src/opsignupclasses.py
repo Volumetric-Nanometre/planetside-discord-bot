@@ -85,7 +85,7 @@ class GenericMessage(GenericSignup):
 
         reactStr=str()
         for reaction in self.reactions.keys():
-            reactStr = reactStr + f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}\n'
+            reactStr = reactStr + f'{self.reactions[reaction].combinedName}\n'
 
         self.messageText = self.messageText + f'\n\n**Use the following reacts:**\n{reactStr}'
         self.messageText = self.messageText + f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**'
@@ -147,10 +147,8 @@ class GenericEmbed(GenericSignup):
             pass
 
         for reaction in self.reactions.keys():
-            if self.reactions[reaction].maxReact > 0:
-                embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'LIMIT: 0 / {self.reactions[reaction].maxReact}\n{self.reactions[reaction].members["perm"]}', inline=True)
-            else:
-                embed.add_field( name = f'{self.reactions[reaction].symbol} {self.reactions[reaction].name}', value = f'{self.reactions[reaction].members["perm"]}', inline=True)
+            embed.add_field( name = self.reactions[reaction].displayName, value = f'{self.reactions[reaction].members["perm"]}', inline=True)
+
 
         embed.set_footer(text=f'\n**If your name does not appear, your signup has not happened.**\n**To remove or change signup, unreact.**')
 
@@ -180,6 +178,10 @@ class ReactionData():
     def __init__(self,name,emoji,maxReact):
         self.name = name
         self.symbol = emoji
+		# displayName: Compiled title of emoji, name, and current/max.
+        self.displayName
+		# CombiendName: Premade string of Symbol + name.
+        self.combinedName = self.symbol + self.name
         self.maxReact = maxReact
         self.currentReact = 0
         self.members = {'perm':'\u200b'}
@@ -191,6 +193,7 @@ class ReactionData():
         """
         self.members.update({userID:userNameText})
         self.currentReact += 1
+        self.update_displayName(self)
 
     def remove_member(self, userID):
         """
@@ -198,6 +201,7 @@ class ReactionData():
         """
         del self.members[userID]
         self.currentReact -= 1
+        self.update_displayName(self)
 
 
     def check_member(self, userID):
@@ -208,6 +212,13 @@ class ReactionData():
             return True
         else:
             return False
+
+    # Updates the name used for display purposes.
+    def update_displayName(self):
+        if( self.maxReact > 0 ):
+            self.displayName = self.combinedName + f'({self.currentReact}/{self.maxReact})'
+        else:
+            self.displayName = self.combinedName
 
 
 class ArmourDogs(GenericEmbed):

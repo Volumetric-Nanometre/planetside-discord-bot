@@ -205,6 +205,7 @@ class OpSignUp(commands.Cog):
                     print(obj)
                     print(obj.messageHandlerID)
                     await obj.set_reaction_details(ctx,*args)
+                    self.generic_update_embed_all(obj)
 
                 except Exception:
                     traceback.print_exc()
@@ -303,13 +304,15 @@ class OpSignUp(commands.Cog):
         embed_fields = embed_dict['fields']
 
         for index,field in enumerate(embed_fields):
-            if field['name'] == f'{obj.reactions[str(payload.emoji)].symbol} {obj.reactions[str(payload.emoji)].name}':
+            if field['name'] == f'{obj.reactions[str(payload.emoji)].displayName}':
                 print(obj.reactions[str(payload.emoji)].members.values())
 
-                memberString = f'LIMIT: {obj.reactions[str(payload.emoji)].currentReact} / {obj.reactions[str(payload.emoji)].maxReact}\n'
+                # memberString = f'LIMIT: {obj.reactions[str(payload.emoji)].currentReact} / {obj.reactions[str(payload.emoji)].maxReact}\n'
+                memberString = ""
                 for member in obj.reactions[str(payload.emoji)].members.values():
-                    memberString = memberString + f"{member}"
+                    memberString += f"{member}"
                 embed_dict['fields'][index].update({'value': str(memberString)})
+                embed_dict['fields'][index].update({'title': str(obj.reactions[str(payload.emoji)].displayName)})
 
         embedNew = discord.Embed().from_dict(embed_dict)
 
@@ -317,6 +320,45 @@ class OpSignUp(commands.Cog):
 
         #    print(field)
         await message.edit(embed = embedNew)
+
+
+	# Updates ALL embed items within the message.
+    async def generic_update_embed_all(message):
+        embedOrig = message.embeds[0]
+
+        embed_dict = embedOrig.to_dict()
+        embed_fields = embed_dict['fields']
+
+        for index,field in enumerate(embed_fields):
+            for emojiIndex in message.reactions:
+                if field['name'] == emojiIndex.displayName:
+					# Handle overflow if the new limit is lower than current.
+                    if( emojiIndex.currentReact > emojiIndex.maxReact and emojiIndex.maxReact > 0 and emojiIndex.members > 0):
+                        vDifferential = emojiIndex.maxReact - emojiIndex.currentReact
+                        userIDsFromDic = list(emojiIndex.members)
+                        while vDifferential != 0:
+                            vDifferential - 1
+                            try:
+                                lastMember = emojiIndex.members[userIDsFromDic[-1]]
+                                emojiIndex.members.pop( lastMember )
+                                await message.remove(lastMember) # Removes the members react from the message
+                                await lastMember.user_id.send(f"**TDKD NOTICE**:\nDue to an updated maximum slot, you have been unassigned from {message.embeds[0]['title']}.\nSorry about that! \n\nPlease consider choosing another role or reserve.")
+                            except:
+                                traceback.print_exc()
+                    
+                    # Redo the new display title
+                    emojiIndex.update_displayName()
+                    embed_dict['fields'][index].update({'title': str(emojiIndex.displayName)})
+
+					# Redo the member list
+                    newMemberList = ""
+                    for member in emojiIndex.members.values():
+                        newMemberList += member                    
+                    embed_dict['fields'][index].update({'value':str( newMemberList )})
+                    
+        embedNew = discord.Embed().from_dict(embed_dict)
+        await message.edit(embed = embedNew)
+
 
 
 
