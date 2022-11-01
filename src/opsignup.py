@@ -334,7 +334,7 @@ class OpSignUp(commands.Cog):
                 if field['name'] == emojiIndex.displayName:
 					# Handle overflow if the new limit is lower than current.
                     if( emojiIndex.currentReact > emojiIndex.maxReact and emojiIndex.maxReact > 0 and emojiIndex.members > 0):
-                        vDifferential = emojiIndex.maxReact - emojiIndex.currentReact
+                        vDifferential = emojiIndex.currentReact - emojiIndex.maxReact
                         userIDsFromDic = list(emojiIndex.members)
                         while vDifferential != 0:
                             vDifferential - 1
