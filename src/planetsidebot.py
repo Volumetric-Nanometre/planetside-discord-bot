@@ -17,17 +17,18 @@ import opstart
 import settings
 import opsignup
 import chatlinker
-import bullybully
+# import bullybully
 #import outfittracking
 
 class Bot(commands.Bot):
 
     def __init__(self):
-        super(Bot, self).__init__(command_prefix=['!'])
+        super(Bot, self).__init__(command_prefix=['!'], intents=discord.Intents.all())
 
-        self.add_cog(opstart.opschannels(self))
-        self.add_cog(opsignup.OpSignUp(self))
-        self.add_cog(chatlinker.ChatLinker(self))
+    async def setup_hook(self):
+        await self.add_cog(opstart.opschannels(self))
+        await self.add_cog(opsignup.OpSignUp(self))
+        await self.add_cog(chatlinker.ChatLinker(self))
         #self.add_cog(bullybully.Bully(self))
         #self.add_cog(outfittracking.PS2OutfitTracker(self))
 
@@ -42,4 +43,4 @@ async def on_command_error(ctx, error):
     
 print("loop running")
 
-bot.run(settings.DISCORD_TOKEN)
+asyncio.run(bot.run(settings.DISCORD_TOKEN))
