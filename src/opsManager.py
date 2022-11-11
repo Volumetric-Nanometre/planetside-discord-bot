@@ -1,0 +1,1 @@
+# Ops Manager:  Manages channels, creating and removing of Ops.
