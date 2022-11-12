@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-import botUtils
 
 load_dotenv()
 global TOKEN
@@ -19,6 +18,5 @@ opsFolderName = "TDKDOps"
 bShowDebug = True
 
 
-botUtils.BotPrinter.Debug("Tokens loaded")
-botUtils.BotPrinter.Debug(f"Active Dir: {botDir}")
-# print (f"Active Dir: {botDir}")
+# print("Tokens loaded")
+# print(f"Active Dir: {botDir}")
