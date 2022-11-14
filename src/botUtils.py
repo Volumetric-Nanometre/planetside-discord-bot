@@ -1,6 +1,7 @@
 import os
 import datetime
 import settings
+import traceback
 
 # BotPrinter:
 # wraps printing around booleans.
@@ -16,5 +17,8 @@ class BotPrinter():
 	# Convenience function to pretty print errors.
 	@staticmethod
 	def LogError(p_string):
-		print(f"[{datetime.datetime.now()}] ERROR: {p_string}")
+		print(f"[{datetime.datetime.now()}] ERROR: {p_string}\n{traceback.print_tb()}")
 
+	@staticmethod
+	def LogError(p_string: str, p_exception: Exception):
+		print(f"[{datetime.datetime.now()}] ERROR: {p_string}\n{traceback.print_tb(p_exception.__traceback__)}")
