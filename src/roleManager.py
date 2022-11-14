@@ -13,40 +13,43 @@ from botUtils import BotPrinter
 
 
 class RoleManager(discord.ui.View):
-	def __init__(self, p_bot, p_user: discord.Member):
+	def __init__(self, p_bot, p_user: discord.Member, pIsAdding: bool):
 		super().__init__()
 		self.bot: commands.Bot = p_bot
 		self.vUser = p_user
 		self.vGuild = discord.Guild
+		self.vInteraction: discord.Interaction
 		self.lock = asyncio.Lock()
+
 		self.vTDKDRoles = TDKDRoles()
 		self.vTDKDRoles.parentView = self
 		self.vGameRoles1 = GameRoles1()
 		self.vGameRoles1.parentView = self
+		self.vGameRoles2 = GameRoles2()
+		self.vGameRoles2.parentView = self
+
+		self.bAddRoles = pIsAdding
+		BotPrinter.Debug(f"User is adding a role: {self.bAddRoles}")
 		
 		self.add_item(self.vTDKDRoles)
-		# self.add_item(self.vGameRoles1)
-		# self.add_item(discord.Button(custom_id="BTN_updateRoles", label="Update Roles"))
+		self.add_item(self.vGameRoles1)
+		self.add_item(self.vGameRoles2)
 
-	@discord.ui.button(label="Update", style=discord.ButtonStyle.primary)
+	@discord.ui.button(label="Update", style=discord.ButtonStyle.primary, row=4)
 	async def btnUpdateRoles(self, pInteraction: discord.Interaction, vButton: discord.ui.button):
 		await self.UpateUserRoles()
+		await self.vInteraction.delete_original_response()
+		await self.vInteraction.response.send_message("Roles updated!") 
 
 
 	async def UpateUserRoles(self):
 		# Create a list of all the roles a user can self-assign.
 		# This will be used later to check and remove unassigned roles.
-		vUserRolesList = []
-			
-		for role in self.vTDKDRoles.options:
-			vUserRolesList.append(role.value)
-			# BotPrinter(f"Updating user roles-  Full role list: {vUserRolesList}")
-		for role in self.vGameRoles1.options:
-			vUserRolesList.append(role.value)
+		vUserRolesList = self.vTDKDRoles.options + self.vGameRoles1.options + self.vGameRoles2
 
 
 		# Create a list of selected user roles.
-		vUserSelectedRoles = self.vTDKDRoles.values + self.vGameRoles1.values
+		vUserSelectedRoles = self.vTDKDRoles.values + self.vGameRoles1.values + self.vGameRoles2.values
 		BotPrinter.Debug(f"Selected Roles: {vUserSelectedRoles}")
 
 		# Ensure we're operating on TDKD server.
@@ -68,33 +71,41 @@ class RoleManager(discord.ui.View):
 		for serverRoleIndex in vServerRoles:
 			BotPrinter.Debug(f"Current Index- ID:Name : {serverRoleIndex.id} : {serverRoleIndex.name}")
 
-			# User has this role!
-			if serverRoleIndex in self.vUser.roles:
-				# User has deselected this role (or its one they can't assign, don't remove these! )
-				BotPrinter.Debug("User has this role.")
-				if f"{serverRoleIndex.id}" not in vUserSelectedRoles and f"{serverRoleIndex.id}" in vUserRolesList:
-					BotPrinter.Debug("User has this role, and deselected it!  Removing from user.")
-					await self.vUser.remove_roles( serverRoleIndex )
-			# User doesn't have, and has selected this role
-			elif f"{serverRoleIndex.id}" in vUserSelectedRoles:
-				BotPrinter.Debug("User has selected this role, and doesn't have it.  Adding to user...")
-				await self.vUser.add_roles( serverRoleIndex )
+		# New loop
+			# Only proceed if role is one a user can add/remove
+			if f"{serverRoleIndex.id}" in vUserRolesList:
+				# Add roles:
+				if self.bAddRoles:
+					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
+						BotPrinter.Debug("ADDING ROLE")
+						await self.vUser.add_roles( serverRoleIndex )
+
+				# Remove roles:
+				else:
+					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
+						BotPrinter.Debug("REMOVING ROLE")
+						await self.vUser.remove_roles( serverRoleIndex )
 			else:
-				BotPrinter.Debug("Invalid role?")
-		BotPrinter.Debug("user roles updated!")
-		self.stop()
+				BotPrinter.Debug("Role is not user-assignable. Skipping...")
 
 
-# class RoleSelection(discord.ui.Select):
-# 	def __init__(self):
-# 		self.parentView: RoleManager
-		
 
-# 	async def callback(self, pInteraction: discord.Interaction):
-# 		await self.parentView.UpateUserRoles()
+class RoleSelection(discord.ui.Select):
+	async def callback(self, pInteraction: discord.Interaction):
+		await pInteraction.response.defer()
+
+###
+# ADDING NEW ROLES
+# Label: Displayed to user.
+# Value: The ID number of the role.  Breaks if typed but not specified.
+# Description: Not needed, descriptive text shown to user.
+# Emoji: self explanitory: will break if typed emoji="" but no emoji id given
+#
+# 'max_values' should always equate to the maximum number of roles available.
+# Unless you wish for users to repeateldy run the command to add/remove roles. :p
 
 
-class TDKDRoles(discord.ui.Select):
+class TDKDRoles(RoleSelection):
 	def __init__(self):
 		self.parentView: RoleManager
 		vOptions = [
@@ -112,46 +123,75 @@ class TDKDRoles(discord.ui.Select):
 
 		super().__init__(placeholder="Select TDKD roles", min_values=0, max_values=8, options=vOptions)
 
-	async def callback(self, pInteraction: discord.Interaction):
-		await self.parentView.UpateUserRoles()
-		await pInteraction.response.send_message("Your roles have been updated!", ephemeral=True)
 
 
-
-class GameRoles1(discord.ui.Select):
+class GameRoles1(RoleSelection):
 	def __init__(self):
 		self.parentView:RoleManager
 		vOptions = [
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description=""),
-			discord.SelectOption(label="", value="", description="")
+			discord.SelectOption(label="Post Scriptum", value="1"),
+			discord.SelectOption(label="Squad", value="2"),
+			discord.SelectOption(label="Space Engineers", value="3"),
+			discord.SelectOption(label="Deep Rock Galactic", value="4"),
+			discord.SelectOption(label="Valheim", value="5"),
+			discord.SelectOption(label="Terraria", value="6"),
+			discord.SelectOption(label="Apex Legends", value="7"),
+			discord.SelectOption(label="Minecraft", value="8"),
+			discord.SelectOption(label="Team Fortress 2", value="9"),
+			discord.SelectOption(label="Dungeon and Dragons", value="10"),
+			discord.SelectOption(label="Warframe", value="11"),
+			discord.SelectOption(label="Supreme Commander", value="12"),
+			discord.SelectOption(label="Battlefield 2042", value="13"),
+			discord.SelectOption(label="Conqueror's Blade", value="14"),
+			discord.SelectOption(label="Stellaris", value="15"),
+			discord.SelectOption(label="Sea of Thieves", value="16"),
+			discord.SelectOption(label="Back 4 Blood", value="17"),
+			discord.SelectOption(label="Garrys' Mod", value="18"),
+			discord.SelectOption(label="Killing Floor 2", value="19"),
+			discord.SelectOption(label="Vermintide", value="20"),
+			discord.SelectOption(label="Total War: Warhammer", value="21"),
+			discord.SelectOption(label="Factorio", value="22"),
+			discord.SelectOption(label="Warthunder", value="23"),
+			discord.SelectOption(label="Gates of Hell", value="24"),
+			discord.SelectOption(label="Overwatch", value="25")
 		]
-		super().__init__(placeholder="Select TDKD roles", min_values=0, max_values=25, options=vOptions)
+		super().__init__(placeholder="Select other game roles", min_values=0, max_values=25, options=vOptions)
 	
 	# async def callback(self, pInteraction: discord.Interaction):
 		# await self.parentView.UpateUserRoles()
+
+
+class GameRoles2(RoleSelection):
+	def __init__(self):
+		vOptions = [
+			discord.SelectOption(label="World of Tanks", value="987"),
+			discord.SelectOption(label="Star Citizen", value="654")
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji=""),
+			# discord.SelectOption(label="", value="", description="", emoji="")
+		]
+		super().__init__(placeholder="Select other game roles!", min_values=0, max_values=2, options=vOptions)
+
 
 
 # class GameRoles0(RoleSelection):
@@ -184,5 +224,6 @@ class GameRoles1(discord.ui.Select):
 # 			discord.SelectOption(label="", value="", description="", emoji="")
 # 		]
 # 		super().__init__(placeholder="Choose your other game roles!", min_values=0, max_values=25, options=vOptions)
+	#  Make sure "max values" matches the number of roles.  It bugs out if higher than the actual amount of roles available.
 
 #https://github.com/Rapptz/discord.py/blob/v2.0.1/examples/views/dropdown.py

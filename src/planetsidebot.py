@@ -8,11 +8,13 @@ import discord
 # from discord import app_commands  # Not needed (also doesn't work), pass name & descriptions into the @Bot.tree.command decorator
 import dotenv
 from discord.ext import commands
+from discord import app_commands
 
 import botUtils
 import settings
 
 import roleManager
+import newUser
 
 # internal modules
 # import discordbasics
@@ -32,7 +34,6 @@ class Bot(commands.Bot):
     async def setup_hook(self):
 		# Needed for later functions, which want a discord object instead of a plain string.
         vGuildObj = await self.fetch_guild(settings.DISCORD_GUILD) # Make sure to use Fetch in case of outdated caching.
-
 
         botUtils.BotPrinter.Debug("Setting up hooks...")
         # await self.add_cog(roleManager.RoleManager(self))
@@ -54,14 +55,32 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.send('You do not have the correct role for this command.', ephemeral=True)
 
+@bot.event
+async def on_member_join(pMember:discord.User):
+	channel = bot.get_channel(358702477962379274)
+	pMember.me
 
 
 # APP COMMANDS
 
 @bot.tree.command(name="roles", description="Opens a menu to select both TDKD roles and other game roles, showing the respective channels.")
-async def userroles(pInteraction: discord.Interaction):
-	vView = roleManager.RoleManager(bot, pInteraction.user)
-	await pInteraction.response.send_message("MODIFY USER ROLES...", view=vView, ephemeral=True)
+@app_commands.rename(isAddingRole="add_role")
+@app_commands.describe(isAddingRole="TRUE if you want to add roles, FALSE if you want to remove them.")
+async def userroles(pInteraction: discord.Interaction, isAddingRole: bool):
+	vView = roleManager.RoleManager(bot, pInteraction.user, isAddingRole)
+	vView.vInteraction = pInteraction
+	vMessageTitle: str
+
+	if isAddingRole:
+		vMessageTitle = "**Select the roles you want to ADD**"
+	else:
+		vMessageTitle = "**Select the roles you want to REMOVE**"
+	await pInteraction.response.send_message(vMessageTitle, view=vView, ephemeral=True)
+
+
+@bot.tree.command(name="join", description="Show the join window if you have closed it.")
+async def newuserjoin(pInteraction: discord.Interaction):
+	await pInteraction.response.send_modal( newUser.NewUser())
 
 
 
