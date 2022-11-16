@@ -38,14 +38,20 @@ class OpsManager():
 	def GetDefaultOpsAsEnum():
 		botUtils.BotPrinter.Debug("Getting Ops list...")
 		vOpsDir = f"{settings.botDir}/{settings.defaultOpsDir}/"
-		vDataFiles: list = []
+		OpsManager.createDefaultsFolder()
+
+		vDataFiles: list = ["Custom"]
 		
 		for file in os.listdir(vOpsDir):
 			if file.endswith(".json"):
 				vDataFiles.append(file)
-		botUtils.BotPrinter.Debug(f"Ops files found: {vDataFiles}")
 
-		return enum.Enum("OpsType", vDataFiles)
+		if len(vDataFiles) > 1:
+			botUtils.BotPrinter.Debug(f"Ops files found: {vDataFiles}")
+			return enum.Enum("OpsType", vDataFiles)
+		else:
+			botUtils.BotPrinter.Debug("No ops files!")
+			return enum.Enum("OpsType", ["Custom", "(noSavedDefaults)"])
 
 
 
@@ -57,7 +63,8 @@ class OpsManager():
 				botUtils.BotPrinter.LogError("Failed to create folder for Ops data!")
 
 
-	async def createDefaultsFolder():
+	def createDefaultsFolder():
+		botUtils.BotPrinter.Debug("Creating default ops folder (if non existant)")
 		if (not os.path.exists(f"{settings.botDir}/{settings.defaultOpsDir}") ):
 			try:
 				os.makedirs(f"{settings.botDir}/{settings.defaultOpsDir}")
