@@ -15,6 +15,7 @@ DISCORD_GUILD = os.getenv('DISCORD_GUILD')
 PS2_SVS_ID = os.getenv('PS2_SVS_ID')
 botDir = os.getcwd()
 opsFolderName = "TDKDOps"
+defaultOpsDir = "SavedOps"
 bShowDebug = True
 
 
