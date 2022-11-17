@@ -2,6 +2,7 @@ import os
 import datetime
 import settings
 import traceback
+import enum
 
 # BotPrinter:
 # wraps printing around booleans.
@@ -22,3 +23,27 @@ class BotPrinter():
 	@staticmethod
 	def LogError(p_string: str, p_exception: Exception):
 		print(f"[{datetime.datetime.now()}] ERROR: {p_string}\n{traceback.print_tb(p_exception.__traceback__)}")
+
+
+class DateFormat(enum.Enum):
+	Dynamic = ":R" # Dyanmically changes to most appropriate biggest stamp (in X days, in X hours, in x seconds)
+	DateShorthand = ":d" # dd/mm/year
+	DateLonghand = ":D" # 00 Month Year
+	TimeShorthand = ":t" # Hour:Minute
+	TimeLonghand = ":T" # Hour:Minute:Seconds
+	DateTimeShort = ":f" # Full date, no day.
+	DateTImeLong = ":F" # Full date, includes Day
+	Raw = "" # Raw POSIX.
+	
+		
+class DateFormatter():
+
+	# Used to clear up repeating code
+	@staticmethod
+	def GetPOSIXTime( pDate: datetime.datetime ):
+		return pDate.strftime("%s")	
+
+	# Returns a specially formatted time for discord messages, defaults to dynamic type: "in X days. In 30 minutes" etc...
+	@staticmethod
+	def GetDiscordTime(pDate: datetime.datetime, pFormat: DateFormat = DateFormat.Dynamic):
+		return f"<t:{DateFormatter.GetPOSIXTime(pDate)}{pFormat.value}>"
