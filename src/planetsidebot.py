@@ -4,6 +4,7 @@
 import asyncio
 import os
 import enum
+import datetime
 
 import discord
 import dotenv
@@ -45,7 +46,7 @@ class Bot(commands.Bot):
         # await self.add_cog(chatlinker.ChatLinker(self))
 
     async def on_ready(self):
-        print(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.DISCORD_GUILD}')
+        botUtils.BotPrinter.Debug(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.DISCORD_GUILD}')
 
 bot = Bot()        
 
@@ -60,7 +61,12 @@ async def on_member_join(pMember:discord.User):
 	channel.send("Welcome!  To continue, use `/join`.")
 
 
+
+
 # APP COMMANDS
+
+
+# ADD & REMOVE USER ROLES (/roles)
 
 @bot.tree.command(name="roles", description="Opens a menu to select both TDKD roles and other game roles, showing the respective channels.")
 @app_commands.rename(isAddingRole="add_role")
@@ -77,18 +83,33 @@ async def userroles(pInteraction: discord.Interaction, isAddingRole: bool):
 	await pInteraction.response.send_message(vMessageTitle, view=vView, ephemeral=True)
 
 
+
+# NEW USER (/join)
+
 @bot.tree.command(name="join", description="Show the join window if you have closed it.")
 async def newuserjoin(pInteraction: discord.Interaction):
 	await pInteraction.response.send_modal( newUser.NewUser())
 
 
+
+# ADD OPS (/addops)
+
 @bot.tree.command(name="addops", description="Add a new Ops event")
-@app_commands.describe(optype="Type of Ops to create.", edit="Open the Ops Editor after creating this event?")
+@app_commands.describe(optype="Type of Ops to create.",
+						edit="Open the Ops Editor after creating this event?",
+						pDay="The day this ops will run.",
+						pMonth="The month this ops will run.",
+						pHour="The HOUR the ops will run in.",
+						pMinute="The MINUTE within an hour the ops starts on")
+@app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute")
 # async def addopsevent (pInteraction: discord.Interaction, optype: botData.OpsTypes, edit: bool ):
-async def addopsevent (pInteraction: discord.Interaction, optype: opsManager.OpsManager.GetDefaultOpsAsEnum(), edit: bool ):
+async def addopsevent (pInteraction: discord.Interaction, optype: opsManager.OpsManager.GetDefaultOpsAsEnum(), edit: bool, pDay:int, pMonth:int, pHour: int, pMinute: int):
+
 	botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
-	await pInteraction.response.send_message(f"Adding new event ({optype}).  Edit after posting: {edit}")
+	vTime = datetime.datetime(year=datetime.datetime.now().year, month=pMonth, day=pDay, minute=pMinute, hour=pHour )
+	vUTCStamp = botUtils.DateFormatter.GetDiscordTime(vTime)
+	await pInteraction.response.send_message(f"Adding new event ({optype}).  Edit after posting: {edit}.\nThis ops will run{vUTCStamp}", ephemeral=True)
 
 # START
-botUtils.BotPrinter.Debug("Loop running...")
+botUtils.BotPrinter.Debug("Bot running...")
 asyncio.run(bot.run(settings.DISCORD_TOKEN))
