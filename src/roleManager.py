@@ -29,7 +29,7 @@ class RoleManager(discord.ui.View):
 		self.vGameRoles2.parentView = self
 
 		self.bAddRoles = pIsAdding
-		BotPrinter.Debug(f"User is adding a role: {self.bAddRoles}")
+		BotPrinter.Debug(f"{p_user.name} is updating roles.  Adding new roles: {self.bAddRoles}")
 		
 		self.add_item(self.vTDKDRoles)
 		self.add_item(self.vGameRoles1)
@@ -39,14 +39,20 @@ class RoleManager(discord.ui.View):
 	async def btnUpdateRoles(self, pInteraction: discord.Interaction, vButton: discord.ui.button):
 		await self.UpateUserRoles()
 		await self.vInteraction.delete_original_response()
-		await self.vInteraction.response.send_message("Roles updated!") 
+		# await self.vInteraction.response.send_message("Roles updated!") 
+		await self.vInteraction.followup.send(content="Roles updated!", ephemeral=True)
 
 
 	async def UpateUserRoles(self):
 		# Create a list of all the roles a user can self-assign.
 		# This will be used later to check and remove unassigned roles.
-		vUserRolesList = self.vTDKDRoles.options + self.vGameRoles1.options + self.vGameRoles2.options
+		vOptionList = self.vTDKDRoles.options + self.vGameRoles1.options + self.vGameRoles2.options
+		vUserRolesList: list(str) = []  #= 
+		role: discord.SelectOption
+		for role in vOptionList:
+			vUserRolesList.append(role.value)
 
+		BotPrinter.Debug(f"User Role List: {vUserRolesList}")
 
 		# Create a list of selected user roles.
 		vUserSelectedRoles = self.vTDKDRoles.values + self.vGameRoles1.values + self.vGameRoles2.values
@@ -64,8 +70,6 @@ class RoleManager(discord.ui.View):
 
 		# Get all the roles in the server.
 		vServerRoles = await self.vGuild.fetch_roles()
-
-		BotPrinter.Debug(f"User ({self.vUser}) Roles: {self.vUser.roles}")
 				
 		# Assign new:
 		for serverRoleIndex in vServerRoles:
@@ -92,7 +96,7 @@ class RoleManager(discord.ui.View):
 
 class RoleSelection(discord.ui.Select):
 	async def callback(self, pInteraction: discord.Interaction):
-		await pInteraction.response.defer()
+		await pInteraction.response.defer(ephemeral=True, thinking=False)
 
 ###
 # ADDING NEW ROLES
