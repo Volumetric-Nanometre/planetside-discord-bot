@@ -99,16 +99,44 @@ async def newuserjoin(pInteraction: discord.Interaction):
 						edit="Open the Ops Editor after creating this event?",
 						pDay="The day this ops will run.",
 						pMonth="The month this ops will run.",
-						pHour="The HOUR the ops will run in.",
-						pMinute="The MINUTE within an hour the ops starts on")
-@app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute")
-# async def addopsevent (pInteraction: discord.Interaction, optype: botData.OpsTypes, edit: bool ):
-async def addopsevent (pInteraction: discord.Interaction, optype: opsManager.OpsManager.GetDefaultOpsAsEnum(), edit: bool, pDay:int, pMonth:int, pHour: int, pMinute: int):
+						pHour="The HOUR (24) the ops will run in.",
+						pMinute="The MINUTE within an hour the ops starts on",
+						pYear="Optional.\nThe Year the ops should run.")
+@app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute", pYear="year")
+async def addopsevent (pInteraction: discord.Interaction, 
+	optype: opsManager.OpsManager.GetDefaultOpsAsEnum(), 
+	edit: bool, pDay:app_commands.Range[int, 0, 31], 
+	pMonth:app_commands.Range[int, 1, 12], 
+	pHour: app_commands.Range[int, 1, 23], 
+	pMinute:app_commands.Range[int, 0, 59],
+	pYear:int  = datetime.datetime.now().year
+):
 
-	botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
+	botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}, Year: {pYear}")
 	vTime = datetime.datetime(year=datetime.datetime.now().year, month=pMonth, day=pDay, minute=pMinute, hour=pHour )
 	vUTCStamp = botUtils.DateFormatter.GetDiscordTime(vTime)
+	vDate = datetime.datetime(
+		year=pYear,
+		month=pMonth,
+		day=pDay,
+		hour=pHour, minute=pMinute)
+
+	# If OpType selected is not an actual saved optype, assumed custom (or the other notif to say no saved ops exist, was chosen.)
+	if optype not in await opsManager.OpsManager.GetOps():
+		# Make a new OpsData;
+		newOpsData = botData.OperationData(date=vDate, status=botData.OpsStatus.editing)
+		
+		opsMessage = opsManager.OpsMessage()
+		opsMessage.opsData = newOpsData
+
+		await pInteraction.response.send_message("Adding a custom event.")
+		return
+
+
 	await pInteraction.response.send_message(f"Adding new event ({optype}).  Edit after posting: {edit}.\nThis ops will run{vUTCStamp}", ephemeral=True)
+
+
+
 
 # START
 botUtils.BotPrinter.Debug("Bot running...")

@@ -2,6 +2,7 @@
 # This includes: Channels, Op defaults, Op Signups
 from enum import Enum
 from dataclasses import dataclass, field
+import datetime
 
 
 # Enum to assist in making things easier to read.
@@ -14,8 +15,13 @@ class OpsTypes(Enum):
 	RoyalAirWoof = 4
 	BaseBusters = 5
 
+class OpsStatus(Enum):
+	open = 1
+	started = 2
+	editing = 3
+
+
 # OpRoleData:  Signup Data pertaining to an individual role on an Operation.
-# @dataclasses_json
 @dataclass
 class OpRoleData:
 	players : list = field(default_factory=list) #User IDs
@@ -24,7 +30,6 @@ class OpRoleData:
 	maxPositions : int = field(default_factory=int)
 
 #OperationData: Information relating to the Op as a whole, includes a list of OpRoleData objects.
-# @dataclasses_json
 @dataclass
 class OperationData:
 	# List of OpRoleData objects
@@ -32,11 +37,12 @@ class OperationData:
 	reserves : list = field(default_factory=list) # Since there's no need for special data for reserves, they just have a simple UserID list.
 	# Op Details:
 	name : str = field(default_factory=str)
-	date : str = field(default_factory=str)
+	date : datetime = field(default_factory=datetime)
 	description : str = field(default_factory=str)
 	customMessage : str = field(default_factory=str)
 	additionalRoles : str = field(default_factory=str)
 	messageID : str = field(default_factory=str) # Stored to make accessing and editing quicker/avoid having to find it.
+	status : OpsStatus = field(default_factory=OpsStatus)
 
 
 

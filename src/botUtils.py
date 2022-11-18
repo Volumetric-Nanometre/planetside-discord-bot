@@ -3,6 +3,7 @@ import datetime
 import settings
 import traceback
 import enum
+import discord
 
 # BotPrinter:
 # wraps printing around booleans.
@@ -34,6 +35,13 @@ class DateFormat(enum.Enum):
 	DateTimeShort = ":f" # Full date, no day.
 	DateTImeLong = ":F" # Full date, includes Day
 	Raw = "" # Raw POSIX.
+
+
+class Colours(enum.Enum):
+	openSignup = discord.Colour.from_rgb(0,244,0)
+	opsStarted = discord.Colour.from_rgb(255,0,0)
+	editing = discord.Colour.from_rgb(204, 102, 0)
+	
 	
 		
 class DateFormatter():
