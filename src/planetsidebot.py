@@ -126,8 +126,11 @@ async def addopsevent (pInteraction: discord.Interaction,
 		# Make a new OpsData;
 		newOpsData = botData.OperationData(date=vDate, status=botData.OpsStatus.editing)
 		
-		opsMessage = opsManager.OpsMessage()
-		opsMessage.opsData = newOpsData
+		vOpsMessage = opsManager.OpsMessage()
+		vOpsMessage.opsData = newOpsData
+
+		vEditor = opsManager.OpsEditor()
+
 
 		await pInteraction.response.send_message("Adding a custom event.")
 		return
