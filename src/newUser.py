@@ -21,7 +21,6 @@ class NewUser(discord.ui.Modal, title="Welcome!\nPlease enter your PS2 Character
 		BotPrinter.Debug(f"New user name: {vNewName}")
 		if vNewName != "":
 			await pInteraction.user.edit(nick=f"{vNewName}")
-			BotPrinter.Debug(f"Discord Nick updated to {pInteraction.user.nick}")
 		else:
 			await pInteraction.response.send_message(f"Could not find your in-game character name. \nPlease try again (`/Join`), or contact a CO for assistance.", ephemeral=True)
 		await pInteraction.response.send_message("Welcome to TDKD! \nUse `/roles` to add PS2 and other game related roles (and view their channels)!", ephemeral=True)
@@ -44,7 +43,10 @@ class NewUser(discord.ui.Modal, title="Welcome!\nPlease enter your PS2 Character
 				BotPrinter.Debug("Found IGN!  Compiling new nickname")
 				vNewUserName: str
 				vOutfit: auraxium.ps2.Outfit = await player.outfit()
-				if vOutfit.alias == "TDKD":
+				if vOutfit is None:
+					BotPrinter.Debug("Player is not part of any Outfit!")
+					vNewUserName = pIGN
+				elif vOutfit.alias == "TDKD":
 					BotPrinter.Debug("Player is part of TDKD!")
 					vNewUserName = pIGN
 				elif vOutfit is not None:
