@@ -45,7 +45,7 @@ class RoleManager(discord.ui.View):
 	async def UpateUserRoles(self):
 		# Create a list of all the roles a user can self-assign.
 		# This will be used later to check and remove unassigned roles.
-		vUserRolesList = self.vTDKDRoles.options + self.vGameRoles1.options + self.vGameRoles2
+		vUserRolesList = self.vTDKDRoles.options + self.vGameRoles1.options + self.vGameRoles2.options
 
 
 		# Create a list of selected user roles.
@@ -110,18 +110,18 @@ class TDKDRoles(RoleSelection):
 		self.parentView: RoleManager
 		vOptions = [
 			# discord.SelectOption(label="Planetside", value="TDKD", description="The main role for TDKD planetside.", emoji=''),
-			discord.SelectOption(label="Planetside Pings", value="ps2", description="Get Pings for non-major PS2 events (your fellow drunken doggos looking for company!)"),
-			discord.SelectOption(label="Sober Dogs", value="1040751250163122176", description="Get pings for more serious, coordinated infantry gameplay events!"),
-			discord.SelectOption(label="Base Busters", value="LogiDogs", description="Get pings for base building and busting events!"),
-			discord.SelectOption(label="Armour Dogs", value="ArmourDogs", description="Get pings for ground vehicle related events!"),
-			discord.SelectOption(label="Dog Fighters", value="dogfighter", description="Get pings for small aerial vehicle related events!"),
-			discord.SelectOption(label="Royal Air Woofs", value="RAW", description="Get pings for heavy aerial vehicle related events!"),
-			discord.SelectOption(label="PS2 Twitter", value="Twitter", description="Get pinged when the planetside 2 twitter is updated!"),
-			discord.SelectOption(label="Jaeger", value="IdontfuckinknowCactusHelp", description="Get pinged for Jeager events!")
+			discord.SelectOption(label="Planetside Pings", value="ps2", description="Non-major PS2 events/fellow drunken doggos looking for company"),
+			discord.SelectOption(label="Sober Dogs", value="1040751250163122176", description="More serious, coordinated infantry events"),
+			discord.SelectOption(label="Base Busters", value="LogiDogs", description="Base building and busting events"),
+			discord.SelectOption(label="Armour Dogs", value="ArmourDogs", description="Ground vehicle related events"),
+			discord.SelectOption(label="Dog Fighters", value="dogfighter", description="Small aerial vehicle related events"),
+			discord.SelectOption(label="Royal Air Woofs", value="RAW", description="Heavy aerial vehicle related events"),
+			discord.SelectOption(label="PS2 Twitter", value="Twitter", description="Planetside 2 Twitter posts"),
+			discord.SelectOption(label="Jaeger", value="IdontfuckinknowCactusHelp", description="Jeager events")
 			# discord.SelectOption(label="", value="", description="", emoji='')
 		]
 
-		super().__init__(placeholder="Select TDKD roles", min_values=0, max_values=8, options=vOptions)
+		super().__init__(placeholder="TDKD/PS2 Notification roles", min_values=0, max_values=8, options=vOptions)
 
 
 
@@ -155,7 +155,7 @@ class GameRoles1(RoleSelection):
 			discord.SelectOption(label="Gates of Hell", value="24"),
 			discord.SelectOption(label="Overwatch", value="25")
 		]
-		super().__init__(placeholder="Select other game roles", min_values=0, max_values=25, options=vOptions)
+		super().__init__(placeholder="Other Games roles", min_values=0, max_values=25, options=vOptions)
 	
 	# async def callback(self, pInteraction: discord.Interaction):
 		# await self.parentView.UpateUserRoles()
@@ -190,7 +190,7 @@ class GameRoles2(RoleSelection):
 			# discord.SelectOption(label="", value="", description="", emoji=""),
 			# discord.SelectOption(label="", value="", description="", emoji="")
 		]
-		super().__init__(placeholder="Select other game roles!", min_values=0, max_values=2, options=vOptions)
+		super().__init__(placeholder="Other Games roles", min_values=0, max_values=2, options=vOptions)
 
 
 
