@@ -37,7 +37,7 @@ class OperationData:
 	reserves : list = field(default_factory=list) # Since there's no need for special data for reserves, they just have a simple UserID list.
 	# Op Details:
 	name : str = field(default_factory=str)
-	date : datetime = field(default_factory=datetime)
+	date : datetime.datetime = field(default_factory=datetime.datetime)
 	description : str = field(default_factory=str)
 	customMessage : str = field(default_factory=str)
 	additionalRoles : str = field(default_factory=str)

@@ -123,16 +123,20 @@ async def addopsevent (pInteraction: discord.Interaction,
 
 	# If OpType selected is not an actual saved optype, assumed custom (or the other notif to say no saved ops exist, was chosen.)
 	if optype not in await opsManager.OpsManager.GetOps():
-		# Make a new OpsData;
+		# Make a new, blank OpsData;
 		newOpsData = botData.OperationData(date=vDate, status=botData.OpsStatus.editing)
+
+	# Move to Save Edit, check for messageID and create new based on name if null.		
+		# vOpsMessage = opsManager.OpsMessage()
+		# vOpsMessage.opsData = newOpsData
+
+		vEditor: opsManager.OpsEditor = opsManager.OpsEditor(pBot=bot, pOpsData=newOpsData)
+
+		botUtils.BotPrinter.Debug(f"Editor: {vEditor}, Type: {type(vEditor)}")
+
 		
-		vOpsMessage = opsManager.OpsMessage()
-		vOpsMessage.opsData = newOpsData
 
-		vEditor = opsManager.OpsEditor()
-
-
-		await pInteraction.response.send_message("Adding a custom event.")
+		await pInteraction.response.send_message("**Creating new default...**", view=vEditor, ephemeral=True)
 		return
 
 
