@@ -286,11 +286,11 @@ class SoberDogs(GenericEmbed):
         self.messageText = SoberDogs.get_message('messages/soberdogs.txt')
         self.messageHandlerID = None
         self.ignoreRemove = False
-        self.reactions={'<:Icon_Heavy_Assault:795726910344003605>' : ReactionData('Heavy','<:Icon_Heavy_Assault:795726910344003605>',5),
+        self.reactions={'<:Icon_Heavy_Assault:795726910344003605>' : ReactionData('Heavy','<:Icon_Heavy_Assault:795726910344003605>',4),
                         '<:Icon_Combat_Medic:795726867960692806>' : ReactionData('Medic','<:Icon_Combat_Medic:795726867960692806>',4),
                         '<:Icon_Engineer:795726888763916349>' : ReactionData('Engineer','<:Icon_Engineer:795726888763916349>',2),
                         '<:Icon_Infiltrator:795726922264215612>' : ReactionData('Infiltrator','<:Icon_Infiltrator:795726922264215612>',1),
-                        '<:Icon_Light_Assault:795726936759468093>' : ReactionData('Light assault','<:Icon_Light_Assault:795726936759468093>',0),
+                        '<:Icon_Light_Assault:795726936759468093>' : ReactionData('Light assault','<:Icon_Light_Assault:795726936759468093>',1),
                         '<:Icon_MAX:795726948365631559>' : ReactionData('MAX','<:Icon_MAX:795726948365631559>',0),
                         '<:Icon_Spawn_Beacon_NC:795729269891530792>' : ReactionData('Reserve/Maybe','<:Icon_Spawn_Beacon_NC:795729269891530792>',-1)
                        }
