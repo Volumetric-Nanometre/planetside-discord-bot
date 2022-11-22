@@ -125,9 +125,8 @@ async def addopsevent (pInteraction: discord.Interaction,
 
 	# Cleanup OpType string (remove "OpType.")
 	vOpTypeStr = str(optype).replace("OpsType.", "")
-	# If OpType selected is not an actual saved optype, assumed custom (or the other notif to say no saved ops exist, was chosen.)
+
 	if vOpTypeStr not in await opsManager.OpsManager.GetDefaults():
-		# Make a new, blank OpsData;
 		newOpsData = botData.OperationData(date=vDate, status=botData.OpsStatus.editing)
 
 	# Move to Save Edit, check for messageID and create new based on name if null.		
@@ -165,8 +164,12 @@ async def autocompleteOpTypes( pInteraction: discord.Interaction, pTypedStr: str
 		if file.endswith(".bin"):
 			vDataFiles.append(file)
 
+	# Add options matching current typed response to a list.
+	# Allows bypassing discords max 25 item limit on dropdown lists.
+	option: str
 	for option in vDataFiles:
-		choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option))
+		if(pTypedStr.lower() in option.lower()):
+			choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option))
 	return choices
 
 
