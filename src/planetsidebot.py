@@ -30,11 +30,8 @@ class Bot(commands.Bot):
 
     def __init__(self):
         super(Bot, self).__init__(command_prefix=['!'], intents=discord.Intents.all())
-        self.botAddOpsEnum = botData.AddOpsEnum
-        self.botAddOpsEnum.GenerateEnum()
 
     async def setup_hook(self):
-        botData.AddOpsEnum.GenerateEnum()
 		# Needed for later functions, which want a discord object instead of a plain string.
         vGuildObj = await self.fetch_guild(settings.DISCORD_GUILD) # Make sure to use Fetch in case of outdated caching.
 
@@ -109,7 +106,8 @@ async def addopsevent (pInteraction: discord.Interaction,
 	# optype: opsManager.OpsManager.GetDefaultOpsAsEnum(),
 	# optype: botData.AddOpsEnum.OpsEnum,
 	optype: str,
-	edit: bool, pDay:app_commands.Range[int, 0, 31], 
+	edit: bool, 
+	pDay:app_commands.Range[int, 0, 31], 
 	pMonth:app_commands.Range[int, 1, 12], 
 	pHour: app_commands.Range[int, 1, 23], 
 	pMinute:app_commands.Range[int, 0, 59],
@@ -142,25 +140,33 @@ async def addopsevent (pInteraction: discord.Interaction,
 
 		await pInteraction.response.send_message("**Creating new default...**", view=vEditor, ephemeral=True)
 		return
-	else:
-		vOpsMessage = opsManager.OpsMessage(f"{settings.botDir}/{settings.defaultOpsDir}/{optype}")
 
-		vOpsMessage.getDataFromFile()
+	else:
+
+		vOpsMessage = opsManager.OpsMessage(f"{settings.botDir}/{settings.defaultOpsDir}/{optype}")
+		await vOpsMessage.getDataFromFile()
 		# Update date to the one given by the command
 		vOpsMessage.opsData.date = vDate
-		vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=vOpsMessage.opsData)
-		await pInteraction.response.send_message("**Adding new ")
 
+		if(edit):
+			vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=vOpsMessage.opsData)
+			await pInteraction.response.send_message(f"Editing OpData for {optype}", view=vEditor, ephemeral=True)
+		else:
+			await pInteraction.response.send_message("Sending this shit to the channeeeeeeeeel", ephemeral=True)
+		return
 
-	await pInteraction.response.send_message(f"Adding new event ({optype}).  Edit after posting: {edit}.\nThis ops will run{vUTCStamp}", ephemeral=True)
 
 @addopsevent.autocomplete('optype')
 async def autocompleteOpTypes( pInteraction: discord.Interaction, pTypedStr: str):
-	botData.AddOpsEnum.GenerateEnum()
-	options = botData.AddOpsEnum.OpsEnum
 	choices: list = []
-	for option in options:
-		choices.append(discord.app_commands.Choice(name=option.name.replace(".bin", ""), value=option.name))
+	vDataFiles: list = ["Custom"]
+
+	for file in os.listdir( f"{settings.botDir}/{settings.defaultOpsDir}/" ):
+		if file.endswith(".bin"):
+			vDataFiles.append(file)
+
+	for option in vDataFiles:
+		choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option))
 	return choices
 
 

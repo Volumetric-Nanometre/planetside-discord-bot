@@ -19,30 +19,13 @@ class OpsTypes(Enum):
 	BaseBusters = 5
 
 
-class AddOpsEnum(object):
-	OpsEnum: Enum = Enum("OpsType", ["Custom", "(noSavedDefaults)"])
-	def __new__(cls):
-		if not hasattr(cls, 'instance'):
-			cls.instance = super(AddOpsEnum, cls).__new__(cls)
-		return cls.instance
+# class AddOpsEnum(object):
+# 	OpsEnum: Enum = Enum("OpsType", ["Custom", "(noSavedDefaults)"])
+# 	def __new__(cls):
+# 		if not hasattr(cls, 'instance'):
+# 			cls.instance = super(AddOpsEnum, cls).__new__(cls)
+# 		return cls.instance
 		
-		
-	def GenerateEnum():
-		vOpsDir = f"{settings.botDir}/{settings.defaultOpsDir}/"
-
-		vDataFiles: list = ["Custom"]
-		
-		for file in os.listdir(vOpsDir):
-			if file.endswith(".bin"):
-				vDataFiles.append(file)
-
-		if len(vDataFiles) > 1:
-			botUtils.BotPrinter.Debug(f"Ops files found: {vDataFiles}")
-			AddOpsEnum.OpsEnum = Enum("OpsType", vDataFiles)
-		else:
-			botUtils.BotPrinter.Debug("No ops files!")
-			AddOpsEnum.OpsEnum = Enum("OpsType", ["Custom", "(noSavedDefaults)"])
-
 
 class OpsStatus(Enum):
 	open = 1

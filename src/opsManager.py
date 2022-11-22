@@ -162,6 +162,7 @@ class OpsEditor(discord.ui.View):
 						row=4)
 	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		self.vOpsData.status = botData.OpsStatus.open
+		await pInteraction.delete_original_response()
 		await pInteraction.response.send_message("Ops data updated!", ephemeral=True)
 
 	@discord.ui.button( 
@@ -332,8 +333,16 @@ class EditInfo(discord.ui.Modal):
 		self.txtName.default = self.vData.name
 		self.txtMessage.default = self.vData.customMessage
 		self.txtDescription.default = self.vData.description
-		self.txtVoiceChannels.default = self.vData.voiceChannels
-		self.txtArguments.default = self.vData.arguments
+		
+		vTempStr: str = ""
+		for channel in self.vData.voiceChannels:
+			vTempStr += f"{channel}\n"		
+		self.txtVoiceChannels.default = vTempStr
+		
+		vTempStr = ""
+		for argument in self.vData.arguments:
+			vTempStr += f"{argument}\n"
+		self.txtArguments.default = vTempStr
 
 
 ###############################
@@ -367,7 +376,7 @@ class EditRoles(discord.ui.Modal):
 	def __init__(self, *, title: str = "Edit Roles", pOpData: botData.OperationData):
 		self.title = title
 		self.vData = pOpData
-		self.PresetFields
+		self.PresetFields()
 		super().__init__()
 
 	async def on_eror(self, pInteraction: discord.Interaction, error: Exception):
@@ -412,17 +421,17 @@ class EditRoles(discord.ui.Modal):
 	def PresetFields(self):
 		botUtils.BotPrinter.Debug("Prefilling options with existing values...")
 		
-		vRoleNames: str
-		vRoleEmojis: str
-		vRoleMembers: str
-		vRoleMaxPos: str
+		vRoleNames: str = ""
+		vRoleEmojis: str = ""
+		vRoleMembers: str = ""
+		vRoleMaxPos: str = ""
 
 		roleIndex: botData.OpRoleData
 		for roleIndex in self.vData.roles:
-			vRoleNames += roleIndex.roleName
-			vRoleEmojis += roleIndex.roleIcon
-			vRoleMembers += roleIndex.players
-			vRoleMaxPos += roleIndex.maxPositions
+			vRoleNames += f"{roleIndex.roleName}\n"
+			vRoleEmojis += f"{roleIndex.roleIcon}\n"
+			vRoleMembers += f"{roleIndex.players}\n"
+			vRoleMaxPos += f"{roleIndex.maxPositions}\n"
 
 	# Set the text inputs to existing values:
 		self.txtRoleName.default = vRoleNames
