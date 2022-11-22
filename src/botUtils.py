@@ -55,3 +55,23 @@ class DateFormatter():
 	@staticmethod
 	def GetDiscordTime(pDate: datetime.datetime, pFormat: DateFormat = DateFormat.Dynamic):
 		return f"<t:{DateFormatter.GetPOSIXTime(pDate)}{pFormat.value}>"
+
+
+class FilesAndFolders():
+	def GetFiles(pDir: str, pEndsWith: str = ""):
+		vDataFiles: list = []
+		for file in os.listdir(pDir):
+			if file.endswith(".bin"):
+				vDataFiles.append(file)
+		BotPrinter.Debug(f"Files ending with: {pEndsWith} In: {pDir} found:\n{vDataFiles}")
+		return vDataFiles
+
+	def GenerateDefaultOpsFolder():
+		BotPrinter.Debug("Creating default ops folder (if non existant)")
+		if (not os.path.exists(f"{settings.botDir}/{settings.defaultOpsDir}") ):
+			try:
+				os.makedirs(f"{settings.botDir}/{settings.defaultOpsDir}")
+			except:
+				BotPrinter.LogError("Failed to create folder for default Ops data!")
+
+

@@ -24,14 +24,13 @@ class OpsManager():
 	async def GetOps():
 		botUtils.BotPrinter.Debug("Getting Ops list...")
 		vOpsDir = f"{settings.botDir}/{settings.opsFolderName}/"
-		vDataFiles: list = []
+		return botUtils.FilesAndFolders.GetFiles(vOpsDir, ".bin")
+
+	async def GetDefaults():
+		botUtils.BotPrinter.Debug("Getting default Ops...")
+		vDir = f"{settings.botDir}/{settings.defaultOpsDir}"
+		return botUtils.FilesAndFolders.GetFiles(vDir, ".bin")
 		
-		for file in os.listdir(vOpsDir):
-			if file.endswith(".json"):
-				vDataFiles.append(file)
-		botUtils.BotPrinter.Debug(f"Ops files found: {vDataFiles}")
-		
-		return vDataFiles
 
 
 	# Returns an ENUM containing the names of saved default Operations.
@@ -46,7 +45,7 @@ class OpsManager():
 		vDataFiles: list = ["Custom"]
 		
 		for file in os.listdir(vOpsDir):
-			if file.endswith(".json"):
+			if file.endswith(".bin"):
 				vDataFiles.append(file)
 
 		if len(vDataFiles) > 1:
@@ -64,15 +63,6 @@ class OpsManager():
 				os.makedirs(f"{settings.botDir}/{settings.opsFolderName}")
 			except:
 				botUtils.BotPrinter.LogError("Failed to create folder for Ops data!")
-
-
-	def createDefaultsFolder():
-		botUtils.BotPrinter.Debug("Creating default ops folder (if non existant)")
-		if (not os.path.exists(f"{settings.botDir}/{settings.defaultOpsDir}") ):
-			try:
-				os.makedirs(f"{settings.botDir}/{settings.defaultOpsDir}")
-			except:
-				botUtils.BotPrinter.LogError("Failed to create folder for default Ops data!")
 
 
 class OpsMessage(discord.ui.View):
@@ -118,6 +108,8 @@ class OpsMessage(discord.ui.View):
 	# 	print("Teehee")
 
 # Class responsible for displaying options, editing and checking.
+# pBot: A reference to the bot.
+# pOpsData: The operation data to be used.
 class OpsEditor(discord.ui.View):
 	def __init__(self, pBot: commands.Bot, pOpsData: botData.OperationData):
 		self.vBot = pBot
@@ -127,8 +119,7 @@ class OpsEditor(discord.ui.View):
 		super().__init__(timeout=None)
 		
 
-	# # Edit Buttons
-
+# # # # # # Edit Buttons
 	# Edit Date:
 	editButtonStyle = discord.ButtonStyle.grey
 	@discord.ui.button( label="Edit Date",
@@ -136,8 +127,7 @@ class OpsEditor(discord.ui.View):
 						custom_id="EditDate",
 						row=0)
 	async def btnEditDate(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = EditDates(title="Edit Date/Time")
-		vEditModal.vData = self.vOpsData
+		vEditModal = EditDates(title="Edit Date/Time", pOpData=self.vOpsData)
 		vEditModal.custom_id="EditDateModal"
 		await pInteraction.response.send_modal( vEditModal )
 	
@@ -148,8 +138,7 @@ class OpsEditor(discord.ui.View):
 						custom_id="EditInfo",
 						row=1)
 	async def btnEditInfo(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = EditInfo(title="Edit Info")
-		vEditModal.vData = self.vOpsData
+		vEditModal = EditInfo(title="Edit Info", pOpData=self.vOpsData)
 		vEditModal.custom_id="EditInfoModal"
 		await pInteraction.response.send_modal( vEditModal )
 
@@ -160,19 +149,20 @@ class OpsEditor(discord.ui.View):
 						custom_id="EditRoles",
 						row=2)
 	async def btnEditRoles(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = EditRoles(title="Edit Roles")
-		vEditModal.vData = self.vOpsData
+		vEditModal = EditRoles(title="Edit Roles", pOpData=self.vOpsData)
+		# vEditModal.vData = self.vOpsData
 		vEditModal.custom_id="EditRolesModal"
 		await pInteraction.response.send_modal( vEditModal )
 	
-	# # Confirm/Save buttons:
+# # # # # # # Confirm/Save buttons:
 	@discord.ui.button(
 						style=discord.ButtonStyle.danger, 
 						label="Apply Changes",
 						custom_id="EditRolesApply",
 						row=4)
 	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		await pInteraction.response.send_message("Ops data updated!")
+		self.vOpsData.status = botData.OpsStatus.open
+		await pInteraction.response.send_message("Ops data updated!", ephemeral=True)
 
 	@discord.ui.button( 
 						style=discord.ButtonStyle.primary, 
@@ -180,11 +170,36 @@ class OpsEditor(discord.ui.View):
 						custom_id="EditRolesNewDefault",
 						row=4)
 	async def btnNewDefault(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		await pInteraction.response.send_message("Added new default!")
+		# Set status of Ops back to OPEN.
+		self.vOpsData.status = botData.OpsStatus.open
+		# Pickle dis shit!
+		vNewOpsFilepath = f"{settings.botDir}/{settings.defaultOpsDir}/{self.vOpsData.name}.bin"
+		botUtils.BotPrinter.Debug(f"Saving new default: {vNewOpsFilepath}...")
+		# Apply opsData object to opsMessage, then save.
+		vOpsMessage = OpsMessage(vNewOpsFilepath)
+		vOpsMessage.opsData = self.vOpsData
+		await vOpsMessage.saveToFile()
+		botUtils.BotPrinter.Debug("Saved!")
+
+		# Sync command to update list.
+		vGuildObj = await self.vBot.fetch_guild(settings.DISCORD_GUILD)
+		botData.AddOpsEnum.GenerateEnum()
+		await self.vBot.tree.sync(guild=vGuildObj)
+		botUtils.BotPrinter.Debug(f"Guild Tree Synced!")
+		await pInteraction.response.send_message(f"Added new default!", ephemeral=True)
 
 
+
+###############################
+# EDIT DATES
 
 class EditDates(discord.ui.Modal):
+	txtYear = discord.ui.TextInput(
+		label="Year",
+		placeholder="Full year",
+		min_length=4, max_length=4,
+		required=False
+	)
 	txtDay = discord.ui.TextInput(
 		label="Day",
 		placeholder="Day of month",
@@ -209,9 +224,10 @@ class EditDates(discord.ui.Modal):
 		min_length=1, max_length=2,
 		required=False
 	)
-	def __init__(self, *, title: str = "Edit Date/Time"):
+	def __init__(self, *, title: str = "Edit Date/Time", pOpData: botData.OperationData):
 		self.title = title
-		self.vData : botData.OperationData
+		self.vData : botData.OperationData = pOpData
+		self.PresetFields()
 		super().__init__()
 
 	async def on_eror(self, pInteraction: discord.Interaction, error: Exception):
@@ -224,20 +240,26 @@ class EditDates(discord.ui.Modal):
 	async def on_submit(self, pInteraction: discord.Interaction):
 		botUtils.BotPrinter.Debug("Edit Dates Modal submitted, creating new date...")
 
-		# Only change values changed
-		if self.txtMonth.value != "":
-			self.vData.date.month = self.txtMonth.value
+		newDateTime = datetime.datetime(
+			year=int(self.txtYear.value),
+			month=int(self.txtMonth.value),
+			day=int(self.txtDay.value),
+			hour=int(self.txtHour.value),
+			minute=int(self.txtMinute.value),
+			tzinfo=datetime.timezone.utc
+		)
 
-		if self.txtDay.value != "":
-			self.vData.date.day = self.txtDay.value
+		self.vData.date = newDateTime
 
-		if self.txtHour.value != "":
-			self.vData.date.hour = self.txtHour.value
+		await pInteraction.response.defer()
 
-		if self.txtMinute.value != "":
-			self.vData.date.minute = self.txtMinute.value
-
-		await pInteraction.response.send_message("Date/Time updated!")
+	def PresetFields(self):
+		botUtils.BotPrinter.Debug(f"Attempting to preset data with: {self.vData.date}")
+		self.txtYear.default = str(self.vData.date.year)
+		self.txtDay.default = str(self.vData.date.day)
+		self.txtMonth.default = str(self.vData.date.month)
+		self.txtHour.default = str(self.vData.date.hour)
+		self.txtMinute.default = str(self.vData.date.minute)
 
 
 
@@ -264,9 +286,25 @@ class EditInfo(discord.ui.Modal):
 		style=discord.TextStyle.paragraph,
 		required=False
 	)
-	def __init__(self, *, title: str = "Edit Ops Name/Descriptions"):
+
+	txtVoiceChannels = discord.ui.TextInput(
+		label="Voice Channels",
+		placeholder="A list of voice channels to create for this Operation.",
+		style=discord.TextStyle.paragraph,
+		required=False
+	)
+	txtArguments = discord.ui.TextInput(
+		label="Commands",
+		placeholder="Optional commands to modify behaviour.",
+		style=discord.TextStyle.paragraph,
+		required=False
+	)
+
+
+	def __init__(self, *, title: str = "Edit Ops Name/Descriptions", pOpData: botData.OperationData):
 		self.title = title
-		self.vData : botData.OperationData
+		self.vData : botData.OperationData = pOpData
+		self.PresetFields()
 		super().__init__()
 
 	async def on_eror(self, pInteraction: discord.Interaction, error: Exception):
@@ -277,19 +315,25 @@ class EditInfo(discord.ui.Modal):
 
 	# Where the fun happens!
 	async def on_submit(self, pInteraction: discord.Interaction):
-		botUtils.BotPrinter.Debug("Edit Dates Modal submitted, creating new date...")
+		botUtils.BotPrinter.Debug("Edit Info Modal submitted...")
 
-		# Only change values changed
-		if self.txtName.value != "":
-			self.vData.name = self.txtName.value
+		self.vData.name = self.txtName.value
+		self.vData.description = self.txtDescription.value
+		self.vData.customMessage = self.txtMessage.value
 
-		if self.txtDescription.value != "":
-			self.vData.description = self.txtDescription.value
+		self.txtVoiceChannels.value.split("\n")
+		self.vData.voiceChannels = self.txtVoiceChannels.value.split("\n")
+		self.vData.arguments = self.txtArguments.value.split("\n")
 
-		if self.txtMessage.value != "":
-			self.vData.customMessage = self.txtMessage.value
+		await pInteraction.response.defer()
 
-		await pInteraction.response.send_message("Info updated!")
+	def PresetFields(self):
+		botUtils.BotPrinter.Debug("Presetting INFO with existing data...")
+		self.txtName.default = self.vData.name
+		self.txtMessage.default = self.vData.customMessage
+		self.txtDescription.default = self.vData.description
+		self.txtVoiceChannels.default = self.vData.voiceChannels
+		self.txtArguments.default = self.vData.arguments
 
 
 ###############################
@@ -304,19 +348,26 @@ class EditRoles(discord.ui.Modal):
 	)
 	txtRoleName = discord.ui.TextInput(
 		label="Role Name",
-		placeholder="Light Assault",
+		placeholder="Light Assault\nHeavy Assault\nEtc...",
 		style=discord.TextStyle.paragraph,
 		required=True
 	)
 	txtRoleMaxPos = discord.ui.TextInput(
 		label="Max Positions",
-		placeholder="Max positions, per line.",
+		placeholder="Max positions.",
 		style=discord.TextStyle.paragraph,
 		required=True
 	)
-	def __init__(self, *, title: str = "Edit Roles"):
+	txtRolePlayers = discord.ui.TextInput(
+		label="Players",
+		placeholder="Player IDs",
+		style=discord.TextStyle.paragraph,
+		required=False
+	)
+	def __init__(self, *, title: str = "Edit Roles", pOpData: botData.OperationData):
 		self.title = title
-		self.vData : botData.OperationData
+		self.vData = pOpData
+		self.PresetFields
 		super().__init__()
 
 	async def on_eror(self, pInteraction: discord.Interaction, error: Exception):
@@ -336,20 +387,11 @@ class EditRoles(discord.ui.Modal):
 		if len(vRoleNames) != len(vRoleEmoji) != len(vRoleMax):
 			await pInteraction.response.send_message("Inconsistent array lengths in fields!  \nMake sure the number of lines matches in all three fields.")
 			return
-		
-		# role: botData.OpRoleData
-		# for role in self.vData.roles:
-		# 	if role.roleName in vRoleNames:
-
 
 		vIndex = 0
 		botUtils.BotPrinter.Debug(f"Size of array: {len(vRoleEmoji)}")
 		while vIndex < len(vRoleEmoji):
-			# Check existing role
-			# If role exists, update its data, else its a new role.
-			# Iterate over existing roles first.
 
-			## OOOOR, make opROleDatas, and compare & add those!
 			vCurrentRole = botData.OpRoleData(roleName=vRoleNames[vIndex], roleIcon=vRoleEmoji[vIndex], maxPositions=vRoleMax[vIndex])
 			if vIndex < len(self.vData.roles) :
 				# Index is on an existing role, adjust values to keep any signed up users.
@@ -362,10 +404,28 @@ class EditRoles(discord.ui.Modal):
 
 			vIndex += 1
 		# End of while loop.
-		await pInteraction.response.send_message(f"Roles updated!\n{self.vData.roles}")
+		botUtils.BotPrinter.Debug("Roles updated!")
+		await pInteraction.response.defer()
+
 
 	# Prefill fields:
-	async def PresetFields(self):
-		print("Woop") ##  DO THIS THINGYDOODER!!!
-	
-	# Create Role lists.
+	def PresetFields(self):
+		botUtils.BotPrinter.Debug("Prefilling options with existing values...")
+		
+		vRoleNames: str
+		vRoleEmojis: str
+		vRoleMembers: str
+		vRoleMaxPos: str
+
+		roleIndex: botData.OpRoleData
+		for roleIndex in self.vData.roles:
+			vRoleNames += roleIndex.roleName
+			vRoleEmojis += roleIndex.roleIcon
+			vRoleMembers += roleIndex.players
+			vRoleMaxPos += roleIndex.maxPositions
+
+	# Set the text inputs to existing values:
+		self.txtRoleName.default = vRoleNames
+		self.txtEmoji.default = vRoleEmojis
+		self.txtRoleMaxPos.default = vRoleMaxPos
+		self.txtRolePlayers.default = vRoleMembers

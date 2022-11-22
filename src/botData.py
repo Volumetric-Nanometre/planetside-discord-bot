@@ -3,6 +3,9 @@
 from enum import Enum
 from dataclasses import dataclass, field
 import datetime
+import settings
+import botUtils
+import os
 
 
 # Enum to assist in making things easier to read.
@@ -14,6 +17,32 @@ class OpsTypes(Enum):
 	DogFighter = 3
 	RoyalAirWoof = 4
 	BaseBusters = 5
+
+
+class AddOpsEnum(object):
+	OpsEnum: Enum = Enum("OpsType", ["Custom", "(noSavedDefaults)"])
+	def __new__(cls):
+		if not hasattr(cls, 'instance'):
+			cls.instance = super(AddOpsEnum, cls).__new__(cls)
+		return cls.instance
+		
+		
+	def GenerateEnum():
+		vOpsDir = f"{settings.botDir}/{settings.defaultOpsDir}/"
+
+		vDataFiles: list = ["Custom"]
+		
+		for file in os.listdir(vOpsDir):
+			if file.endswith(".bin"):
+				vDataFiles.append(file)
+
+		if len(vDataFiles) > 1:
+			botUtils.BotPrinter.Debug(f"Ops files found: {vDataFiles}")
+			AddOpsEnum.OpsEnum = Enum("OpsType", vDataFiles)
+		else:
+			botUtils.BotPrinter.Debug("No ops files!")
+			AddOpsEnum.OpsEnum = Enum("OpsType", ["Custom", "(noSavedDefaults)"])
+
 
 class OpsStatus(Enum):
 	open = 1
@@ -40,9 +69,12 @@ class OperationData:
 	date : datetime.datetime = field(default_factory=datetime.datetime)
 	description : str = field(default_factory=str)
 	customMessage : str = field(default_factory=str)
-	additionalRoles : str = field(default_factory=str)
+	additionalRoles : str = field(default_factory=str) # Not used
 	messageID : str = field(default_factory=str) # Stored to make accessing and editing quicker/avoid having to find it.
 	status : OpsStatus = field(default_factory=OpsStatus)
+
+	voiceChannels: list = field(default_factory=list)
+	arguments: list = field(default_factory=list)
 
 
 

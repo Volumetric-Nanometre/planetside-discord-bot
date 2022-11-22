@@ -7,7 +7,6 @@ import enum
 import datetime
 
 import discord
-import dotenv
 from discord import app_commands
 from discord.ext import commands
 
@@ -31,8 +30,11 @@ class Bot(commands.Bot):
 
     def __init__(self):
         super(Bot, self).__init__(command_prefix=['!'], intents=discord.Intents.all())
+        self.botAddOpsEnum = botData.AddOpsEnum
+        self.botAddOpsEnum.GenerateEnum()
 
     async def setup_hook(self):
+        botData.AddOpsEnum.GenerateEnum()
 		# Needed for later functions, which want a discord object instead of a plain string.
         vGuildObj = await self.fetch_guild(settings.DISCORD_GUILD) # Make sure to use Fetch in case of outdated caching.
 
@@ -95,7 +97,7 @@ async def newuserjoin(pInteraction: discord.Interaction):
 # ADD OPS (/addops)
 
 @bot.tree.command(name="addops", description="Add a new Ops event")
-@app_commands.describe(optype="Type of Ops to create.",
+@app_commands.describe(optype="Type of Ops to create. If this doesn't match an existing option, defaults to 'custom'!",
 						edit="Open the Ops Editor after creating this event?",
 						pDay="The day this ops will run.",
 						pMonth="The month this ops will run.",
@@ -104,7 +106,9 @@ async def newuserjoin(pInteraction: discord.Interaction):
 						pYear="Optional.\nThe Year the ops should run.")
 @app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute", pYear="year")
 async def addopsevent (pInteraction: discord.Interaction, 
-	optype: opsManager.OpsManager.GetDefaultOpsAsEnum(), 
+	# optype: opsManager.OpsManager.GetDefaultOpsAsEnum(),
+	# optype: botData.AddOpsEnum.OpsEnum,
+	optype: str,
 	edit: bool, pDay:app_commands.Range[int, 0, 31], 
 	pMonth:app_commands.Range[int, 1, 12], 
 	pHour: app_commands.Range[int, 1, 23], 
@@ -112,7 +116,7 @@ async def addopsevent (pInteraction: discord.Interaction,
 	pYear:int  = datetime.datetime.now().year
 ):
 
-	botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}, Year: {pYear}")
+	botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
 	vTime = datetime.datetime(year=datetime.datetime.now().year, month=pMonth, day=pDay, minute=pMinute, hour=pHour )
 	vUTCStamp = botUtils.DateFormatter.GetDiscordTime(vTime)
 	vDate = datetime.datetime(
@@ -121,8 +125,10 @@ async def addopsevent (pInteraction: discord.Interaction,
 		day=pDay,
 		hour=pHour, minute=pMinute)
 
+	# Cleanup OpType string (remove "OpType.")
+	vOpTypeStr = str(optype).replace("OpsType.", "")
 	# If OpType selected is not an actual saved optype, assumed custom (or the other notif to say no saved ops exist, was chosen.)
-	if optype not in await opsManager.OpsManager.GetOps():
+	if vOpTypeStr not in await opsManager.OpsManager.GetDefaults():
 		# Make a new, blank OpsData;
 		newOpsData = botData.OperationData(date=vDate, status=botData.OpsStatus.editing)
 
@@ -134,14 +140,28 @@ async def addopsevent (pInteraction: discord.Interaction,
 
 		botUtils.BotPrinter.Debug(f"Editor: {vEditor}, Type: {type(vEditor)}")
 
-		
-
 		await pInteraction.response.send_message("**Creating new default...**", view=vEditor, ephemeral=True)
 		return
+	else:
+		vOpsMessage = opsManager.OpsMessage(f"{settings.botDir}/{settings.defaultOpsDir}/{optype}")
+
+		vOpsMessage.getDataFromFile()
+		# Update date to the one given by the command
+		vOpsMessage.opsData.date = vDate
+		vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=vOpsMessage.opsData)
+		await pInteraction.response.send_message("**Adding new ")
 
 
 	await pInteraction.response.send_message(f"Adding new event ({optype}).  Edit after posting: {edit}.\nThis ops will run{vUTCStamp}", ephemeral=True)
 
+@addopsevent.autocomplete('optype')
+async def autocompleteOpTypes( pInteraction: discord.Interaction, pTypedStr: str):
+	botData.AddOpsEnum.GenerateEnum()
+	options = botData.AddOpsEnum.OpsEnum
+	choices: list = []
+	for option in options:
+		choices.append(discord.app_commands.Choice(name=option.name.replace(".bin", ""), value=option.name))
+	return choices
 
 
 
