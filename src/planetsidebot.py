@@ -11,11 +11,14 @@ from discord import app_commands
 from discord.ext import commands
 
 import botUtils
-import newUser
-import roleManager
-import opsManager
-import settings
 import botData
+import newUser
+import settings
+import roleManager
+# from OpsManager import editor, Manager, message
+import OpsManager.Manager
+import OpsManager.editor
+import OpsManager.message
 
 # internal modules
 # import discordbasics
@@ -102,16 +105,17 @@ async def newuserjoin(pInteraction: discord.Interaction):
 						pMinute="The MINUTE within an hour the ops starts on",
 						pYear="Optional.\nThe Year the ops should run.")
 @app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute", pYear="year")
+@app_commands.checks.has_role("CO")
 async def addopsevent (pInteraction: discord.Interaction, 
 	# optype: opsManager.OpsManager.GetDefaultOpsAsEnum(),
 	# optype: botData.AddOpsEnum.OpsEnum,
 	optype: str,
 	edit: bool, 
-	pDay:app_commands.Range[int, 0, 31], 
-	pMonth:app_commands.Range[int, 1, 12], 
+	pDay: app_commands.Range[int, 0, 31], 
+	pMonth: app_commands.Range[int, 1, 12], 
 	pHour: app_commands.Range[int, 1, 23], 
 	pMinute:app_commands.Range[int, 0, 59],
-	pYear:int  = datetime.datetime.now().year
+	pYear: int  = datetime.datetime.now().year
 ):
 
 	botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
@@ -123,17 +127,13 @@ async def addopsevent (pInteraction: discord.Interaction,
 		day=pDay,
 		hour=pHour, minute=pMinute)
 
-	# Cleanup OpType string (remove "OpType.")
+	# Cleanup string (remove "OpType.")
 	vOpTypeStr = str(optype).replace("OpsType.", "")
 
-	if vOpTypeStr not in await opsManager.OpsManager.GetDefaults():
+	if vOpTypeStr not in await OpsManager.Manager.OpsManager.GetDefaults():
 		newOpsData = botData.OperationData(date=vDate, status=botData.OpsStatus.editing)
 
-	# Move to Save Edit, check for messageID and create new based on name if null.		
-		# vOpsMessage = opsManager.OpsMessage()
-		# vOpsMessage.opsData = newOpsData
-
-		vEditor: opsManager.OpsEditor = opsManager.OpsEditor(pBot=bot, pOpsData=newOpsData)
+		vEditor: OpsManager.editor.OpsEditor = OpsManager.editor.OpsEditor(pBot=bot, pOpsData=newOpsData)
 
 		botUtils.BotPrinter.Debug(f"Editor: {vEditor}, Type: {type(vEditor)}")
 
@@ -142,16 +142,19 @@ async def addopsevent (pInteraction: discord.Interaction,
 
 	else:
 
-		vOpsMessage = opsManager.OpsMessage(f"{settings.botDir}/{settings.defaultOpsDir}/{optype}")
+		vOpsMessage = OpsManager.message.OpsMessage(f"{settings.botDir}/{settings.defaultOpsDir}/{optype}")
 		await vOpsMessage.getDataFromFile()
 		# Update date to the one given by the command
 		vOpsMessage.opsData.date = vDate
 
 		if(edit):
-			vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=vOpsMessage.opsData)
+			vEditor = OpsManager.editor.OpsEditor(pBot=bot, pOpsData=vOpsMessage.opsData)
 			await pInteraction.response.send_message(f"Editing OpData for {optype}", view=vEditor, ephemeral=True)
 		else:
-			await pInteraction.response.send_message("Sending this shit to the channeeeeeeeeel", ephemeral=True)
+			# TODO -  Add method of choosing which channel signup goes into, then grab said channel and send message there.
+			if(settings.bShowDebug):
+				
+				await pInteraction.response.send_message("DEBUG ONLY!",view=vOpsMessage, ephemeral=True)
 		return
 
 
@@ -160,17 +163,18 @@ async def autocompleteOpTypes( pInteraction: discord.Interaction, pTypedStr: str
 	choices: list = []
 	vDataFiles: list = ["Custom"]
 
-	for file in os.listdir( f"{settings.botDir}/{settings.defaultOpsDir}/" ):
-		if file.endswith(".bin"):
-			vDataFiles.append(file)
+	vDataFiles =  OpsManager.Manager.OpsManager.GetDefaultOpsAsList()
 
-	# Add options matching current typed response to a list.
-	# Allows bypassing discords max 25 item limit on dropdown lists.
+	# If no typing occured yet, display the default ops so there's at least something visible.
 	option: str
 	for option in vDataFiles:
 		if(pTypedStr.lower() in option.lower()):
+			# Add options matching current typed response to a list.
+			# Allows bypassing discords max 25 item limit on dropdown lists.
 			choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option))
 	return choices
+
+
 
 
 

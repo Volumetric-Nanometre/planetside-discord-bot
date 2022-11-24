@@ -1,111 +1,15 @@
-# Ops Manager: Manages creating, editing and removing of Ops.
-
-import os
 import datetime
-import pickle
 
 import discord
 from discord.ext import commands
-import enum
-
-import OpSignup
-import opsCommander
 
 import settings
 import botUtils
 import botData
 
-class OpsManager():
-	def init(self):
-		# List of ops (file names)
-		self.vOpsList: list = self.GetOps()
+#SubModules
+import OpsManager.message
 
-	# Returns a list of full pathed strings for each 
-	async def GetOps():
-		botUtils.BotPrinter.Debug("Getting Ops list...")
-		vOpsDir = f"{settings.botDir}/{settings.opsFolderName}/"
-		return botUtils.FilesAndFolders.GetFiles(vOpsDir, ".bin")
-
-	async def GetDefaults():
-		botUtils.BotPrinter.Debug("Getting default Ops...")
-		vDir = f"{settings.botDir}/{settings.defaultOpsDir}"
-		return botUtils.FilesAndFolders.GetFiles(vDir, ".bin")
-		
-
-
-	# Returns an ENUM containing the names of saved default Operations.
-	# Does not use SELF to make it callable without constructing an instance.
-	# Does not use Async to allow it to be called in function parameters.
-	# Mainly used to provide dynamic 
-	def GetDefaultOpsAsEnum():
-		botUtils.BotPrinter.Debug("Getting Ops list...")
-		vOpsDir = f"{settings.botDir}/{settings.defaultOpsDir}/"
-		OpsManager.createDefaultsFolder()
-
-		vDataFiles: list = ["Custom"]
-		
-		for file in os.listdir(vOpsDir):
-			if file.endswith(".bin"):
-				vDataFiles.append(file)
-
-		if len(vDataFiles) > 1:
-			botUtils.BotPrinter.Debug(f"Ops files found: {vDataFiles}")
-			return enum.Enum("OpsType", vDataFiles)
-		else:
-			botUtils.BotPrinter.Debug("No ops files!")
-			return enum.Enum("OpsType", ["Custom", "(noSavedDefaults)"])
-
-
-
-	async def createOpsFolder():
-		if (not os.path.exists(f"{settings.botDir}/{settings.opsFolderName}") ):
-			try:
-				os.makedirs(f"{settings.botDir}/{settings.opsFolderName}")
-			except:
-				botUtils.BotPrinter.LogError("Failed to create folder for Ops data!")
-
-
-class OpsMessage(discord.ui.View):
-	def __init__(self, pOpsDataFile: str):
-		self.opsDataFile = pOpsDataFile
-		self.opsData: botData.OperationData
-		botUtils.BotPrinter.Debug("OpsMessage created.  Don't forget to save or load data!")
-		# super().__init__(timeout=None)
-
-	async def saveToFile(self):
-		botUtils.BotPrinter.Debug(f"Attempting to save {self.opsData.name} to file: {self.opsDataFile}")
-		try:
-			with open(self.opsDataFile, 'wb') as vFile:
-				pickle.dump(self.opsData, vFile)
-				botUtils.BotPrinter.Debug("Saved data succesfully!")
-		except:
-			botUtils.BotPrinter.LogError(f"Failed to save {self.opsData.name} to file {self.opsDataFile}!")
-		
-	async def getDataFromFile(self):
-		botUtils.BotPrinter.Debug(f"Attempting to load data from file: {self.opsDataFile}")
-		try:
-			with open(self.opsDataFile, 'rb') as vFile:
-				self.opsData = pickle.load(vFile)
-				botUtils.BotPrinter.Debug("Loaded data succesfully!")
-		except:
-			botUtils.BotPrinter.LogError(f"Failed to load Ops data from file: {self.opsDataFile}")
-
-	# Returns a view using the data 
-	async def GenerateEmbed(self):
-		vEmbed = discord.Embed(colour=botUtils.Colours.editing, title=self.opsData.name, description=self.opsData.description, timestamp=self.opsData.date)
-
-		# Generate lists for roles:
-		role: botData.OpRoleData
-		for role in self.opsData.roles:
-			vSignedUpUsers: str
-			for user in role.players:
-				vSignedUpUsers += f"{user}\n"
-			vEmbed.add_field(inline=True, 
-			name=f"{role.roleName}({len(role.players)}/{role.maxPositions})",
-			value=vSignedUpUsers)
-	
-	# async def UpdateView():
-	# 	print("Teehee")
 
 # Class responsible for displaying options, editing and checking.
 # pBot: A reference to the bot.
@@ -177,16 +81,11 @@ class OpsEditor(discord.ui.View):
 		vNewOpsFilepath = f"{settings.botDir}/{settings.defaultOpsDir}/{self.vOpsData.name}.bin"
 		botUtils.BotPrinter.Debug(f"Saving new default: {vNewOpsFilepath}...")
 		# Apply opsData object to opsMessage, then save.
-		vOpsMessage = OpsMessage(vNewOpsFilepath)
+		vOpsMessage = message.OpsMessage(vNewOpsFilepath)
 		vOpsMessage.opsData = self.vOpsData
 		await vOpsMessage.saveToFile()
 		botUtils.BotPrinter.Debug("Saved!")
 
-		# Sync command to update list.
-		vGuildObj = await self.vBot.fetch_guild(settings.DISCORD_GUILD)
-		botData.AddOpsEnum.GenerateEnum()
-		await self.vBot.tree.sync(guild=vGuildObj)
-		botUtils.BotPrinter.Debug(f"Guild Tree Synced!")
 		await pInteraction.response.send_message(f"Added new default!", ephemeral=True)
 
 
@@ -255,7 +154,7 @@ class EditDates(discord.ui.Modal):
 		await pInteraction.response.defer()
 
 	def PresetFields(self):
-		botUtils.BotPrinter.Debug(f"Attempting to preset data with: {self.vData.date}")
+		botUtils.BotPrinter.Debug(f"Auto-filling modal (DATE) with existing data: {self.vData.date}")
 		self.txtYear.default = str(self.vData.date.year)
 		self.txtDay.default = str(self.vData.date.day)
 		self.txtMonth.default = str(self.vData.date.month)
@@ -329,7 +228,7 @@ class EditInfo(discord.ui.Modal):
 		await pInteraction.response.defer()
 
 	def PresetFields(self):
-		botUtils.BotPrinter.Debug("Presetting INFO with existing data...")
+		botUtils.BotPrinter.Debug("Auto-filling modal (INFO) with existing data.")
 		self.txtName.default = self.vData.name
 		self.txtMessage.default = self.vData.customMessage
 		self.txtDescription.default = self.vData.description
@@ -419,7 +318,7 @@ class EditRoles(discord.ui.Modal):
 
 	# Prefill fields:
 	def PresetFields(self):
-		botUtils.BotPrinter.Debug("Prefilling options with existing values...")
+		botUtils.BotPrinter.Debug("Auto-filling modal (ROLES) with existing data.")
 		
 		vRoleNames: str = ""
 		vRoleEmojis: str = ""
