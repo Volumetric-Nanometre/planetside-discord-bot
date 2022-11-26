@@ -134,9 +134,9 @@ class OpsMessage():
 			# Append current/max or just current depending on role settings.
 			vRoleName = f"{role.roleName}" 
 			if( int(role.maxPositions) > 0 ): 
-				vRoleName += f"({len(role.players)}/{role.maxPositions})"
+				vRoleName += f" ({len(role.players)}/{role.maxPositions})"
 			else:
-				vRoleName += f"({len(role.players)})"
+				vRoleName += f" ({len(role.players)})"
 				
 			vEmbed.add_field(inline=True,
 			name=vRoleName,
@@ -154,7 +154,7 @@ class OpsMessage():
 		vMessageID = await vTargetChannel.send(view=vView, embed=vEmbed)
 		self.opsData.messageID = vMessageID
 		botUtils.BotPrinter.Debug(f"Ops Message ID: {vMessageID}")
-		self.saveToFile()
+		# self.saveToFile()
 
 
 	async def GetTargetOpsChannel(self):
@@ -170,20 +170,19 @@ class OpsMessage():
 				return
 
 		opsCategory = discord.utils.get(vGuild.categories, name="SIGN UP")
-		if "CHN=" in self.opsData.arguments:
-			argument: str
+		argument: str
+		channel = None
+		for argument in self.opsData.arguments:
+			botUtils.BotPrinter.Debug(f"Parsing argument: {argument}")
+			if argument.find("CHN="):
+				channel = await discord.utils.get( vGuild.text_channels, name=argument.strip("CHN=") )
+				if channel == None:
+					channel = await vGuild.create_text_channel(
+						name=argument.strip("CHN="), 
+						category=opsCategory, 
+					)
 
-			channel = None
-
-			for argument in self.opsData.arguments:
-				if argument.find("CHN="):
-					channel = await discord.utils.get( vGuild.text_channels, name=argument.strip("CHN=") )
-					if channel == None:
-						channel = await vGuild.create_text_channel(
-							name=argument.strip("CHN="), 
-							category=opsCategory, 
-						)
-		else:
+		if channel == None:
 			botUtils.BotPrinter.Debug("Target Ops Channel not specified (or missing preceeding 'CHN=').")
 			channel = await vGuild.create_text_channel(
 							name=self.opsData.name, 
