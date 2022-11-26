@@ -22,7 +22,7 @@ class BotPrinter():
 		print(f"[{datetime.datetime.now()}] ERROR: {p_string}\n{traceback.print_tb()}")
 
 	@staticmethod
-	def LogError(p_string: str, p_exception: Exception):
+	def LogErrorExc(p_string: str, p_exception: Exception):
 		print(f"[{datetime.datetime.now()}] ERROR: {p_string}\n{traceback.print_tb(p_exception.__traceback__)}")
 
 
@@ -33,7 +33,7 @@ class DateFormat(enum.Enum):
 	TimeShorthand = ":t" # Hour:Minute
 	TimeLonghand = ":T" # Hour:Minute:Seconds
 	DateTimeShort = ":f" # Full date, no day.
-	DateTImeLong = ":F" # Full date, includes Day
+	DateTimeLong = ":F" # Full date, includes Day
 	Raw = "" # Raw POSIX.
 
 

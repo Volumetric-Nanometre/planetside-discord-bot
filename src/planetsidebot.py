@@ -5,6 +5,7 @@ import asyncio
 import os
 import enum
 import datetime
+import traceback
 
 import discord
 from discord import app_commands
@@ -15,10 +16,9 @@ import botData
 import newUser
 import settings
 import roleManager
-# from OpsManager import editor, Manager, message
-import OpsManager.Manager
-import OpsManager.editor
-import OpsManager.message
+
+
+import opsManager
 
 # internal modules
 # import discordbasics
@@ -33,6 +33,7 @@ class Bot(commands.Bot):
 
     def __init__(self):
         super(Bot, self).__init__(command_prefix=['!'], intents=discord.Intents.all())
+        self.vGuildObj: discord.Guild
 
     async def setup_hook(self):
 		# Needed for later functions, which want a discord object instead of a plain string.
@@ -105,7 +106,7 @@ async def newuserjoin(pInteraction: discord.Interaction):
 						pMinute="The MINUTE within an hour the ops starts on",
 						pYear="Optional.\nThe Year the ops should run.")
 @app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute", pYear="year")
-@app_commands.checks.has_role("CO")
+@app_commands.checks.has_any_role('CO','Captain','Lieutenant','Sergeant')
 async def addopsevent (pInteraction: discord.Interaction, 
 	# optype: opsManager.OpsManager.GetDefaultOpsAsEnum(),
 	# optype: botData.AddOpsEnum.OpsEnum,
@@ -130,10 +131,10 @@ async def addopsevent (pInteraction: discord.Interaction,
 	# Cleanup string (remove "OpType.")
 	vOpTypeStr = str(optype).replace("OpsType.", "")
 
-	if vOpTypeStr not in await OpsManager.Manager.OpsManager.GetDefaults():
+	if vOpTypeStr not in await opsManager.OperationManager.GetDefaults():
 		newOpsData = botData.OperationData(date=vDate, status=botData.OpsStatus.editing)
 
-		vEditor: OpsManager.editor.OpsEditor = OpsManager.editor.OpsEditor(pBot=bot, pOpsData=newOpsData)
+		vEditor: opsManager.OpsEditor = opsManager.OpsEditor(pBot=bot, pOpsData=newOpsData)
 
 		botUtils.BotPrinter.Debug(f"Editor: {vEditor}, Type: {type(vEditor)}")
 
@@ -142,19 +143,20 @@ async def addopsevent (pInteraction: discord.Interaction,
 
 	else:
 
-		vOpsMessage = OpsManager.message.OpsMessage(f"{settings.botDir}/{settings.defaultOpsDir}/{optype}")
-		await vOpsMessage.getDataFromFile()
+		vOpsMessage = opsManager.OpsMessage(pOpsDataFile=f"{settings.botDir}/{settings.defaultOpsDir}/{optype}", pOpsData=None, pBot=bot)
+		vOpsMessage.getDataFromFile()
 		# Update date to the one given by the command
 		vOpsMessage.opsData.date = vDate
 
 		if(edit):
-			vEditor = OpsManager.editor.OpsEditor(pBot=bot, pOpsData=vOpsMessage.opsData)
+			vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=vOpsMessage.opsData)
 			await pInteraction.response.send_message(f"Editing OpData for {optype}", view=vEditor, ephemeral=True)
 		else:
 			# TODO -  Add method of choosing which channel signup goes into, then grab said channel and send message there.
 			if(settings.bShowDebug):
-				
-				await pInteraction.response.send_message("DEBUG ONLY!",view=vOpsMessage, ephemeral=True)
+				await vOpsMessage.PostMessage()
+				# await pInteraction.response.send_message("DEBUG ONLY!",view=vOpsMessage, ephemeral=True)
+				await pInteraction.response.send_message("Ops posted!")
 		return
 
 
@@ -163,7 +165,7 @@ async def autocompleteOpTypes( pInteraction: discord.Interaction, pTypedStr: str
 	choices: list = []
 	vDataFiles: list = ["Custom"]
 
-	vDataFiles =  OpsManager.Manager.OpsManager.GetDefaultOpsAsList()
+	vDataFiles =  opsManager.OperationManager.GetDefaultOpsAsList()
 
 	# If no typing occured yet, display the default ops so there's at least something visible.
 	option: str

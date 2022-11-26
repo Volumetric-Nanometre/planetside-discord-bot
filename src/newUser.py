@@ -14,7 +14,10 @@ class NewUser(discord.ui.Modal, title="Welcome!\nPlease enter your PS2 Character
 	required=True  
 	) # End - vCharName
 
-
+	# TODO: Check if player is already on discord, or rank is above pleb.
+	# In these circumstances, notify admins to manually allow, deny/kick
+	# Potential idea- construct view with buttons and post to admin only channel.
+	# TODO: Give player role
 	async def on_submit(self, pInteraction:discord.Interaction):
 		# await pInteraction.response.defer()
 		vNewName = await self.CheckPlayer(self.vCharName, pInteraction.user)

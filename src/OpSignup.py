@@ -1,3 +1,5 @@
+# Redundant? 
+
 import traceback
 import discord
 import datetime
