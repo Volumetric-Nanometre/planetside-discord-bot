@@ -13,10 +13,13 @@ global bShowDebug
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 DISCORD_GUILD = os.getenv('DISCORD_GUILD')
 PS2_SVS_ID = os.getenv('PS2_SVS_ID')
+
 botDir = os.getcwd()
-opsFolderName = "TDKDOps"
-defaultOpsDir = "SavedOps"
-bShowDebug = True
+# NOTE: The below Directory variables are APPENDED to botDir in use.
+opsFolderName = "TDKDOps" # Foldername/Dir for CREATED (live) Ops
+defaultOpsDir = "SavedOps" # Foldername/Dir for DEFAULT Ops
+
+bShowDebug = True # Set to FALSE in live environment to keep console clean.
 
 
 # print("Tokens loaded")
