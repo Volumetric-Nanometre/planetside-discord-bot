@@ -49,6 +49,7 @@ class OperationData:
 	reserves : list = field(default_factory=list) # Since there's no need for special data for reserves, they just have a simple UserID list.
 	# Op Details:
 	name : str = field(default_factory=str)
+	fileName: str = field(default_factory=str)
 	date : datetime.datetime = field(default_factory=datetime.datetime)
 	description : str = field(default_factory=str)
 	customMessage : str = field(default_factory=str)
@@ -59,7 +60,13 @@ class OperationData:
 	voiceChannels: list = field(default_factory=list)
 	arguments: list = field(default_factory=list)
 
+	def GenerateFileName(self):
+		self.fileName = f"{self.name}_{self.date.year}-{self.date.month}-{self.date.day}_{self.date.hour}-{self.date.minute}"
+		
+		botUtils.BotPrinter.Debug(f"Filename for Op {self.name} generated: {self.fileName}")
 
+	def GetFullFilePath(self):
+		return f"{settings.botDir}/{settings.opsFolderName}/{self.fileName}.bin"
 
 
 

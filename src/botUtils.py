@@ -19,7 +19,7 @@ class BotPrinter():
 	# Convenience function to pretty print errors.
 	@staticmethod
 	def LogError(p_string):
-		print(f"[{datetime.datetime.now()}] ERROR: {p_string}\n{traceback.print_tb()}")
+		print(f"[{datetime.datetime.now()}] ERROR: {p_string}  {traceback.print_tb(limit=5)}")
 
 	@staticmethod
 	def LogErrorExc(p_string: str, p_exception: Exception):

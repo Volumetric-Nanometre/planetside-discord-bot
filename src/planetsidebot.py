@@ -99,13 +99,14 @@ async def newuserjoin(pInteraction: discord.Interaction):
 
 @bot.tree.command(name="addops", description="Add a new Ops event")
 @app_commands.describe(optype="Type of Ops to create. If this doesn't match an existing option, defaults to 'custom'!",
-						edit="Open the Ops Editor after creating this event?",
+						edit="Open Ops Editor before posting this event (Always true if 'Custom')",
 						pDay="The day this ops will run.",
 						pMonth="The month this ops will run.",
 						pHour="The HOUR (24) the ops will run in.",
 						pMinute="The MINUTE within an hour the ops starts on",
-						pYear="Optional.\nThe Year the ops should run.")
-@app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute", pYear="year")
+						pYear="Optional.\nThe Year the ops should run.",
+						pArguments="Optional.\nAdditional arguments to control the op behaviour.")
+@app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute", pYear="year", pArguments="arguments")
 @app_commands.checks.has_any_role('CO','Captain','Lieutenant','Sergeant')
 async def addopsevent (pInteraction: discord.Interaction, 
 	# optype: opsManager.OpsManager.GetDefaultOpsAsEnum(),
@@ -116,19 +117,19 @@ async def addopsevent (pInteraction: discord.Interaction,
 	pMonth: app_commands.Range[int, 1, 12], 
 	pHour: app_commands.Range[int, 1, 23], 
 	pMinute:app_commands.Range[int, 0, 59],
-	pYear: int  = datetime.datetime.now().year
+	pYear: int  = datetime.datetime.now().year,
+	pArguments: str = ""
 ):
 
 	botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
 	vTime = datetime.datetime(year=datetime.datetime.now().year, month=pMonth, day=pDay, minute=pMinute, hour=pHour )
-	vUTCStamp = botUtils.DateFormatter.GetDiscordTime(vTime)
+	# vUTCStamp = botUtils.DateFormatter.GetDiscordTime()
 	vDate = datetime.datetime(
 		year=pYear,
 		month=pMonth,
 		day=pDay,
 		hour=pHour, minute=pMinute)
 
-	# Cleanup string (remove "OpType.")
 	vOpTypeStr = str(optype).replace("OpsType.", "")
 
 	if vOpTypeStr not in await opsManager.OperationManager.GetDefaults():
@@ -138,26 +139,31 @@ async def addopsevent (pInteraction: discord.Interaction,
 
 		botUtils.BotPrinter.Debug(f"Editor: {vEditor}, Type: {type(vEditor)}")
 
-		await pInteraction.response.send_message("**Creating new default...**", view=vEditor, ephemeral=True)
+		await pInteraction.response.send_message("**OPS EDITOR**", view=vEditor, ephemeral=True)
 		return
 
 	else:
-
+		# MAKE SURE TO SWAP OP DATA FILE LATER, ELSE YOU WILL OVERWRITE THE SAVED DEFAULT
 		vOpsMessage = opsManager.OpsMessage(pOpsDataFile=f"{settings.botDir}/{settings.defaultOpsDir}/{optype}", pOpsData=None, pBot=bot)
 		vOpsMessage.getDataFromFile()
-		# Update date to the one given by the command
+		# Update date & args to the one given by the command
 		vOpsMessage.opsData.date = vDate
+		vOpsMessage.SetArguments(pArguments)
 
 		if(edit):
 			vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=vOpsMessage.opsData)
-			await pInteraction.response.send_message(f"Editing OpData for {optype}", view=vEditor, ephemeral=True)
+			vEditor.vMessage = await pInteraction.response.send_message(f"Editing OpData for {optype}", view=vEditor, ephemeral=True)
+			
 		else:
 			# TODO -  Add method of choosing which channel signup goes into, then grab said channel and send message there.
-			if(settings.bShowDebug):
-				await vOpsMessage.PostMessage()
-				# await pInteraction.response.send_message("DEBUG ONLY!",view=vOpsMessage, ephemeral=True)
-				await pInteraction.response.send_message("Ops posted!")
-		return
+			vOpsMessage.opsData.GenerateFileName()
+			vOpsMessage.opsDatafilePath = f"{settings.botDir}/{settings.opsFolderName}/{vOpsMessage.opsData.fileName}.bin"
+			await vOpsMessage.PostMessage()
+			# vOpsMessage.saveToFile()
+
+			await pInteraction.response.send_message("Ops posted!")
+
+	# End AddOpsEvent
 
 
 @addopsevent.autocomplete('optype')
