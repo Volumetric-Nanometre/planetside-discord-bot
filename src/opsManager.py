@@ -187,20 +187,24 @@ class OpsMessage():
 				botUtils.BotPrinter.Debug("Argument for channel found!")
 				vCleanArg = argument.strip("CHN=")
 				channel = discord.utils.find(lambda items: items.name == vCleanArg, vGuild.text_channels)
-				if channel == None:
-					botUtils.BotPrinter.Debug(f"No channel found, Creating channel with argument.")
+				if channel != None:
+					return channel
+				else:
+					botUtils.BotPrinter.Debug(f"No existing matching channel, creating channel {vCleanArg}")
 					channel = await vGuild.create_text_channel(
 						name=vCleanArg,
 						category=opsCategory 
 					)
+					return channel
 
 		# If code reaches here, no channel was found.
-		botUtils.BotPrinter.Debug("Target Ops Channel not specified (or missing preceeding 'CHN=').")
-		channel = discord.utils.find(lambda items: items.name == self.opsData.name, vGuild.text_channels)
+		botUtils.BotPrinter.Debug(f"Target Ops Channel not specified (or missing preceeding 'CHN=')\nFinding {self.opsData.name} in {vGuild.text_channels}.\n\n")
+		channel = discord.utils.find(lambda items: items.name == self.opsData.name.lower(), vGuild.text_channels)
+
 		if channel == None:
 			channel = await vGuild.create_text_channel(
 							name=self.opsData.name,
-							category=opsCategory 
+							category=opsCategory
 						)
 		
 		return channel 
