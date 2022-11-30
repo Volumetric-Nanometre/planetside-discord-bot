@@ -109,8 +109,6 @@ async def newuserjoin(pInteraction: discord.Interaction):
 @app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute", pYear="year", pArguments="arguments")
 @app_commands.checks.has_any_role('CO','Captain','Lieutenant','Sergeant')
 async def addopsevent (pInteraction: discord.Interaction, 
-	# optype: opsManager.OpsManager.GetDefaultOpsAsEnum(),
-	# optype: botData.AddOpsEnum.OpsEnum,
 	optype: str,
 	edit: bool, 
 	pDay: app_commands.Range[int, 0, 31], 
@@ -132,8 +130,10 @@ async def addopsevent (pInteraction: discord.Interaction,
 
 	vOpTypeStr = str(optype).replace("OpsType.", "")
 
-	if vOpTypeStr not in await opsManager.OperationManager.GetDefaults():
-		newOpsData = botData.OperationData(date=vDate, status=botData.OpsStatus.editing)
+	if vOpTypeStr not in opsManager.OperationManager.GetDefaults():
+		newOpsData = botData.OperationData()
+		newOpsData.date = vDate
+		newOpsData.status = botData.OpsStatus.editing
 
 		vEditor: opsManager.OpsEditor = opsManager.OpsEditor(pBot=bot, pOpsData=newOpsData)
 
@@ -148,11 +148,13 @@ async def addopsevent (pInteraction: discord.Interaction,
 		vOpsMessage.getDataFromFile()
 		# Update date & args to the one given by the command
 		vOpsMessage.opsData.date = vDate
-		vOpsMessage.SetArguments(pArguments)
+		if pArguments != "":
+			vOpsMessage.SetArguments(pArguments)
 
 		if(edit):
 			vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=vOpsMessage.opsData)
-			vEditor.vMessage = await pInteraction.response.send_message(f"Editing OpData for {optype}", view=vEditor, ephemeral=True)
+			await pInteraction.response.send_message(f"Editing OpData for {optype}", view=vEditor, ephemeral=True)
+			vEditor.vMessage = await pInteraction.original_response()
 			
 		else:
 			# TODO -  Add method of choosing which channel signup goes into, then grab said channel and send message there.
@@ -161,7 +163,7 @@ async def addopsevent (pInteraction: discord.Interaction,
 			await vOpsMessage.PostMessage()
 			# vOpsMessage.saveToFile()
 
-			await pInteraction.response.send_message("Ops posted!")
+			await pInteraction.response.send_message("Ops posted!", ephemeral=True)
 
 	# End AddOpsEvent
 

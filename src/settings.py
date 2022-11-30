@@ -19,6 +19,9 @@ botDir = os.getcwd()
 opsFolderName = "TDKDOps" # Foldername/Dir for CREATED (live) Ops
 defaultOpsDir = "SavedOps" # Foldername/Dir for DEFAULT Ops
 
+signupCategory = "SIGN UP" # The category name (must match capitalisation!)
+resignIcon = "❌" # The icon to use for the RESIGN role. 🔳 ❌
+reserveIcon = "⭕" # The icon to use for the RESERVE role.
 bShowDebug = True # Set to FALSE in live environment to keep console clean.
 
 

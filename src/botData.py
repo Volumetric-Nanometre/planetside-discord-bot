@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 import datetime
 import settings
 import botUtils
-import os
 
 
 # Enum to assist in making things easier to read.
@@ -28,37 +27,52 @@ class OpsTypes(Enum):
 		
 
 class OpsStatus(Enum):
-	open = 1
-	started = 2
-	editing = 3
+	editing = -1 # Ops is being edited, users can't signup.
+	open = 1 # Open to signups.
+	prestart = 10 # set when pre-op setup starts.
+	started = 20 # Ops started.
+	debriefing = 30 # Probably redundant. 
 
 
-# OpRoleData:  Signup Data pertaining to an individual role on an Operation.
+
 @dataclass
 class OpRoleData:
+	"""
+	Data pertaining to an individual role on an Operation
+	"""
 	players : list = field(default_factory=list) #User IDs
-	roleName : str = field(default_factory=str)
-	roleIcon : str = field(default_factory=str)
-	maxPositions : int = field(default_factory=int)
+	roleName : str = ""
+	roleIcon : str = ""
+	maxPositions : int = 0
+
+	def __init__(self, pRoleName, pRoleIcon, pMaxPos) -> None:
+		botUtils.BotPrinter.Debug(f"Op Role data initialised.")
+		self.players = []
+		self.roleName = pRoleName
+		self.roleIcon = pRoleIcon
+		self.maxPositions = pMaxPos
 
 #OperationData: Information relating to the Op as a whole, includes a list of OpRoleData objects.
 @dataclass
 class OperationData:
+	"""
+	Data pertaining to an Operation.
+	Includes a list of OpRoleData objects.
+	"""
 	# List of OpRoleData objects
 	roles : list = field(default_factory=list)
 	reserves : list = field(default_factory=list) # Since there's no need for special data for reserves, they just have a simple UserID list.
 	# Op Details:
-	name : str = field(default_factory=str)
-	fileName: str = field(default_factory=str)
-	date : datetime.datetime = field(default_factory=datetime.datetime)
-	description : str = field(default_factory=str)
-	customMessage : str = field(default_factory=str)
-	additionalRoles : str = field(default_factory=str) # Not used
-	messageID : str = field(default_factory=str) # Stored to make accessing and editing quicker/avoid having to find it.
-	status : OpsStatus = field(default_factory=OpsStatus)
-
+	name : str = ""
+	fileName: str = ""
+	date : datetime.datetime = datetime.datetime.now()
+	description : str = ""
+	customMessage : str = ""
+	messageID : str = "" # Stored to make accessing and editing quicker/avoid having to find it.
+	status : OpsStatus = OpsStatus.open
 	voiceChannels: list = field(default_factory=list)
 	arguments: list = field(default_factory=list)
+
 
 	def GenerateFileName(self):
 		self.fileName = f"{self.name}_{self.date.year}-{self.date.month}-{self.date.day}_{self.date.hour}-{self.date.minute}"
@@ -67,6 +81,26 @@ class OperationData:
 
 	def GetFullFilePath(self):
 		return f"{settings.botDir}/{settings.opsFolderName}/{self.fileName}.bin"
+
+	def GetRoleByName(self, p_roleName):
+		"""
+		GET ROLE BY NAME
+		RETURN: OpRoleData matching p_roleName
+
+		Convenience function to avoid repetition.
+		"""
+		role: OpRoleData
+		for role in self.roles:
+			if role.roleName == p_roleName:
+				return role
+
+	def __init__(self) -> None:
+		self.roles = []
+		self.reserves = []
+		self.voiceChannels = []
+		self.arguments = []
+		botUtils.BotPrinter.Debug(f"Op Data initialised.")
+
 
 
 

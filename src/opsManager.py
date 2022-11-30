@@ -11,22 +11,52 @@ from discord.ext import commands
 
 import settings
 import botUtils
+from botUtils import BotPrinter as BUPrint
 import botData
 
 
 class OperationManager():
-	def init(self):
-		# List of ops (file names)
-		self.vOpsList: list = self.GetOps()
+	"""
+	OPERATION MANAGER
+	Holds list of saved op file names, and their corresponding opData object.
+	Should be used to manage Op related messages, including creation, deletion and editing.
+	"""
 
-	# Returns a list of full pathed strings for each 
+	vOpsList: list = []
+	vLiveOps: list = [] # List of Live Ops (botData.OperationData)
+	
+	def init(self):
+		# Only update lists on first object instantiation (or there's no ops and it occurs each time):
+		if len(self.vOpsList) == 0:
+			self.vOpsList = self.GetOps()
+		BUPrint.Info(f"Operation Manager has been instantited. Ops Files|Data: {len(self.vOpsList)|{len(self.vLiveOps)}}")
+
+
+
 	async def GetOps():
+		"""
+		RETURN - Type: list(str), containing filenames of current saved Ops.
+		
+		"""
 		botUtils.BotPrinter.Debug("Getting Ops list...")
 		vOpsDir = f"{settings.botDir}/{settings.opsFolderName}/"
 		return botUtils.FilesAndFolders.GetFiles(vOpsDir, ".bin")
 
-	async def GetDefaults():
-		botUtils.BotPrinter.Debug("Getting default Ops...")
+
+	async def LoadOps(self):
+		"""
+		Clear current list of LiveOps, then load from files in opsList. 
+		"""
+		self.vLiveOps.clear()
+
+
+	def GetDefaults():
+		"""
+		GET DEFAULTS
+		Get the default Ops filenames.
+		
+		RETURN : list(str)
+		"""
 		vDir = f"{settings.botDir}/{settings.defaultOpsDir}"
 		return botUtils.FilesAndFolders.GetFiles(vDir, ".bin")
 		
@@ -40,26 +70,23 @@ class OperationManager():
 				except:
 					botUtils.BotPrinter.LogError(f"Unable to delete file {vFullPath}")
 
-	# Returns a LIST containing the names of saved default Operations.
-	# Does not use SELF to make it callable without constructing an instance.
-	# Does not use Async to allow it to be called in function parameters.
-	# Does not strip file extension!
 	def GetDefaultOpsAsList():
-		botUtils.BotPrinter.Debug("Getting Ops list...")
-		vOpsDir = f"{settings.botDir}/{settings.defaultOpsDir}/"
+		"""
+		GET DEFAULT OPS AS LIST
+		Expected use - App command auto-fill.
+		Additional non-file entries are added to the returned list!
+
+		RETURN: list(str)  Containing the names of saved default Ops.
+
+		Does not use SELF to make it callable without constructing an instance.
+		Does not use Async to allow it to be called in function parameters.
+		Does not strip file extension!
+		"""
 		vDataFiles: list = ["Custom"]
-		
-		for file in os.listdir(vOpsDir):
-			if file.endswith(".bin"):
-				vDataFiles.append(file)
+		# Merge custom list with list of actual default files.		
+		vDataFiles += OperationManager.GetDefaults()
 
-		if len(vDataFiles) > 1:
-			botUtils.BotPrinter.Debug(f"Ops files found: {vDataFiles}")
-			return vDataFiles
-		else:
-			botUtils.BotPrinter.Debug("No ops files!")
-			return vDataFiles
-
+		return vDataFiles
 
 
 	async def createOpsFolder():
@@ -68,6 +95,54 @@ class OperationManager():
 				os.makedirs(f"{settings.botDir}/{settings.opsFolderName}")
 			except:
 				botUtils.BotPrinter.LogError("Failed to create folder for Ops data!")
+
+	
+	async def SaveToFile(p_opsData: botData.OperationData):
+		"""
+		SAVE TO FILE
+		Saves the Operation Data to file.
+		
+		NOTE: If filename is empty, the OpData is saved as a default using its name!
+
+		p_opsData: The ops data to save.
+		"""
+		BUPrint.Info(f"Saving Operation Data to file. OpName|FileName: {p_opsData.name} | {p_opsData.fileName}")
+		vFilePath = f"{settings.botDir}/"
+		if p_opsData.fileName == "": # No filename, save as new default ops using Name.
+			vFilePath += f"{settings.defaultOpsDir}/{p_opsData.name}.bin"
+		else:
+			vFilePath += f"{settings.defaultOpsDir}/{p_opsData.fileName}.bin"
+
+		try:
+			with open(vFilePath, "wb") as vFile:
+				pickle.dump(p_opsData, vFile)
+				BUPrint.Info("File saved sucessfully!")
+		except:
+			BUPrint.LogError("Failed to save Ops Data to file!")
+
+
+	async def LoadFromFile(p_opFilePath):
+		"""
+		LOAD FROM FILE
+		Does not differentiate between Default or Live ops, it merely loads an OpData and returns the object!
+
+		p_opFilePath: The FULL filepath to load from.
+		"""
+		BUPrint.Info(f"Loading Operation Data from file. Path:{p_opFilePath}")
+		try:
+			with open(p_opFilePath, "rb") as vFile:
+				vLoadedOpData = pickle.load(vFile)
+				BUPrint.Info("Data loaded sucessfully!")
+				return vLoadedOpData
+
+		except EOFError as vError:
+			BUPrint.LogErrorExc("Failed to open file. Check to ensure the file has not been overwritten and is not 0 bytes!", p_exception=vError)
+			return None
+
+		except Exception as vError:
+			BUPrint.LogErrorExc("Failed to open file!", p_exception=vError)
+			return None
+
 
 
 
@@ -107,10 +182,15 @@ class OpsMessage():
 	# Should be called prior to posting or updating the view this object is called from.
 	# Returns an embed containing the Ops info.
 	async def GenerateEmbed(self):
-		vTitleStr = f"{self.opsData.name} {botUtils.DateFormatter.GetDiscordTime(self.opsData.date, botUtils.DateFormat.DateTimeLong)}"
-		vEmbed = discord.Embed(colour=botUtils.Colours.editing.value, title=vTitleStr, description=self.opsData.description)
+		vTitleStr = f"{self.opsData.name.upper()} | {botUtils.DateFormatter.GetDiscordTime(self.opsData.date, botUtils.DateFormat.DateTimeLong)}"
+		vDescriptionText = f"Starts {botUtils.DateFormatter.GetDiscordTime(self.opsData.date, botUtils.DateFormat.Dynamic)}"
 
-		
+		vEmbed = discord.Embed(colour=botUtils.Colours.editing.value, title=vTitleStr, description=vDescriptionText)
+
+		vEmbed.add_field(inline=False, 
+			name=f"About {self.opsData.name}", 
+			value=f"{self.opsData.description}"
+		)
 
 		if(self.opsData.customMessage != ""):
 			vEmbed.add_field(inline=False, name="Additional Info:", value=self.opsData.customMessage)
@@ -135,8 +215,13 @@ class OpsMessage():
 						role.players.remove(user)
 						OpsMessage(pOpsData=self.opsData, pBot=self.botRef, pOpsDataFile=self.opsDatafilePath).saveToFile()
 			
+			# Prepend role icon if not None:
+			vRoleName = ""
+			if role.roleIcon != None:
+				vRoleName += f"{role.roleIcon} "
+
+			vRoleName += role.roleName 
 			# Append current/max or just current depending on role settings.
-			vRoleName = f"{role.roleName}" 
 			if( int(role.maxPositions) > 0 ): 
 				vRoleName += f" ({len(role.players)}/{role.maxPositions})"
 			else:
@@ -152,6 +237,8 @@ class OpsMessage():
 	async def PostMessage(self):
 		# Sets target channel, creates it if it doesn't exist.
 		vTargetChannel: discord.TextChannel = await self.GetTargetOpsChannel()
+		if vTargetChannel == None:
+			return
 		vEmbed = await self.GenerateEmbed()
 		vView = OpMessageView()
 
@@ -161,7 +248,7 @@ class OpsMessage():
 		vMessageID = await vTargetChannel.send(view=vView, embed=vEmbed)
 		self.opsData.messageID = vMessageID
 		botUtils.BotPrinter.Debug(f"Ops Message ID: {self.opsData.messageID}")
-		self.saveToFile() # DON'T CALL FROM HERE, it causes weak ref error.
+		# self.saveToFile() # DON'T CALL FROM HERE, it causes weak ref error.
 
 
 	async def GetTargetOpsChannel(self):
@@ -178,6 +265,9 @@ class OpsMessage():
 				botUtils.BotPrinter.LogError("Failed to find guild for getting Ops Channel!")
 				return
 		opsCategory = discord.utils.find(lambda items: items.name == "SIGN UP", vGuild.categories)
+		if opsCategory == None:
+			BUPrint.Info("SIGNUP CATEGORY NOT FOUND!  Check settings and ensure signupCategory matches the name of the category to be used; including capitalisation!")
+			return None
 
 		argument: str
 		for argument in self.opsData.arguments:
@@ -219,9 +309,10 @@ class OpMessageView(discord.ui.View):
 		super().__init__(timeout=timeout)
 		self.vParentMessage : OpsMessage
 		self.vRoleSelector = OpsRoleSelector(pParent=self)
+		self.btnReserve = OpsRoleReserve(pParent=self)
 		
+		self.add_item(self.btnReserve)
 		self.add_item(self.vRoleSelector)
-
 	# def UpdateOptions(self):
 	# 	# self.remove_item(self.vRoleSelector)
 	# 	self.vRoleSelector.options.clear()
@@ -237,7 +328,7 @@ class OpsRoleSelector(discord.ui.Select):
 	def __init__(self, pParent: OpsMessage):
 		self.vParentMessage:OpsMessage = pParent
 		defaultOption = discord.SelectOption(label="Default", value="Default")
-		super().__init__(placeholder="Choose a role...", options=[defaultOption])
+		super().__init__(placeholder="Choose a role...", options=[defaultOption], row=0)
 
 	async def callback(self, pInteraction: discord.Interaction):
 		botUtils.BotPrinter.Debug(f"User {pInteraction.user.name} has signed up to an event with role: {self.values[0]}")
@@ -247,17 +338,27 @@ class OpsRoleSelector(discord.ui.Select):
 		self.options.clear()
 		role: botData.OpRoleData
 
+		# Always add a default used to resign players.
+		self.add_option(label="Resign", value="Resign", emoji=settings.resignIcon)
+
 		for role in self.vParentMessage.vParentMessage.opsData.roles:
 			if( len(role.players) < int(role.maxPositions) or int(role.maxPositions) <= 0 ):
 				# To ensure no errors, only use emoji if its specified
-				if role.roleIcon != '""':
-					botUtils.BotPrinter.Debug(f"No icon ({role.roleIcon}) specified, skipping...")
+
+				if role.roleIcon != None:
+					botUtils.BotPrinter.Debug(f"Icon ({role.roleIcon}) specified, using Icon...")
 					self.add_option(label=role.roleName, value=role.roleName, emoji=role.roleIcon)
 				else:
 					self.add_option(label=role.roleName, value=role.roleName)
 
-		# Always add a default used to resign players.
 
+class OpsRoleReserve(discord.ui.Button):
+	def __init__(self, pParent: OpsMessage):
+		self.vParentMessage = pParent
+		super().__init__(label="Reserve", emoji=settings.reserveIcon, row=0)
+
+	async def callback(self, pInteraction: discord.Interaction):
+		pInteraction.response.send_message(content="You have signed up as a reserve!", ephemeral=True)
 
 
 
@@ -269,7 +370,7 @@ class OpsEditor(discord.ui.View):
 	def __init__(self, pBot: commands.Bot, pOpsData: botData.OperationData):
 		self.vBot = pBot
 		self.vOpsData = pOpsData # Original data, not edited.
-		self.vMessage : discord.Message # used to yeetus deleetus when done.
+		self.vMessage : discord.Message = None # used to yeetus deleetus when done.
 		# self.EditedData = pOpsData # Edited data, applied and saved.
 		botUtils.BotPrinter.Debug("Created Blank Editor")
 		super().__init__(timeout=None)
@@ -344,10 +445,10 @@ class OpsEditor(discord.ui.View):
 		vNewOpsFilepath = f"{settings.botDir}/{settings.defaultOpsDir}/{self.vOpsData.name}.bin"
 		botUtils.BotPrinter.Debug(f"Saving new default: {vNewOpsFilepath}...")
 		vOpsMessage = OpsMessage(pOpsDataFile=vNewOpsFilepath, pOpsData=self.vOpsData, pBot=self.vBot)
-		# vOpsMessage.saveToFile()
+		vOpsMessage.saveToFile()
 		botUtils.BotPrinter.Debug("Saved!")
 
-		await pInteraction.response.send_message(f"Added new default!", ephemeral=True)
+		await pInteraction.followup.send(f"Added new default!", ephemeral=True)
 
 
 
@@ -438,13 +539,14 @@ class EditInfo(discord.ui.Modal):
 		label="Description",
 		placeholder="Brief explanation of this Ops",
 		style=discord.TextStyle.paragraph,
-		max_length=2000,
+		max_length=400,
 		required=True
 	)
 	txtMessage = discord.ui.TextInput(
 		label="Details",
 		placeholder="Optional detailed message about this ops.",
 		style=discord.TextStyle.paragraph,
+		max_length=800,
 		required=False
 	)
 
@@ -497,13 +599,13 @@ class EditInfo(discord.ui.Modal):
 		vTempStr: str = ""
 		for channel in self.vData.voiceChannels:
 			vTempStr += f"{channel}\n"		
-		self.txtVoiceChannels.default = vTempStr
+		self.txtVoiceChannels.default = vTempStr.strip()
 		
 		vTempStr = ""
 		for argument in self.vData.arguments:
+			BUPrint.Debug(f"Adding Arg {argument} to modal.")
 			vTempStr += f"{argument}\n"
-		self.txtArguments.default = vTempStr
-
+		self.txtArguments.default = vTempStr.strip()
 
 ###############################
 # EDIT ROLES
@@ -554,19 +656,23 @@ class EditRoles(discord.ui.Modal):
 		
 		# If user made an error, don't proceed- inconstsent lengths!
 		if len(vRoleNames) != len(vRoleEmoji) != len(vRoleMax):
-			await pInteraction.response.send_message("Inconsistent array lengths in fields!  \nMake sure the number of lines matches in all three fields.", ephemeral=True)
+			await pInteraction.response.send_message('Inconsistent array lengths in fields!  \nMake sure the number of lines matches in all three fields.\n\nFor empty Emojis, use "".', ephemeral=True)
 			return
 
 		vIndex = 0
-		botUtils.BotPrinter.Debug(f"Size of array: {len(vRoleEmoji)}")
-		while vIndex < len(vRoleEmoji):
+		botUtils.BotPrinter.Debug(f"Size of array: {len(vRoleNames)}")
+		while vIndex < len(vRoleNames):
 
-			vCurrentRole = botData.OpRoleData(roleName=vRoleNames[vIndex], roleIcon=vRoleEmoji[vIndex], maxPositions=int(vRoleMax[vIndex]))
+			vCurrentRole = botData.OpRoleData(pRoleName=vRoleNames[vIndex], pRoleIcon=vRoleEmoji[vIndex], pMaxPos=int(vRoleMax[vIndex]))
 			if vIndex < len(self.vData.roles) :
 				# Index is on an existing role, adjust values to keep any signed up users.
 				self.vData.roles[vIndex].roleName = vCurrentRole.roleName
-				self.vData.roles[vIndex].roleIcon = vCurrentRole.roleIcon
 				self.vData.roles[vIndex].maxPositions = vCurrentRole.maxPositions
+				if vCurrentRole.roleIcon == "-":
+					BUPrint.Debug("Setting role icon to NONE")
+					self.vData.roles[vIndex].roleIcon = None
+				else:
+					self.vData.roles[vIndex].roleIcon = vCurrentRole.roleIcon
 			else:
 				# Index is a new role, append!
 				self.vData.roles.append(vCurrentRole)
@@ -583,18 +689,21 @@ class EditRoles(discord.ui.Modal):
 		
 		vRoleNames: str = ""
 		vRoleEmojis: str = ""
-		vRoleMembers: str = ""
+		vRoleMembers: str = "DISPLAY PURPOSES ONLY\n"
 		vRoleMaxPos: str = ""
 
 		roleIndex: botData.OpRoleData
 		for roleIndex in self.vData.roles:
 			vRoleNames += f"{roleIndex.roleName}\n"
-			vRoleEmojis += f"{roleIndex.roleIcon}\n"
 			vRoleMembers += f"{roleIndex.players}\n"
 			vRoleMaxPos += f"{roleIndex.maxPositions}\n"
+			if roleIndex.roleIcon == None:
+				vRoleEmojis += '""\n'
+			else:
+				vRoleEmojis += f"{roleIndex.roleIcon}\n"
 
 	# Set the text inputs to existing values:
-		self.txtRoleName.default = vRoleNames
-		self.txtEmoji.default = vRoleEmojis
-		self.txtRoleMaxPos.default = vRoleMaxPos
-		self.txtRolePlayers.default = vRoleMembers
+		self.txtRoleName.default = vRoleNames.strip()
+		self.txtEmoji.default = vRoleEmojis.strip()
+		self.txtRoleMaxPos.default = vRoleMaxPos.strip()
+		self.txtRolePlayers.default = vRoleMembers.strip()
