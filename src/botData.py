@@ -52,6 +52,15 @@ class OpRoleData:
 		self.roleIcon = pRoleIcon
 		self.maxPositions = pMaxPos
 
+@dataclass
+class OperationOptions:
+	"""
+	Options, typically altered via use of arguments, to determine behaviour of the ops.
+	"""
+	bUseReserve : bool = True # Only enable built in RESERVE if true.
+	bUseCompact : bool = False # Not yet used, argument: -COMPACT; does not show a member list for each role.
+
+
 #OperationData: Information relating to the Op as a whole, includes a list of OpRoleData objects.
 @dataclass
 class OperationData:
@@ -72,6 +81,7 @@ class OperationData:
 	status : OpsStatus = OpsStatus.open
 	voiceChannels: list = field(default_factory=list)
 	arguments: list = field(default_factory=list)
+	options: OperationOptions = OperationOptions
 
 
 	def GenerateFileName(self):
@@ -101,7 +111,20 @@ class OperationData:
 		self.arguments = []
 		botUtils.BotPrinter.Debug(f"Op Data initialised.")
 
-
+	def __repr__(self) -> str:
+		vOutputStr = "OPERATION DATA\n"
+		vOutputStr += f"Name|FileName: {self.name} | {self.fileName}\n"
+		vOutputStr += f"Date: {self.date}"
+		vOutputStr += f"Description: {self.description}\n"
+		vOutputStr += f"Additional Info: {self.customMessage}\n"
+		vOutputStr += f"Message ID: {self.messageID}\n"
+		vOutputStr += f"Arguments: {self.arguments}\n"
+		vOutputStr += f"Status: {self.status.value}\n"
+		vOutputStr += f"VoiceChannels: {self.voiceChannels}\n"
+		vOutputStr += f"Reserves: {self.reserves}\n"
+		vOutputStr += f"Options: {self.options}\n"
+		vOutputStr += f"Roles: {self.roles}"
+		return vOutputStr
 
 
 # class DefaultOps_ArmourDogs(OperationData):

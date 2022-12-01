@@ -3,6 +3,7 @@
 import os
 import datetime
 import pickle
+import copy
 
 
 import discord
@@ -17,13 +18,16 @@ import botData
 
 class OperationManager():
 	"""
-	OPERATION MANAGER
+	OPERATION MANAGER:
 	Holds list of saved op file names, and their corresponding opData object.
 	Should be used to manage Op related messages, including creation, deletion and editing.
+
+	To ensure there's always one reference and thus avoid weakref objects for pickling, the bot itself should hold an instance (and set botRef).
 	"""
 
 	vOpsList: list = []
 	vLiveOps: list = [] # List of Live Ops (botData.OperationData)
+	vBotRef: commands.Bot
 	
 	def init(self):
 		# Only update lists on first object instantiation (or there's no ops and it occurs each time):
@@ -31,9 +35,11 @@ class OperationManager():
 			self.vOpsList = self.GetOps()
 		BUPrint.Info(f"Operation Manager has been instantited. Ops Files|Data: {len(self.vOpsList)|{len(self.vLiveOps)}}")
 
+	def SetBotRef(p_botRef):
+		OperationManager.vBotRef = p_botRef
 
 
-	async def GetOps():
+	def GetOps():
 		"""
 		RETURN - Type: list(str), containing filenames of current saved Ops.
 		
@@ -43,7 +49,7 @@ class OperationManager():
 		return botUtils.FilesAndFolders.GetFiles(vOpsDir, ".bin")
 
 
-	async def LoadOps(self):
+	def LoadOps(self):
 		"""
 		Clear current list of LiveOps, then load from files in opsList. 
 		"""
@@ -52,7 +58,7 @@ class OperationManager():
 
 	def GetDefaults():
 		"""
-		GET DEFAULTS
+		GET DEFAULTS:
 		Get the default Ops filenames.
 		
 		RETURN : list(str)
@@ -72,7 +78,7 @@ class OperationManager():
 
 	def GetDefaultOpsAsList():
 		"""
-		GET DEFAULT OPS AS LIST
+		GET DEFAULT OPS AS LIST:
 		Expected use - App command auto-fill.
 		Additional non-file entries are added to the returned list!
 
@@ -89,7 +95,7 @@ class OperationManager():
 		return vDataFiles
 
 
-	async def createOpsFolder():
+	def createOpsFolder():
 		if (not os.path.exists(f"{settings.botDir}/{settings.opsFolderName}") ):
 			try:
 				os.makedirs(f"{settings.botDir}/{settings.opsFolderName}")
@@ -97,21 +103,28 @@ class OperationManager():
 				botUtils.BotPrinter.LogError("Failed to create folder for Ops data!")
 
 	
-	async def SaveToFile(p_opsData: botData.OperationData):
+	def SaveToFile(p_opsData: botData.OperationData):
 		"""
-		SAVE TO FILE
+		SAVE TO FILE:
 		Saves the Operation Data to file.
 		
 		NOTE: If filename is empty, the OpData is saved as a default using its name!
 
 		p_opsData: The ops data to save.
+
+		RETURN:
+		True on success.  False on Failure.
 		"""
 		BUPrint.Info(f"Saving Operation Data to file. OpName|FileName: {p_opsData.name} | {p_opsData.fileName}")
+
+		# temp_opToSave = copy.deepcopy(p_opsData)
+
+		
 		vFilePath = f"{settings.botDir}/"
 		if p_opsData.fileName == "": # No filename, save as new default ops using Name.
 			vFilePath += f"{settings.defaultOpsDir}/{p_opsData.name}.bin"
 		else:
-			vFilePath += f"{settings.defaultOpsDir}/{p_opsData.fileName}.bin"
+			vFilePath += f"{settings.opsFolderName}/{p_opsData.fileName}.bin"
 
 		try:
 			with open(vFilePath, "wb") as vFile:
@@ -119,11 +132,15 @@ class OperationManager():
 				BUPrint.Info("File saved sucessfully!")
 		except:
 			BUPrint.LogError("Failed to save Ops Data to file!")
+			return False
+		
+		# Save successful, return True.
+		return True
 
 
-	async def LoadFromFile(p_opFilePath):
+	def LoadFromFile(p_opFilePath):
 		"""
-		LOAD FROM FILE
+		LOAD FROM FILE:
 		Does not differentiate between Default or Live ops, it merely loads an OpData and returns the object!
 
 		p_opFilePath: The FULL filepath to load from.
@@ -131,7 +148,7 @@ class OperationManager():
 		BUPrint.Info(f"Loading Operation Data from file. Path:{p_opFilePath}")
 		try:
 			with open(p_opFilePath, "rb") as vFile:
-				vLoadedOpData = pickle.load(vFile)
+				vLoadedOpData : botData.OperationData = pickle.load(vFile)
 				BUPrint.Info("Data loaded sucessfully!")
 				return vLoadedOpData
 
@@ -143,81 +160,177 @@ class OperationManager():
 			BUPrint.LogErrorExc("Failed to open file!", p_exception=vError)
 			return None
 
+	async def AddNewLiveOp(self, p_opData: botData.OperationData):
+		"""
+		ADD NEW LIVE OP:
+
+		Posts a new LIVE operation.
+		Adds the provided opData to the list of live ops.
+		Saves the provided OpData to file.
+		Creates a notification timer for the operation.
+
+		RETURN: True on fully succesful adding, False if a problem occured.
+		"""
+		BUPrint.Info(f"Adding a new LIVE operation: {p_opData.name}!")
+
+		bCanContinue = await self.AddNewLive_PostOp(p_opData)
+		if not bCanContinue: return False
+
+		# Ops Posted, add OpData to list of LIVE data.
+		self.vLiveOps.append(p_opData)
+
+		# Save the Ops to file.
+		bCanContinue = OperationManager.SaveToFile( self.vLiveOps[-1] )
+		if not bCanContinue: return False
+
+		# Create notification here...
+
+		return True
 
 
-
-##################################################################
-# MESSAGES
-
-class OpsMessage():
-	def __init__(self, pOpsData: botData.OperationData, pBot: commands.Bot, pOpsDataFile: str = ""):
-		self.opsDatafilePath = pOpsDataFile
-		self.opsData: botData.OperationData = pOpsData
-		self.botRef: commands.Bot = pBot
-
-	def saveToFile(self):
-		botUtils.BotPrinter.Debug(f"Attempting to save {self.opsData.name} to file: {self.opsDatafilePath}")
-
-		try:
-			with open(self.opsDatafilePath, 'wb') as vFile:
-				pickle.dump(self.opsData, vFile)
-				botUtils.BotPrinter.Debug("Saved data succesfully!")
-		except:
-			botUtils.BotPrinter.LogError(f"Failed to save {self.opsData.name} to file {self.opsDatafilePath}!")
+	async def AddNewLive_PostOp(self, p_opData:botData.OperationData):
+		"""
+		POST OP:  A sub-function for AddNewLiveOp
+		Returns TRUE if succesful send message
+		"""
+		BUPrint.Info("	-> Posting Live Operation Message!")
 		
-	def getDataFromFile(self):
-		botUtils.BotPrinter.Debug(f"Attempting to load data from file: {self.opsDatafilePath}")
+	# Get target channel for posting to.
+		vChannel = await self.AddNewLive_GetTargetChannel(p_opData)
+		if vChannel == None:
+			return False
+		
+		# Preventative measure, since a live Ops is being posted and SaveToFile assumes a default if no filename is specified, this is called here just in case.
+		p_opData.GenerateFileName()
+
+	# Create message elements
+
+		vView = discord.ui.View(timeout=None)
+		vRoleSelector = OpsRoleSelector(p_opData)
+		vRoleSelector.UpdateOptions()
+
+		vView.add_item( vRoleSelector )
+		vView.add_item( OpsRoleReserve(p_opData) )
+
+		vEmbed = await self.AddNewLive_GenerateEmbed(p_opData)
+
+	# Send the Message.
 		try:
-			with open(self.opsDatafilePath, 'rb') as vFile:
-				self.opsData = pickle.load(vFile)
-				botUtils.BotPrinter.Debug("Loaded data succesfully!")
-		except:
-			botUtils.BotPrinter.LogError(f"Failed to load Ops data from file: {self.opsDatafilePath}")
+			vMessage:discord.Message = await vChannel.send(view=vView, embed=vEmbed)
+			p_opData.messageID = vMessage.id
+		except discord.HTTPException as vError:
+			BUPrint.LogErrorExc("Message did not send due to HTTP Exception.", vError)
+			return False
+		except Exception as vError:
+			BUPrint.LogErrorExc("Failed to send message!", vError)
+			return False
+		
+		return True
 
-	def SetArguments(self, pArgString:str):
-		self.opsData.arguments = pArgString.split(" ")
-		botUtils.BotPrinter.Debug(f"Parsed arguments: {self.opsData.arguments}")
 
-	# Sets this objects embed information from data.
-	# Should be called prior to posting or updating the view this object is called from.
-	# Returns an embed containing the Ops info.
-	async def GenerateEmbed(self):
-		vTitleStr = f"{self.opsData.name.upper()} | {botUtils.DateFormatter.GetDiscordTime(self.opsData.date, botUtils.DateFormat.DateTimeLong)}"
-		vDescriptionText = f"Starts {botUtils.DateFormatter.GetDiscordTime(self.opsData.date, botUtils.DateFormat.Dynamic)}"
+	async def AddNewLive_GetTargetChannel(self, p_opsData: botData.OperationData):
+		"""
+		GET TARGET CHANNEL:
+		A sub function to AddNewLiveOps
+		RETURN - Existing or newly created channel.  None on failure.
+		"""
+	
+		BUPrint.Debug("	-> Obtaining target channel...")
 
-		vEmbed = discord.Embed(colour=botUtils.Colours.editing.value, title=vTitleStr, description=vDescriptionText)
+		vGuild = self.vBotRef.guilds[0]
+		if vGuild is None:
+			# Try again using non-cache "fetch":
+			vGuild = await self.vBotRef.fetch_guild(settings.DISCORD_GUILD)
+			if vGuild is None:
+				botUtils.BotPrinter.LogError("Failed to find guild for getting Ops Channel!")
+				return None
+		opsCategory = discord.utils.find(lambda items: items.name == "SIGN UP", vGuild.categories)
 
-		vEmbed.add_field(inline=False, 
-			name=f"About {self.opsData.name}", 
-			value=f"{self.opsData.description}"
+		if opsCategory == None:
+			BUPrint.Info("SIGNUP CATEGORY NOT FOUND!  Check settings and ensure signupCategory matches the name of the category to be used; including capitalisation!")
+			return None
+
+		argument: str
+		for argument in p_opsData.arguments:
+			BUPrint.Debug(f"Parsing argument: {argument}")
+			channel = None
+			if argument.find("CHN=") != -1:
+				BUPrint.Debug("Argument for channel found!")
+				vCleanArg = argument.strip("CHN=")
+				channel = discord.utils.find(lambda items: items.name == vCleanArg, vGuild.text_channels)
+				if channel != None:
+					return channel
+				else:
+					BUPrint.Info(f"No existing matching channel, creating channel {vCleanArg}")
+					channel = await vGuild.create_text_channel(
+						name=vCleanArg,
+						category=opsCategory 
+					)
+					return channel
+
+		# If code reaches here, no channel was found.
+		BUPrint.Info(f"Target Ops Channel not specified (or missing preceeding 'CHN=')\nFinding {p_opsData.name} in {vGuild.text_channels}.\n\n")
+		channel = discord.utils.find(lambda items: items.name == p_opsData.name.lower(), vGuild.text_channels)
+
+		if channel == None:
+			channel = await vGuild.create_text_channel(
+							name=p_opsData.name,
+							category=opsCategory
+						)
+		
+		return channel 
+
+	async def AddNewLive_GenerateEmbed(self, p_opsData: botData.OperationData):
+		"""
+		GENERATE EMBED
+		A sub function to AddNewLiveOps
+
+		Can also be used to regenerate an embed with updated information.
+
+		Returns a discord.Embed with information from p_opsData.
+		"""
+		BUPrint.Info("	-> Generating Embed...")
+		vTitleStr = f"{p_opsData.name.upper()} | {botUtils.DateFormatter.GetDiscordTime(p_opsData.date, botUtils.DateFormat.DateTimeLong)}"
+
+		vEmbed = discord.Embed(colour=botUtils.Colours.openSignup.value,
+								title=vTitleStr,
+								description=f"Starts {botUtils.DateFormatter.GetDiscordTime(p_opsData.date, botUtils.DateFormat.Dynamic)}"
+							)
+
+		vEmbed.add_field(inline=False,
+			name=f"About {p_opsData.name}",
+			value=p_opsData.description
 		)
 
-		if(self.opsData.customMessage != ""):
-			vEmbed.add_field(inline=False, name="Additional Info:", value=self.opsData.customMessage)
+		if(p_opsData.customMessage != ""):
+			vEmbed.add_field(inline=False,
+				name="Additional Info:",
+				value=p_opsData.customMessage
+			)
 
 		# Generate lists for roles:
 		role: botData.OpRoleData
-		for role in self.opsData.roles:
+		for role in p_opsData.roles:
 			vSignedUpUsers: str = ""
 			if len(role.players) == 0:
 				vSignedUpUsers = "-"
 			for user in role.players:
 				# Convert IDs to names for display
-				vUserAsName = self.botRef.get_user(int(user))
+				vUserAsName = self.vBotRef.get_user(int(user))
 				if vUserAsName is not None:
 					vSignedUpUsers += f"{vUserAsName}\n"
 				else: # If not found, fetch non-cached.
-					vUserAsName = await self.botRef.fetch_user(int(user))
+					vUserAsName = await self.vBotRef.fetch_user(int(user))
 					if vUserAsName is not None:
-						vSignedUpUsers += f"{vUserAsName}"
+						vSignedUpUsers += f"{vUserAsName}\n"
 					else: # User doesn't exist?
 						botUtils.BotPrinter.LogError(f"User ID {user} is not found! Removing from data")
 						role.players.remove(user)
-						OpsMessage(pOpsData=self.opsData, pBot=self.botRef, pOpsDataFile=self.opsDatafilePath).saveToFile()
 			
 			# Prepend role icon if not None:
 			vRoleName = ""
-			if role.roleIcon != None:
+			if role.roleIcon != "-" :
+				BUPrint.Debug(f"Role icon for EMBED specified: {role.roleIcon}")
 				vRoleName += f"{role.roleIcon} "
 
 			vRoleName += role.roleName 
@@ -230,105 +343,32 @@ class OpsMessage():
 			vEmbed.add_field(inline=True,
 			name=vRoleName,
 			value=vSignedUpUsers)
+		# END of FOR loop.
+
+		# Add builtin RESERVE
+		if(p_opsData.options.bUseReserve):
+			vReserves = "-"
+			for reserve in p_opsData.reserves:
+				vReserves += f"{reserve}\n"
+			vEmbed.add_field(name="Reserve", value=vReserves, inline=True )
 
 		return vEmbed
 
 
-	async def PostMessage(self):
-		# Sets target channel, creates it if it doesn't exist.
-		vTargetChannel: discord.TextChannel = await self.GetTargetOpsChannel()
-		if vTargetChannel == None:
-			return
-		vEmbed = await self.GenerateEmbed()
-		vView = OpMessageView()
-
-		vView.vParentMessage = self
-		vView.vRoleSelector.UpdateOptions()
-
-		vMessageID = await vTargetChannel.send(view=vView, embed=vEmbed)
-		self.opsData.messageID = vMessageID
-		botUtils.BotPrinter.Debug(f"Ops Message ID: {self.opsData.messageID}")
-		# self.saveToFile() # DON'T CALL FROM HERE, it causes weak ref error.
-
-
-	async def GetTargetOpsChannel(self):
-		botUtils.BotPrinter.Debug("Obtaining target channel...")
-		if self.botRef is None:
-			botUtils.BotPrinter("NO BOT REF?!")
-			return
-
-		vGuild = self.botRef.guilds[0]
-		if vGuild is None:
-			# Try again using non-cache "fetch":
-			vGuild = await self.botRef.fetch_guild(settings.DISCORD_GUILD)
-			if vGuild is None:
-				botUtils.BotPrinter.LogError("Failed to find guild for getting Ops Channel!")
-				return
-		opsCategory = discord.utils.find(lambda items: items.name == "SIGN UP", vGuild.categories)
-		if opsCategory == None:
-			BUPrint.Info("SIGNUP CATEGORY NOT FOUND!  Check settings and ensure signupCategory matches the name of the category to be used; including capitalisation!")
-			return None
-
-		argument: str
-		for argument in self.opsData.arguments:
-			botUtils.BotPrinter.Debug(f"Parsing argument: {argument}")
-			channel = None
-			if argument.find("CHN=") != -1:
-				botUtils.BotPrinter.Debug("Argument for channel found!")
-				vCleanArg = argument.strip("CHN=")
-				channel = discord.utils.find(lambda items: items.name == vCleanArg, vGuild.text_channels)
-				if channel != None:
-					return channel
-				else:
-					botUtils.BotPrinter.Debug(f"No existing matching channel, creating channel {vCleanArg}")
-					channel = await vGuild.create_text_channel(
-						name=vCleanArg,
-						category=opsCategory 
-					)
-					return channel
-
-		# If code reaches here, no channel was found.
-		botUtils.BotPrinter.Debug(f"Target Ops Channel not specified (or missing preceeding 'CHN=')\nFinding {self.opsData.name} in {vGuild.text_channels}.\n\n")
-		channel = discord.utils.find(lambda items: items.name == self.opsData.name.lower(), vGuild.text_channels)
-
-		if channel == None:
-			channel = await vGuild.create_text_channel(
-							name=self.opsData.name,
-							category=opsCategory
-						)
-		
-		return channel 
-
 	async def UpdateMessage(self):
 		return self
-			
 
 
-class OpMessageView(discord.ui.View):
-	def __init__(self, timeout= None):
-		super().__init__(timeout=timeout)
-		self.vParentMessage : OpsMessage
-		self.vRoleSelector = OpsRoleSelector(pParent=self)
-		self.btnReserve = OpsRoleReserve(pParent=self)
-		
-		self.add_item(self.btnReserve)
-		self.add_item(self.vRoleSelector)
-	# def UpdateOptions(self):
-	# 	# self.remove_item(self.vRoleSelector)
-	# 	self.vRoleSelector.options.clear()
-	# 	role: botData.OpRoleData
-	# 	vNewButton = discord.ui.Select(custom_id=f"{self.vParentMessage.opsData.messageID}_RoleSelector")
-	# 	for role in self.vParentMessage.opsData.roles:
-	# 		if( len(role.players) < role.maxPositions ):
-	# 			vNewButton.add_option(label=role.roleName, value=role.roleName, emoji=role.roleIcon)
-	# 	self._refresh()
+##################################################################
+# MESSAGES	
+
 
 
 class OpsRoleSelector(discord.ui.Select):
-	def __init__(self, pParent: OpsMessage):
-		self.vParentMessage:OpsMessage = pParent
+	def __init__(self, p_opsData: botData.OperationData):
 		defaultOption = discord.SelectOption(label="Default", value="Default")
-		super().__init__(placeholder="Choose a role...", options=[defaultOption], row=0)
+		self.vOpsData = p_opsData
+		super().__init__(placeholder="Choose a role...", options=[defaultOption])
 
 	async def callback(self, pInteraction: discord.Interaction):
 		botUtils.BotPrinter.Debug(f"User {pInteraction.user.name} has signed up to an event with role: {self.values[0]}")
@@ -341,24 +381,24 @@ class OpsRoleSelector(discord.ui.Select):
 		# Always add a default used to resign players.
 		self.add_option(label="Resign", value="Resign", emoji=settings.resignIcon)
 
-		for role in self.vParentMessage.vParentMessage.opsData.roles:
+		for role in self.vOpsData.roles:
 			if( len(role.players) < int(role.maxPositions) or int(role.maxPositions) <= 0 ):
 				# To ensure no errors, only use emoji if its specified
 
-				if role.roleIcon != None:
+				if role.roleIcon == "-":
+					self.add_option(label=role.roleName, value=role.roleName)
+				else:
 					botUtils.BotPrinter.Debug(f"Icon ({role.roleIcon}) specified, using Icon...")
 					self.add_option(label=role.roleName, value=role.roleName, emoji=role.roleIcon)
-				else:
-					self.add_option(label=role.roleName, value=role.roleName)
 
 
 class OpsRoleReserve(discord.ui.Button):
-	def __init__(self, pParent: OpsMessage):
-		self.vParentMessage = pParent
-		super().__init__(label="Reserve", emoji=settings.reserveIcon, row=0)
+	def __init__(self, p_opsData : botData.OperationData):
+		self.vOpsData = p_opsData
+		super().__init__(label="Reserve", emoji=settings.reserveIcon)
 
 	async def callback(self, pInteraction: discord.Interaction):
-		pInteraction.response.send_message(content="You have signed up as a reserve!", ephemeral=True)
+		await pInteraction.response.send_message(content="You have signed up as a reserve!", ephemeral=True)
 
 
 
@@ -370,7 +410,6 @@ class OpsEditor(discord.ui.View):
 	def __init__(self, pBot: commands.Bot, pOpsData: botData.OperationData):
 		self.vBot = pBot
 		self.vOpsData = pOpsData # Original data, not edited.
-		self.vMessage : discord.Message = None # used to yeetus deleetus when done.
 		# self.EditedData = pOpsData # Edited data, applied and saved.
 		botUtils.BotPrinter.Debug("Created Blank Editor")
 		super().__init__(timeout=None)
@@ -418,20 +457,23 @@ class OpsEditor(discord.ui.View):
 						row=4)
 	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		self.vOpsData.GenerateFileName()
-		vOpsFilepath = f"{settings.botDir}/{settings.opsFolderName}/{self.vOpsData.fileName}.bin"
-		self.vOpsData.status = botData.OpsStatus.open
+		vOpManager = OperationManager()
+		bSucsessfulOp = await vOpManager.AddNewLiveOp(self.vOpsData)
 		
-		vOpsMessage = OpsMessage(pOpsDataFile=vOpsFilepath, pOpsData=self.vOpsData, pBot=self.vBot)
-		await vOpsMessage.PostMessage()
+		if bSucsessfulOp:
+			await pInteraction.response.send_message("Successful", ephemeral=True)
+			await pInteraction.delete_original_response()
+			OperationManager.SaveToFile(self.vOpsData)
+		else:
+			await pInteraction.response.send_message("An error occured when posting the message.  Check console for more information.", ephemeral=True)
+			await pInteraction.delete_original_response()
+
 
 		# TODO: Add Update and call it here.
 		# await vOpsMessage.UpdateMessage()
 
-
 		# await pInteraction.delete_original_response()
 		# vOpsMessage.saveToFile()
-		await self.vMessage.delete()
-		await pInteraction.response.send_message("Successful", ephemeral=True)
 
 	@discord.ui.button( 
 						style=discord.ButtonStyle.primary, 
@@ -439,16 +481,20 @@ class OpsEditor(discord.ui.View):
 						custom_id="EditorNewDefault",
 						row=4)
 	async def btnNewDefault(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
+		BUPrint.Info(f"Saving a new default! {self.vOpsData.name}")
 		# Set status of Ops back to OPEN.
 		self.vOpsData.status = botData.OpsStatus.open
 
-		vNewOpsFilepath = f"{settings.botDir}/{settings.defaultOpsDir}/{self.vOpsData.name}.bin"
-		botUtils.BotPrinter.Debug(f"Saving new default: {vNewOpsFilepath}...")
-		vOpsMessage = OpsMessage(pOpsDataFile=vNewOpsFilepath, pOpsData=self.vOpsData, pBot=self.vBot)
-		vOpsMessage.saveToFile()
+		vOldFilename = self.vOpsData.fileName
+		# Ensure fileName is empty so its saved as a default
+		self.vOpsData.fileName = ""
+		OperationManager.SaveToFile(self.vOpsData)
 		botUtils.BotPrinter.Debug("Saved!")
 
-		await pInteraction.followup.send(f"Added new default!", ephemeral=True)
+		self.vOpsData.fileName = vOldFilename
+
+		# await pInteraction.followup.send(f"Added new default: {self.vOpsData.name}!", ephemeral=True)
+		await pInteraction.response.send_message(f"Added new default: {self.vOpsData.name}!", ephemeral=True)
 
 
 
@@ -668,9 +714,9 @@ class EditRoles(discord.ui.Modal):
 				# Index is on an existing role, adjust values to keep any signed up users.
 				self.vData.roles[vIndex].roleName = vCurrentRole.roleName
 				self.vData.roles[vIndex].maxPositions = vCurrentRole.maxPositions
-				if vCurrentRole.roleIcon == "-":
+				if vCurrentRole.roleIcon == "-" or vCurrentRole.roleIcon == '""' or vCurrentRole.roleIcon == "":
 					BUPrint.Debug("Setting role icon to NONE")
-					self.vData.roles[vIndex].roleIcon = None
+					self.vData.roles[vIndex].roleIcon = "-"
 				else:
 					self.vData.roles[vIndex].roleIcon = vCurrentRole.roleIcon
 			else:
@@ -698,7 +744,7 @@ class EditRoles(discord.ui.Modal):
 			vRoleMembers += f"{roleIndex.players}\n"
 			vRoleMaxPos += f"{roleIndex.maxPositions}\n"
 			if roleIndex.roleIcon == None:
-				vRoleEmojis += '""\n'
+				vRoleEmojis += '-\n'
 			else:
 				vRoleEmojis += f"{roleIndex.roleIcon}\n"
 

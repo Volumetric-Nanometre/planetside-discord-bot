@@ -4,6 +4,8 @@ import settings
 import traceback
 import enum
 import discord
+from discord.ext import commands
+# from botData import OperationData
 
 # BotPrinter:
 # wraps printing around booleans.
@@ -105,3 +107,43 @@ class FilesAndFolders():
 				BotPrinter.LogError("Failed to create folder for default Ops data!")
 
 
+async def GetGuild(p_BotRef : commands.Bot):
+	"""
+	GET GUILD:
+	
+	p_BotRef: A reference to the bot.
+
+	RETURNS: a discord.Guild using the ID from settings.
+
+	"""
+	BotPrinter.Debug("Getting Guild from ID.")
+	try:
+		return await p_BotRef.fetch_guild(settings.DISCORD_GUILD)
+	except discord.Forbidden as vError:
+		BotPrinter.LogErrorExc("Bot has no access to this guild!", p_exception=vError)
+		return None
+	except discord.HTTPException:
+		BotPrinter.LogErrorExc("Unable to get guild.", p_exception=vError)
+		return None
+
+
+class ChannelManager():
+	def __init__(self, p_botRef: commands.Bot = None) -> None:
+		self.vBotRef = p_botRef
+		self.vGuild : discord.Guild = GetGuild(p_botRef)
+
+	# async def CreateOpsChannel(self, p_opsData:OperationData ):
+	# 	"""
+	# 	CREATE OPS CHANNEL
+		
+	# 	Creates a sign-up channel.
+
+	# 	RETURN- True if exists or created.  
+	# 			False on failure.
+	# 	"""
+	# 	opsCategory = discord.utils.find(lambda items: items.name == settings.signupCategory, self.vGuild.categories)
+	# 	if opsCategory == None:
+	# 		BotPrinter.Info("SIGNUP CATEGORY NOT FOUND!  Check settings and ensure signupCategory matches the name of the category to be used; including capitalisation!")
+	# 		return False
+
+		

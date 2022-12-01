@@ -34,10 +34,12 @@ class Bot(commands.Bot):
     def __init__(self):
         super(Bot, self).__init__(command_prefix=['!'], intents=discord.Intents.all())
         self.vGuildObj: discord.Guild
+        self.vOpsManager = opsManager.OperationManager()
+        opsManager.OperationManager.SetBotRef(self)
 
     async def setup_hook(self):
 		# Needed for later functions, which want a discord object instead of a plain string.
-        vGuildObj = await self.fetch_guild(settings.DISCORD_GUILD) # Make sure to use Fetch in case of outdated caching.
+        vGuildObj = await botUtils.GetGuild(p_BotRef=self)
 
         botUtils.BotPrinter.Debug("Setting up hooks...")
         self.tree.copy_global_to(guild=vGuildObj)
@@ -120,8 +122,6 @@ async def addopsevent (pInteraction: discord.Interaction,
 ):
 
 	botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
-	vTime = datetime.datetime(year=datetime.datetime.now().year, month=pMonth, day=pDay, minute=pMinute, hour=pHour )
-	# vUTCStamp = botUtils.DateFormatter.GetDiscordTime()
 	vDate = datetime.datetime(
 		year=pYear,
 		month=pMonth,
@@ -130,9 +130,12 @@ async def addopsevent (pInteraction: discord.Interaction,
 
 	vOpTypeStr = str(optype).replace("OpsType.", "")
 
+
+	newOpsData :botData.OperationData = botData.OperationData()
+	vOpManager = opsManager.OperationManager()
+	newOpsData.date = vDate
+
 	if vOpTypeStr not in opsManager.OperationManager.GetDefaults():
-		newOpsData = botData.OperationData()
-		newOpsData.date = vDate
 		newOpsData.status = botData.OpsStatus.editing
 
 		vEditor: opsManager.OpsEditor = opsManager.OpsEditor(pBot=bot, pOpsData=newOpsData)
@@ -144,26 +147,33 @@ async def addopsevent (pInteraction: discord.Interaction,
 
 	else:
 		# MAKE SURE TO SWAP OP DATA FILE LATER, ELSE YOU WILL OVERWRITE THE SAVED DEFAULT
-		vOpsMessage = opsManager.OpsMessage(pOpsDataFile=f"{settings.botDir}/{settings.defaultOpsDir}/{optype}", pOpsData=None, pBot=bot)
-		vOpsMessage.getDataFromFile()
+		# vOpsMessage = opsManager.OpsMessage(pOpsDataFile=f"{settings.botDir}/{settings.defaultOpsDir}/{optype}", pOpsData=None, pBot=bot)
+		# vOpsMessage.getDataFromFile()
+
+		vFilePath = f"{settings.botDir}/{settings.defaultOpsDir}/{optype}"
+		newOpsData = opsManager.OperationManager.LoadFromFile(vFilePath)
+
+
 		# Update date & args to the one given by the command
-		vOpsMessage.opsData.date = vDate
-		if pArguments != "":
-			vOpsMessage.SetArguments(pArguments)
+		newOpsData.date = vDate
+		newOpsData.arguments += pArguments
 
 		if(edit):
-			vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=vOpsMessage.opsData)
-			await pInteraction.response.send_message(f"Editing OpData for {optype}", view=vEditor, ephemeral=True)
-			vEditor.vMessage = await pInteraction.original_response()
+			vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=newOpsData)
+			await pInteraction.response.send_message(f"*Editing OpData for {optype}*", view=vEditor, ephemeral=True)
+			# vEditor.vMessage = await pInteraction.original_response()
 			
 		else:
 			# TODO -  Add method of choosing which channel signup goes into, then grab said channel and send message there.
-			vOpsMessage.opsData.GenerateFileName()
-			vOpsMessage.opsDatafilePath = f"{settings.botDir}/{settings.opsFolderName}/{vOpsMessage.opsData.fileName}.bin"
-			await vOpsMessage.PostMessage()
-			# vOpsMessage.saveToFile()
+			# vOpsMessage.opsData.GenerateFileName()
+			# vOpsMessage.opsDatafilePath = f"{settings.botDir}/{settings.opsFolderName}/{vOpsMessage.opsData.fileName}.bin"
+			# await vOpsMessage.PostMessage()
 
-			await pInteraction.response.send_message("Ops posted!", ephemeral=True)
+			if await vOpManager.AddNewLiveOp(p_opData=newOpsData):
+				await pInteraction.response.send_message("Ops posted!", ephemeral=True)
+			else:
+				await pInteraction.response.send_message("Op posting failed, check console for more information.", ephemeral=True)
+
 
 	# End AddOpsEvent
 
