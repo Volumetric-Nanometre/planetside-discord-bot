@@ -19,6 +19,8 @@ botDir = os.getcwd()
 opsFolderName = "TDKDOps" # Foldername/Dir for CREATED (live) Ops
 defaultOpsDir = "SavedOps" # Foldername/Dir for DEFAULT Ops
 
+lockFileAffix = ".LOCK" # Name to append to LOCK files (used to prevent concurrent read/write of the same file)
+
 signupCategory = "SIGN UP" # The category name (must match capitalisation!)
 resignIcon = "❌" # The icon to use for the RESIGN role. 🔳 ❌
 reserveIcon = "⭕" # The icon to use for the RESERVE role.

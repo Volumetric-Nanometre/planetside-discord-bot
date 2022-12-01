@@ -107,6 +107,7 @@ class OperationManager():
 		"""
 		SAVE TO FILE:
 		Saves the Operation Data to file.
+		DO NOT GetLock or Release, this function does that for you!
 		
 		NOTE: If filename is empty, the OpData is saved as a default using its name!
 
@@ -127,11 +128,14 @@ class OperationManager():
 			vFilePath += f"{settings.opsFolderName}/{p_opsData.fileName}.bin"
 
 		try:
+			botUtils.FilesAndFolders.GetLock( botUtils.FilesAndFolders.GetLockFilePath(p_opsData.fileName))
 			with open(vFilePath, "wb") as vFile:
 				pickle.dump(p_opsData, vFile)
 				BUPrint.Info("File saved sucessfully!")
+				botUtils.FilesAndFolders.ReleaseLock(botUtils.FilesAndFolders.GetLockFilePath(p_opsData.fileName))
 		except:
 			BUPrint.LogError("Failed to save Ops Data to file!")
+			botUtils.FilesAndFolders.ReleaseLock(botUtils.FilesAndFolders.GetLockFilePath(p_opsData.fileName))
 			return False
 		
 		# Save successful, return True.
@@ -143,20 +147,27 @@ class OperationManager():
 		LOAD FROM FILE:
 		Does not differentiate between Default or Live ops, it merely loads an OpData and returns the object!
 
+		Make sure to GetLock before, and ReleaseLock after you have called this.
+
 		p_opFilePath: The FULL filepath to load from.
 		"""
 		BUPrint.Info(f"Loading Operation Data from file. Path:{p_opFilePath}")
+
 		try:
+			botUtils.FilesAndFolders.GetLock( f"{p_opFilePath}{settings.lockFileAffix}" )
 			with open(p_opFilePath, "rb") as vFile:
 				vLoadedOpData : botData.OperationData = pickle.load(vFile)
-				BUPrint.Info("Data loaded sucessfully!")
-				return vLoadedOpData
+			BUPrint.Info("Data loaded sucessfully!")
+			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{settings.lockFileAffix}")
+			return vLoadedOpData
 
 		except EOFError as vError:
 			BUPrint.LogErrorExc("Failed to open file. Check to ensure the file has not been overwritten and is not 0 bytes!", p_exception=vError)
+			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{settings.lockFileAffix}")
 			return None
 
 		except Exception as vError:
+			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{settings.lockFileAffix}")
 			BUPrint.LogErrorExc("Failed to open file!", p_exception=vError)
 			return None
 

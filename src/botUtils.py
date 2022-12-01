@@ -1,5 +1,6 @@
 import os
 import datetime
+import time
 import settings
 import traceback
 import enum
@@ -105,6 +106,110 @@ class FilesAndFolders():
 				os.makedirs(f"{settings.botDir}/{settings.defaultOpsDir}")
 			except:
 				BotPrinter.LogError("Failed to create folder for default Ops data!")
+
+	def GetOpsFolder():
+		"""
+		Convenience function that returns a compiled string of : botdir/OpsFolderName/
+		"""
+		return f"{settings.botDir}/{settings.opsFolderName}/"
+
+	def GetOpFullPath(p_opFileName):
+		"""
+		Convenience function that returns a compiled string of botDir/OpsFolderName/{p_opFileName}.bin
+		
+		Do not use for DEFAULT ops:  
+		They use a different path!
+		"""
+		return f"{FilesAndFolders.GetOpsFolder()}{p_opFileName}.bin"
+
+	def GetLockFile(p_opFileName):
+		"""
+		CONVENIENCE FUNCTION:
+		Returns a compiled string of a full path for opFile lock file.
+		"""
+		return f"{FilesAndFolders.GetOpsFolder()}{p_opFileName}{settings.lockFileAffix}"
+
+	def IsLocked(p_opLockFile):
+		"""
+		IS LOCKED:
+		Checks if an Op file has an associated lock file. to prevent concurrent load/saving.
+
+		RETURNS: 
+		TRUE if a file is locked.
+		False if a file is lockable.
+		"""
+		# lockFile = f"{FilesAndFolders.GetOpsFolder}{p_opFileName}{settings.lockFileAffix}"
+		if (os.path.exists( p_opLockFile )):
+			return True
+		else:
+			return False
+
+	def GetLock(p_opLockFile):
+		"""
+		GET LOCK:
+		Creates a lock for a file.
+
+		WARNING: Will wait until any existing lock stops existing before creating.
+		"""
+		BotPrinter.Info(f"Getting lock file for: {p_opLockFile}")
+		attempsLeft = 5
+		while FilesAndFolders.IsLocked(p_opLockFile):
+			if attempsLeft > 0:
+				time.sleep(0.2)
+				attempsLeft -= 1
+			else:
+				BotPrinter.Info(f"Attempted to get lock on file {p_opLockFile}, but ran out of attempts.")
+				return False
+
+		# No lock file exists!
+		BotPrinter.Info(f"	-> Creating lock file... ")
+		return FilesAndFolders.CreateLock(p_opLockFile)
+
+
+	def CreateLock(p_opLockFile):
+		"""
+		CREATE LOCK:
+
+		Should not be called manually, use GetLock instead which calls.
+		Creates a lock file for the given Ops file.  
+
+		RETURNS
+		True - On success.
+		False - On Failure (exception)
+		"""
+		BotPrinter.Debug(f"	-> Lockfile to release: {p_opLockFile}")
+		
+		try:
+			open(p_opLockFile, 'a').close()
+			return True
+		except OSError as vError:
+			BotPrinter.LogErrorExc("Failed to create LOCK file", vError)
+			return False
+
+	def ReleaseLock(p_opLockFile):
+		"""
+		RELEASE LOCK:
+
+		Removes a lock file for the given Ops File.
+		Should be called every time GETLOCK is called.
+		
+		RETURNS
+		True - On success (or file doens't exist)
+		False - On Failure (exception)
+		"""
+		BotPrinter.Info(f"Releasing lock for {p_opLockFile}")
+		# lockFile = f"{FilesAndFolders.GetOpsFolder()}{p_opFileName}{settings.lockFileAffix}"
+
+		if(FilesAndFolders.IsLocked(p_opLockFile)):
+			try:
+				os.remove(p_opLockFile)
+				BotPrinter.Debug(f"	-> Lock file released!")
+				return True
+			except OSError as vError:
+				BotPrinter.LogErrorExc("Failed to remove LOCK file", vError)
+				return False
+		BotPrinter.Debug("	-> No lock file present")
+		return True
 
 
 async def GetGuild(p_BotRef : commands.Bot):
