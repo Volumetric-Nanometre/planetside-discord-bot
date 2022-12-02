@@ -12,6 +12,7 @@ from discord import app_commands
 from discord.ext import commands
 
 import botUtils
+from botUtils import BotPrinter as BUPrint
 import botData
 import newUser
 import settings
@@ -20,14 +21,8 @@ import roleManager
 
 import opsManager
 
-# internal modules
-# import discordbasics
-# import opstart
-# import opsignup
 # import chatlinker
-# import fileManagement
-# import bullybully
-# import outfittracking
+
 
 class Bot(commands.Bot):
 
@@ -46,12 +41,12 @@ class Bot(commands.Bot):
         await self.tree.sync(guild=vGuildObj)
 
 # Old:
-		# await self.add_cog(opstart.opschannels(self))
-        # await self.add_cog(opsignup.OpSignUp(self))
         # await self.add_cog(chatlinker.ChatLinker(self))
 
     async def on_ready(self):
         botUtils.BotPrinter.Debug(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.DISCORD_GUILD}')
+        await self.vOpsManager.RefreshOps()
+
 
 bot = Bot()        
 
@@ -174,9 +169,7 @@ async def addopsevent (pInteraction: discord.Interaction,
 			else:
 				await pInteraction.response.send_message("Op posting failed, check console for more information.", ephemeral=True)
 
-
 	# End AddOpsEvent
-
 
 @addopsevent.autocomplete('optype')
 async def autocompleteOpTypes( pInteraction: discord.Interaction, pTypedStr: str):
@@ -185,7 +178,6 @@ async def autocompleteOpTypes( pInteraction: discord.Interaction, pTypedStr: str
 
 	vDataFiles =  opsManager.OperationManager.GetDefaultOpsAsList()
 
-	# If no typing occured yet, display the default ops so there's at least something visible.
 	option: str
 	for option in vDataFiles:
 		if(pTypedStr.lower() in option.lower()):
@@ -195,9 +187,33 @@ async def autocompleteOpTypes( pInteraction: discord.Interaction, pTypedStr: str
 	return choices
 
 
+# EDIT OPS (/editop)
+@bot.tree.command(name="editop", description="Edit the values of a current live operation.")
+@app_commands.describe(pOpsToEdit="Select the current live Op data to edit.")
+@app_commands.rename(pOpsToEdit="file")
+async def editopsevent(pInteraction: discord.Interaction, pOpsToEdit: str):
+	BUPrint.Info(f"Editing Ops data for {pOpsToEdit}")
+	vLiveOpData:botData.OperationData = opsManager.OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
 
+	vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=vLiveOpData)
+	await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
+
+
+@editopsevent.autocomplete("pOpsToEdit")
+async def autocompleteFileList( pInteraction: discord.Interaction, pTypedStr: str):
+	choices: list = []
+	vDataFiles: list = opsManager.OperationManager.GetOps()
+
+
+	option: str
+	for option in vDataFiles:
+		if(pTypedStr.lower() in option.lower()):
+			# Add options matching current typed response to a list.
+			# Allows bypassing discords max 25 item limit on dropdown lists.
+			choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option.replace(".bin", "")))
+	return choices
 
 
 # START
-botUtils.BotPrinter.Debug("Bot running...")
+BUPrint.Debug("Bot running...")
 asyncio.run(bot.run(settings.DISCORD_TOKEN))

@@ -122,7 +122,7 @@ class FilesAndFolders():
 		"""
 		return f"{FilesAndFolders.GetOpsFolder()}{p_opFileName}.bin"
 
-	def GetLockFile(p_opFileName):
+	def GetLockFilePath(p_opFileName):
 		"""
 		CONVENIENCE FUNCTION:
 		Returns a compiled string of a full path for opFile lock file.
