@@ -107,6 +107,12 @@ class FilesAndFolders():
 			except:
 				BotPrinter.LogError("Failed to create folder for default Ops data!")
 
+	def GetDefaultsFolder():
+		"""
+		Convenience function that returns a compiled string of botDir/defaultOpsFolder/
+		"""
+		return f"{settings.botDir}/{settings.defaultOpsDir}"
+	
 	def GetOpsFolder():
 		"""
 		Convenience function that returns a compiled string of : botdir/OpsFolderName/
