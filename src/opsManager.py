@@ -343,13 +343,13 @@ class OperationManager():
 				vSignedUpUsers = "-"
 			for user in role.players:
 				# Convert IDs to names for display
-				vUserAsName = self.vBotRef.get_user(int(user))
-				if vUserAsName is not None:
-					vSignedUpUsers += f"{vUserAsName}\n"
+				vUser:discord.User = self.vBotRef.get_user(int(user))
+				if vUser is not None:
+					vSignedUpUsers += f"{vUser.mention}\n"
 				else: # If not found, fetch non-cached.
-					vUserAsName = await self.vBotRef.fetch_user(int(user))
-					if vUserAsName is not None:
-						vSignedUpUsers += f"{vUserAsName}\n"
+					vUser = await self.vBotRef.fetch_user(int(user))
+					if vUser is not None:
+						vSignedUpUsers += f"{vUser.mention}\n"
 					else: # User doesn't exist?
 						botUtils.BotPrinter.LogError(f"User ID {user} is not found! Removing from data")
 						role.players.remove(user)
@@ -377,8 +377,8 @@ class OperationManager():
 			vReserves = "-"
 			if len(p_opsData.reserves) > 0: vReserves = ""
 			for reserve in p_opsData.reserves:
-				vUserAsName = self.vBotRef.get_user(int(reserve))
-				vReserves += f"{vUserAsName}\n"
+				vUser = self.vBotRef.get_user(int(reserve))
+				vReserves += f"{vUser.mention}\n"
 			vEmbed.add_field(name=f"Reserves ({len(p_opsData.reserves)})", value=vReserves, inline=True )
 
 		return vEmbed
