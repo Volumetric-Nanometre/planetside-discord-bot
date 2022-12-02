@@ -114,7 +114,7 @@ class OperationManager():
 			vChannel: discord.TextChannel = await self.AddNewLive_GetTargetChannel(p_opsData=p_opData)
 			vMessage: discord.Message = await vChannel.fetch_message(p_opData.messageID)
 			try:
-				vMessage.delete()
+				await vMessage.delete()
 			except discord.Forbidden as error:
 				BUPrint.LogErrorExc("Unable to remove File!", error)
 				return False
