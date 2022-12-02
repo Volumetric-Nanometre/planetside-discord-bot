@@ -466,8 +466,20 @@ class OperationManager():
 		## RETURN: None
 		"""
 		BUPrint.Info("	-> Updating Op Message")
-		vChannel: discord.TextChannel = await self.AddNewLive_GetTargetChannel(p_opsData=p_opData)
-		vMessage: discord.Message = await vChannel.fetch_message(p_opData.messageID)
+		try:
+			vChannel: discord.TextChannel = await self.AddNewLive_GetTargetChannel(p_opsData=p_opData)
+		except Exception as error:
+			BUPrint.LogErrorExc("Failed to get a channel!", error)
+			return
+		
+		try:
+			vMessage: discord.Message = await vChannel.fetch_message(p_opData.messageID)
+		except Exception as error:
+				BUPrint.LogErrorExc("Failed to get message! Posting a new one...", error)
+				if not await self.AddNewLive_PostOp(p_opData):
+					BUPrint.Info("Failed to add new message. Possibly corrupt data? Removing this Ops file!")
+					await self.RemoveOperation(p_opData)
+				return
 
 		vNewEmbed = await self.AddNewLive_GenerateEmbed(p_opData)
 		vView = await self.AddNewLive_GenerateView(p_opData)
@@ -672,6 +684,7 @@ class OpsEditor(discord.ui.View):
 		BUPrint.Info("Deleting Operation!")
 		vOpMan = OperationManager()
 		await vOpMan.RemoveOperation(self.vOpsData)
+		pInteraction.response.send_message("Operation was removed!", ephemeral=True)
 
 ###############################
 # EDIT DATES
