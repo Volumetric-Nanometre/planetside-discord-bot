@@ -112,18 +112,18 @@ class OperationData:
 		botUtils.BotPrinter.Debug(f"Op Data initialised.")
 
 	def __repr__(self) -> str:
-		vOutputStr = "OPERATION DATA\n"
-		vOutputStr += f"Name|FileName: {self.name} | {self.fileName}\n"
-		vOutputStr += f"Date: {self.date}"
-		vOutputStr += f"Description: {self.description}\n"
-		vOutputStr += f"Additional Info: {self.customMessage}\n"
-		vOutputStr += f"Message ID: {self.messageID}\n"
-		vOutputStr += f"Arguments: {self.arguments}\n"
-		vOutputStr += f"Status: {self.status.value}\n"
-		vOutputStr += f"VoiceChannels: {self.voiceChannels}\n"
-		vOutputStr += f"Reserves: {self.reserves}\n"
-		vOutputStr += f"Options: {self.options}\n"
-		vOutputStr += f"Roles: {self.roles}"
+		vOutputStr = "	OPERATION DATA\n"
+		vOutputStr += f"	-> Name|FileName: {self.name} | {self.fileName}\n"
+		vOutputStr += f"	-> Date: {self.date}\n"
+		vOutputStr += f"	-> Description: {self.description}\n"
+		vOutputStr += f"	-> Additional Info: {self.customMessage}\n"
+		vOutputStr += f"	-> Message ID: {self.messageID}\n"
+		vOutputStr += f"	-> Arguments: {self.arguments}\n"
+		vOutputStr += f"	-> Status: {self.status.value}\n"
+		vOutputStr += f"	-> VoiceChannels: {self.voiceChannels}\n"
+		vOutputStr += f"	-> Reserves: {self.reserves}\n"
+		vOutputStr += f"	-> Options: {self.options}\n"
+		vOutputStr += f"	-> Roles: {self.roles}\n"
 		return vOutputStr
 
 
