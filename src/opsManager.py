@@ -17,7 +17,8 @@ import botData
 
 class OperationManager():
 	"""
-	OPERATION MANAGER:
+	# OPERATION MANAGER:
+
 	Holds list of saved op file names, and their corresponding opData object.
 	Should be used to manage Op related messages, including creation, deletion and editing.
 
@@ -36,7 +37,8 @@ class OperationManager():
 
 	async def RefreshOps(self):
 		"""
-		REFRESH OPS
+		# REFRESH OPS
+
 		Recursively 'updates' all active live Ops so that views are refreshed and usable again.
 		"""
 		vOpData : botData.OperationData
@@ -72,31 +74,84 @@ class OperationManager():
 
 	def GetDefaults():
 		"""
-		GET DEFAULTS:
+		# GET DEFAULTS:
 		Get the default Ops filenames.
 		
-		RETURN : list(str)
+		## RETURN : list(str)
 		"""
 		vDir = f"{settings.botDir}/{settings.defaultOpsDir}"
 		return botUtils.FilesAndFolders.GetFiles(vDir, ".bin")
-		
-	def DeleteOpsData(pOpDataName: str):
-		OpFile: str
-		for OpFile in OperationManager.GetOps():
-			if OpFile.__contains__(pOpDataName):
-				vFullPath = f"{settings.botDir}/{settings.opsFolderName}/{pOpDataName}.bin"
-				try:
-					os.remove(vFullPath)
-				except:
-					botUtils.BotPrinter.LogError(f"Unable to delete file {vFullPath}")
+
+
+	async def RemoveOperation(self, p_opData: botData.OperationData):
+		"""
+		# REMOVE OPERATION:
+
+		p_opData: The opdata the user wishes to remove.
+
+		## NOTE: Call from an instance.
+
+		Works for both LIVE and DEFAULT ops; it behaves akin to saving a new Operation- if there's no specified fileName, this will remove a DEFAULT, else remove a Live Ops (and its posting)
+
+		## RETURN: Bool
+		True : Op Removed (or wasn't a file to begin with.)
+		False: Failed to remove.
+		"""
+		BUPrint.Info(f"Removing Operation: {p_opData}")
+		vFileToRemove : str = ""
+		bIsDefault = False # Convenience bool to avoid having to check filename
+
+		if p_opData.fileName == None:
+			vFileToRemove = f"{botUtils.FilesAndFolders.GetDefaultsFolder}{p_opData.name}.bin"
+			bIsDefault = True
+		else:
+			vFileToRemove = botUtils.FilesAndFolders.GetOpFullPath(p_opData.fileName)
+			bIsDefault = False
+
+	# Remove Message first.
+		if not bIsDefault: # Defaults have no message!
+			BUPrint.Info("	-> Removing MESSAGE...")
+			vChannel: discord.TextChannel = await self.AddNewLive_GetTargetChannel(p_opsData=p_opData)
+			vMessage: discord.Message = await vChannel.fetch_message(p_opData.messageID)
+			try:
+				vMessage.delete()
+			except discord.Forbidden as error:
+				BUPrint.LogErrorExc("Unable to remove File!", error)
+				return False
+			except discord.NotFound as error:
+				BUPrint.LogErrorExc("No message found.", error)
+				return False
+
+	# Remove File
+		BUPrint.Info("	-> Removing FILE...")
+		try:
+			os.remove(vFileToRemove)
+		except FileNotFoundError:
+			BUPrint.Debug("	-> File doesn't exist.  Manually removed?")
+		except OSError:
+			BUPrint.Info("Unable to remove file!")
+			return False
+
+	# Remove from OpList
+		BUPrint.Info("	-> Removing OpData from LiveOps...")
+		try:
+			self.vLiveOps.remove(p_opData)
+		except ValueError:
+			BUPrint.Debug("	-> Couldn't remove OpData from LiveList.  Bad reference?")
+
+		BUPrint.Info("	-> OPERATION REMOVED!")
+		return True
+
+
 
 	def GetDefaultOpsAsList():
 		"""
-		GET DEFAULT OPS AS LIST:
+		# GET DEFAULT OPS AS LIST:
 		Expected use - App command auto-fill.
 		Additional non-file entries are added to the returned list!
 
-		RETURN: list(str)  Containing the names of saved default Ops.
+		## RETURN: 
+		list(str)  Containing the names of saved default Ops.
 
 		Does not use SELF to make it callable without constructing an instance.
 		Does not use Async to allow it to be called in function parameters.
@@ -119,15 +174,15 @@ class OperationManager():
 	
 	def SaveToFile(p_opsData: botData.OperationData):
 		"""
-		SAVE TO FILE:
+		# SAVE TO FILE:
 		Saves the Operation Data to file.
 		DO NOT GetLock or Release, this function does that for you!
 		
-		NOTE: If filename is empty, the OpData is saved as a default using its name!
+		## NOTE: If filename is empty, the OpData is saved as a default using its name!
 
 		p_opsData: The ops data to save.
 
-		RETURN:
+		## RETURN:
 		True on success.  False on Failure.
 		"""
 		BUPrint.Info(f"Saving Operation Data to file. OpName|FileName: {p_opsData.name} | {p_opsData.fileName}")
@@ -158,7 +213,7 @@ class OperationManager():
 
 	def LoadFromFile(p_opFilePath):
 		"""
-		LOAD FROM FILE:
+		# LOAD FROM FILE:
 		Does not differentiate between Default or Live ops, it merely loads an OpData and returns the object!
 
 		Creates and Releases lock files.
@@ -188,14 +243,15 @@ class OperationManager():
 
 	async def AddNewLiveOp(self, p_opData: botData.OperationData):
 		"""
-		ADD NEW LIVE OP:
+		# ADD NEW LIVE OP:
 
 		Posts a new LIVE operation.
 		Adds the provided opData to the list of live ops.
 		Saves the provided OpData to file.
 		Creates a notification timer for the operation.
 
-		RETURN: True on fully succesful adding, False if a problem occured.
+		## RETURN: 
+		# True on fully succesful adding, False if a problem occured.
 		"""
 		BUPrint.Info(f"Adding a new LIVE operation: {p_opData.name}!")
 
@@ -216,8 +272,11 @@ class OperationManager():
 
 	async def AddNewLive_PostOp(self, p_opData:botData.OperationData):
 		"""
-		POST OP:  A sub-function for AddNewLiveOp
-		Returns TRUE if succesful send message
+		# POST OP:  
+		A sub-function for AddNewLiveOp
+		
+		# Returns 
+		TRUE if succesful send message
 		"""
 		BUPrint.Info("	-> Posting Live Operation Message!")
 		
@@ -250,13 +309,14 @@ class OperationManager():
 
 	async def AddNewLive_GetTargetChannel(self, p_opsData: botData.OperationData):
 		"""
-		GET TARGET CHANNEL:
+		# GET TARGET CHANNEL:
 
 		A sub function to AddNewLiveOps, but usable elsewhere.
 
-		PARAMETERS: p_opsData: the ops data used to get the target channel.
+		## PARAMETERS: 
+		p_opsData: the ops data used to get the target channel.
 
-		RETURN:
+		## RETURN:
 		Existing or newly created channel.  
 		None on failure.
 		"""
@@ -307,14 +367,16 @@ class OperationManager():
 		
 		return channel 
 
+
 	async def AddNewLive_GenerateEmbed(self, p_opsData: botData.OperationData):
 		"""
-		GENERATE EMBED
+		# GENERATE EMBED
 		A sub function to AddNewLiveOps
 
 		Can also be used to regenerate an embed with updated information.
 
-		Returns a discord.Embed with information from p_opsData.
+		## RETURNS 
+		discord.Embed with information from p_opsData.
 		"""
 		BUPrint.Info("	-> Generating Embed...")
 		vTitleStr = f"{p_opsData.name.upper()} | {botUtils.DateFormatter.GetDiscordTime(p_opsData.date, botUtils.DateFormat.DateTimeLong)}"
@@ -383,6 +445,7 @@ class OperationManager():
 
 		return vEmbed
 
+
 	async def AddNewLive_GenerateView(self, p_opsData: botData.OperationData):
 		vView = discord.ui.View(timeout=None)
 		vRoleSelector = OpsRoleSelector(p_opsData)
@@ -392,14 +455,15 @@ class OperationManager():
 		vView.add_item(OpsRoleReserve(p_opsData))
 		return vView
 
+
 	async def UpdateMessage(self, p_opData: botData.OperationData):
 		"""
-		UPDATE MESSAGE
+		# UPDATE MESSAGE
 		
-		PARAMETERS:
+		## PARAMETERS:
 		p_opData: The Opdata to regenerate a message with.
 
-		RETURN: None
+		## RETURN: None
 		"""
 		BUPrint.Info("	-> Updating Op Message")
 		vChannel: discord.TextChannel = await self.AddNewLive_GetTargetChannel(p_opsData=p_opData)
@@ -408,10 +472,11 @@ class OperationManager():
 		vNewEmbed = await self.AddNewLive_GenerateEmbed(p_opData)
 		vView = await self.AddNewLive_GenerateView(p_opData)
 		await vMessage.edit(embed=vNewEmbed, view=vView)
-		
+
+
 	def RemoveUser(p_opData:botData.OperationData, p_userToRemove:str):
 		"""
-		REMOVE USER:
+		# REMOVE USER:
 		Iterates over all roles (including reserve) and removes the player ID if present.
 		"""
 		if p_userToRemove in p_opData.reserves:
@@ -434,22 +499,33 @@ class OpsRoleSelector(discord.ui.Select):
 		super().__init__(placeholder="Choose a role...", options=[defaultOption])
 
 	async def callback(self, pInteraction: discord.Interaction):
-		botUtils.BotPrinter.Debug(f"User {pInteraction.user.name} has signed up to an event with role: {self.values[0]}")
-		
-		
-		await pInteraction.response.send_message(f"You have chosen role: {self.values[0]}", ephemeral=True)
+		botUtils.BotPrinter.Debug(f"User {pInteraction.user.name} has signed up to {self.vOpsData.name} with role: {self.values[0]}")
+		vOpMan = OperationManager()		
+		vSelectedRole: botData.OpRoleData = None
 		role: botData.OpRoleData
-	# Clear user if existing in other roles
-		OperationManager.RemoveUser(p_opData=self.vOpsData, p_userToRemove=pInteraction.user.id)
-
-	# Add user to assigned role.
 		for role in self.vOpsData.roles:
 			if self.values[0] == role.roleName:
-				role.players.append(pInteraction.user.id)
-				OperationManager.SaveToFile(self.vOpsData)	
+				vSelectedRole = role
 
-		vOpMan = OperationManager()
-		await vOpMan.UpdateMessage(p_opData=self.vOpsData)
+		if vSelectedRole == None:
+			# Player selected RESIGN
+			OperationManager.RemoveUser(p_opData=self.vOpsData, p_userToRemove=pInteraction.user.id)
+			OperationManager.SaveToFile(self.vOpsData)
+			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
+			await pInteraction.response.send_message(f"You have resigned from {self.vOpsData.name}!", ephemeral=True)
+			# No need to continue further.
+			return
+
+
+		if pInteraction.user.id not in vSelectedRole.players:
+			OperationManager.RemoveUser(p_opData=self.vOpsData, p_userToRemove=pInteraction.user.id)
+			vSelectedRole.players.append( pInteraction.user.id )
+			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
+			OperationManager.SaveToFile(self.vOpsData)	
+			await pInteraction.response.send_message(f"You have signed up as {self.values[0]} for {self.vOpsData.name}!", ephemeral=True)
+		else:
+			await pInteraction.response.send_message(f"You're already signed up as {self.values[0]} for {self.vOpsData.name}!", ephemeral=True)
+
 	
 	
 	def UpdateOptions(self):
@@ -477,12 +553,16 @@ class OpsRoleReserve(discord.ui.Button):
 		super().__init__(label="Reserve", emoji=settings.reserveIcon)
 
 	async def callback(self, pInteraction: discord.Interaction):
-		await pInteraction.response.send_message(content="You have signed up as a reserve!", ephemeral=True)
-		OperationManager.RemoveUser(self.vOpsData, pInteraction.user.id)
-		self.vOpsData.reserves.append(pInteraction.user.id)
+		
+		if pInteraction.user.id not in self.vOpsData.reserves:
+			await pInteraction.response.send_message(content=f"You have signed up as a reserve for {self.vOpsData.name}!", ephemeral=True)
+			OperationManager.RemoveUser(self.vOpsData, pInteraction.user.id)
+			self.vOpsData.reserves.append(pInteraction.user.id)
 
-		vOpMan = OperationManager()
-		await vOpMan.UpdateMessage(self.vOpsData)
+			vOpMan = OperationManager()
+			await vOpMan.UpdateMessage(self.vOpsData)
+		else:
+			await pInteraction.response.send_message(f"You have already signed up as a reserve for {self.vOpsData.name}!", ephemeral=True)
 
 
 
@@ -518,7 +598,7 @@ class OpsEditor(discord.ui.View):
 						style=editButtonStyle, 
 						label="Edit Info",
 						custom_id="EditInfo",
-						row=1)
+						row=0)
 	async def btnEditInfo(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		vEditModal = EditInfo(title="Edit Info", pOpData=self.vOpsData)
 		vEditModal.custom_id="EditInfoModal"
@@ -529,7 +609,7 @@ class OpsEditor(discord.ui.View):
 						style=editButtonStyle, 
 						label="Edit Roles",
 						custom_id="EditRoles",
-						row=2)
+						row=0)
 	async def btnEditRoles(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		vEditModal = EditRoles(title="Edit Roles", pOpData=self.vOpsData)
 		vEditModal.custom_id="EditRolesModal"
@@ -540,7 +620,7 @@ class OpsEditor(discord.ui.View):
 						style=discord.ButtonStyle.danger, 
 						label="Apply/Send",
 						custom_id="EditorApply",
-						row=4)
+						row=2)
 	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		self.vOpsData.GenerateFileName()
 		vOpManager = OperationManager()
@@ -566,7 +646,7 @@ class OpsEditor(discord.ui.View):
 						style=discord.ButtonStyle.primary, 
 						label="New Default",
 						custom_id="EditorNewDefault",
-						row=4)
+						row=2)
 	async def btnNewDefault(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		BUPrint.Info(f"Saving a new default! {self.vOpsData.name}")
 		# Set status of Ops back to OPEN.
@@ -576,14 +656,22 @@ class OpsEditor(discord.ui.View):
 		# Ensure fileName is empty so its saved as a default
 		self.vOpsData.fileName = ""
 		OperationManager.SaveToFile(self.vOpsData)
-		botUtils.BotPrinter.Debug("Saved!")
+		BUPrint.Debug("Saved!")
 
 		self.vOpsData.fileName = vOldFilename
 
 		# await pInteraction.followup.send(f"Added new default: {self.vOpsData.name}!", ephemeral=True)
 		await pInteraction.response.send_message(f"Added new default: {self.vOpsData.name}!", ephemeral=True)
 
-
+	@discord.ui.button(
+						style=discord.ButtonStyle.danger,
+						label="Delete",
+						custom_id="EditorDelete",
+						row=4)
+	async def btnDelete(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):
+		BUPrint.Info("Deleting Operation!")
+		vOpMan = OperationManager()
+		await vOpMan.RemoveOperation(self.vOpsData)
 
 ###############################
 # EDIT DATES
