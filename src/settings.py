@@ -26,6 +26,8 @@ resignIcon = "❌" # The icon to use for the RESIGN role. 🔳 ❌
 reserveIcon = "⭕" # The icon to use for the RESERVE role.
 bShowDebug = True # Set to FALSE in live environment to keep console clean.
 
+autoPreStart = 30	# Number of minutes before an Ops scheduled start the bot starts autoStart enabled Ops
+					# Non Auto-Enabled Ops require a user to open an ops Editor and open the Commander that way.
 
 # print("Tokens loaded")
 # print(f"Active Dir: {botDir}")

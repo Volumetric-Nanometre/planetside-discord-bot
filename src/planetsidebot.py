@@ -17,9 +17,8 @@ import botData
 import newUser
 import settings
 import roleManager
-
-
 import opsManager
+import opsCommander
 
 # import chatlinker
 
@@ -29,23 +28,26 @@ class Bot(commands.Bot):
     def __init__(self):
         super(Bot, self).__init__(command_prefix=['!'], intents=discord.Intents.all())
         self.vGuildObj: discord.Guild
+
+		# Objects with BOT refs
         self.vOpsManager = opsManager.OperationManager()
+        self.vOpCommander = opsCommander.Commander(None)
         opsManager.OperationManager.SetBotRef(self)
 
     async def setup_hook(self):
 		# Needed for later functions, which want a discord object instead of a plain string.
         vGuildObj = await botUtils.GetGuild(p_BotRef=self)
-
-        botUtils.BotPrinter.Debug("Setting up hooks...")
+        BUPrint.Info("Setting up hooks...")
         self.tree.copy_global_to(guild=vGuildObj)
         await self.tree.sync(guild=vGuildObj)
-
-# Old:
         # await self.add_cog(chatlinker.ChatLinker(self))
 
     async def on_ready(self):
-        botUtils.BotPrinter.Debug(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.DISCORD_GUILD}')
+        BUPrint.Info(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.DISCORD_GUILD}\n')
         await self.vOpsManager.RefreshOps()
+        
+		# Ensure all opCommanders have a botref.
+        self.vOpCommander.vBotRef = self
 
 
 bot = Bot()        
@@ -64,6 +66,7 @@ async def on_member_join(pMember:discord.User):
 
 
 # APP COMMANDS
+
 
 
 # ADD & REMOVE USER ROLES (/roles)
