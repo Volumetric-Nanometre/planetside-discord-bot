@@ -686,7 +686,7 @@ class OpsEditor(discord.ui.View):
 		BUPrint.Info("Deleting Operation!")
 		vOpMan = OperationManager()
 		await vOpMan.RemoveOperation(self.vOpsData)
-		pInteraction.response.send_message("Operation was removed!", ephemeral=True)
+		await pInteraction.response.send_message("Operation was removed!", ephemeral=True)
 
 ###############################
 # EDIT DATES
