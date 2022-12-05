@@ -1,12 +1,25 @@
 import os
 import datetime
 import time
-import settings
+from botData.settings import BotSettings
+from botData.settings import Directories
 import traceback
 import enum
 import discord
 from discord.ext import commands
 # from botData import OperationData
+
+class Singleton(type):
+	"""
+	# SINGLETON
+
+	Used to ensure singletons via metaclasses.
+	"""
+	_instances = {}
+	def __call__(self, *arguments, **keywords):
+		if self not in self._instances:
+			self._instances[self] = super().__call__(*arguments, **keywords)
+		return self._instances[self]
 
 # BotPrinter:
 # wraps printing around booleans.
@@ -22,7 +35,7 @@ class BotPrinter():
 		DEBUG
 		Prints a pre-formatted message to console IF ShowDebug is enabled.
 		"""
-		if(settings.bShowDebug):
+		if(BotSettings.bDebugEnabled):
 			print(f"[{datetime.datetime.now()}] {p_string}")
 
 	@staticmethod
@@ -60,7 +73,7 @@ class DateFormat(enum.Enum):
 	Used within discord timeformat string to change how a POSIX datetime is displayed.
 	"""
 
-	Dynamic = ":R" # Dyanmically changes to most appropriate biggest stamp (in X days, in X hours, in x seconds)
+	Dynamic = ":R" # Dyanmically changes to most appropriate smallest stamp (in X days, in X hours, in x seconds)
 	DateShorthand = ":d" # dd/mm/year
 	DateLonghand = ":D" # 00 Month Year
 	TimeShorthand = ":t" # Hour:Minute
@@ -92,6 +105,15 @@ class DateFormatter():
 
 
 class FilesAndFolders():
+	def SetupFolders():
+		"""
+		# SETUP FOLDERS:
+
+		Create the folders the bot uses.
+		"""
+		FilesAndFolders.GenerateDefaultOpsFolder()
+		FilesAndFolders.GenerateLiveOpsFolder()
+
 	def GetFiles(pDir: str, pEndsWith: str = ""):
 		vDataFiles: list = []
 		for file in os.listdir(pDir):
@@ -102,23 +124,19 @@ class FilesAndFolders():
 
 	def GenerateDefaultOpsFolder():
 		BotPrinter.Debug("Creating default ops folder (if non existant)")
-		if (not os.path.exists(f"{settings.botDir}/{settings.defaultOpsDir}") ):
+		if (not os.path.exists( Directories.savedDefaultsDir ) ):
 			try:
-				os.makedirs(f"{settings.botDir}/{settings.defaultOpsDir}")
+				os.makedirs(f"{ Directories.savedDefaultsDir }")
 			except:
 				BotPrinter.LogError("Failed to create folder for default Ops data!")
 
-	def GetDefaultsFolder():
-		"""
-		Convenience function that returns a compiled string of botDir/defaultOpsFolder/
-		"""
-		return f"{settings.botDir}/{settings.defaultOpsDir}"
-	
-	def GetOpsFolder():
-		"""
-		Convenience function that returns a compiled string of : botdir/OpsFolderName/
-		"""
-		return f"{settings.botDir}/{settings.opsFolderName}/"
+	def GenerateLiveOpsFolder():
+		BotPrinter.Debug("Creating live ops folder (if non existant)")
+		if (not os.path.exists( Directories.liveOpsDir ) ):
+			try:
+				os.makedirs(f"{ Directories.liveOpsDir }")
+			except:
+				BotPrinter.LogError("Failed to create folder for default Ops data!")
 
 	def GetOpFullPath(p_opFileName):
 		"""
@@ -127,14 +145,14 @@ class FilesAndFolders():
 		Do not use for DEFAULT ops:  
 		They use a different path!
 		"""
-		return f"{FilesAndFolders.GetOpsFolder()}{p_opFileName}.bin"
+		return f"{Directories.liveOpsDir}{p_opFileName}.bin"
 
 	def GetLockFilePath(p_opFileName):
 		"""
 		CONVENIENCE FUNCTION:
 		Returns a compiled string of a full path for opFile lock file.
 		"""
-		return f"{FilesAndFolders.GetOpsFolder()}{p_opFileName}{settings.lockFileAffix}"
+		return f"{Directories.liveOpsDir}{p_opFileName}{Directories.lockFileAffix}"
 
 	def IsLocked(p_opLockFile):
 		"""
@@ -156,7 +174,7 @@ class FilesAndFolders():
 		GET LOCK:
 		Creates a lock for a file.
 
-		WARNING: Will wait until any existing lock stops existing before creating.
+		NOTE: Will wait until any existing lock stops existing before creating.
 		"""
 		BotPrinter.Info(f"Getting lock file for: {p_opLockFile}")
 		attempsLeft = 5
@@ -177,14 +195,14 @@ class FilesAndFolders():
 		"""
 		CREATE LOCK:
 
-		Should not be called manually, use GetLock instead which calls.
+		NOTE Should not be called manually, use GetLock instead!
+		
 		Creates a lock file for the given Ops file.  
 
 		RETURNS
 		True - On success.
 		False - On Failure (exception)
 		"""
-		BotPrinter.Debug(f"	-> Lockfile to release: {p_opLockFile}")
 		
 		try:
 			open(p_opLockFile, 'a').close()
@@ -192,6 +210,7 @@ class FilesAndFolders():
 		except OSError as vError:
 			BotPrinter.LogErrorExc("Failed to create LOCK file", vError)
 			return False
+
 
 	def ReleaseLock(p_opLockFile):
 		"""
@@ -230,14 +249,13 @@ async def GetGuild(p_BotRef : commands.Bot):
 	"""
 	BotPrinter.Debug("Getting Guild from ID.")
 	try:
-		return await p_BotRef.fetch_guild(settings.DISCORD_GUILD)
+		return await p_BotRef.fetch_guild( BotSettings.discordGuild )
 	except discord.Forbidden as vError:
 		BotPrinter.LogErrorExc("Bot has no access to this guild!", p_exception=vError)
 		return None
 	except discord.HTTPException:
 		BotPrinter.LogErrorExc("Unable to get guild.", p_exception=vError)
 		return None
-
 
 class EmojiLibrary(enum.Enum):
 	# Infantry Classes

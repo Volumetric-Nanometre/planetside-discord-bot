@@ -13,15 +13,16 @@ from discord.ext import commands
 
 import botUtils
 from botUtils import BotPrinter as BUPrint
-import botData
+import botData.operations
 import newUser
-import settings
+# import settings
+from botData import settings
 import roleManager
 import opsManager
 import opsCommander
 
 # import chatlinker
-
+BUPrint.Info(f"Starting bot with settings:\n{settings.BotSettings()}\n{settings.Directories()}\n{settings.SignUps()}")
 
 class Bot(commands.Bot):
 
@@ -43,14 +44,14 @@ class Bot(commands.Bot):
         # await self.add_cog(chatlinker.ChatLinker(self))
 
     async def on_ready(self):
-        BUPrint.Info(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.DISCORD_GUILD}\n')
+        BUPrint.Info(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.BotSettings.discordGuild}\n')
         await self.vOpsManager.RefreshOps()
         
 		# Ensure all opCommanders have a botref.
         self.vOpCommander.vBotRef = self
 
 
-bot = Bot()        
+bot = Bot()
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -129,12 +130,12 @@ async def addopsevent (pInteraction: discord.Interaction,
 	vOpTypeStr = str(optype).replace("OpsType.", "")
 
 
-	newOpsData :botData.OperationData = botData.OperationData()
+	newOpsData : botData.operations.OperationData = botData.operations.OperationData()
 	vOpManager = opsManager.OperationManager()
 	newOpsData.date = vDate
 
 	if vOpTypeStr not in opsManager.OperationManager.GetDefaults():
-		newOpsData.status = botData.OpsStatus.editing
+		newOpsData.status = botData.operations.OpsStatus.editing
 
 		vEditor: opsManager.OpsEditor = opsManager.OpsEditor(pBot=bot, pOpsData=newOpsData)
 
@@ -148,7 +149,7 @@ async def addopsevent (pInteraction: discord.Interaction,
 		# vOpsMessage = opsManager.OpsMessage(pOpsDataFile=f"{settings.botDir}/{settings.defaultOpsDir}/{optype}", pOpsData=None, pBot=bot)
 		# vOpsMessage.getDataFromFile()
 
-		vFilePath = f"{settings.botDir}/{settings.defaultOpsDir}/{optype}"
+		vFilePath = f"{settings.Directories.savedDefaultsDir}/{optype}"
 		newOpsData = opsManager.OperationManager.LoadFromFile(vFilePath)
 
 
@@ -196,7 +197,7 @@ async def autocompleteOpTypes( pInteraction: discord.Interaction, pTypedStr: str
 @app_commands.rename(pOpsToEdit="file")
 async def editopsevent(pInteraction: discord.Interaction, pOpsToEdit: str):
 	BUPrint.Info(f"Editing Ops data for {pOpsToEdit}")
-	vLiveOpData:botData.OperationData = opsManager.OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
+	vLiveOpData:botData.operations.OperationData = opsManager.OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
 
 	vEditor = opsManager.OpsEditor(pBot=bot, pOpsData=vLiveOpData)
 	await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
@@ -219,4 +220,4 @@ async def autocompleteFileList( pInteraction: discord.Interaction, pTypedStr: st
 
 # START
 BUPrint.Debug("Bot running...")
-asyncio.run(bot.run(settings.DISCORD_TOKEN))
+asyncio.run(bot.run(settings.BotSettings.discordToken))

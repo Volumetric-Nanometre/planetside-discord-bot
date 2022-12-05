@@ -8,7 +8,7 @@ import discord.utils
 # from discord import app_commands
 import asyncio
 
-import settings
+import botData.settings 
 from botUtils import BotPrinter
 
 
@@ -59,10 +59,10 @@ class RoleManager(discord.ui.View):
 		BotPrinter.Debug(f"Selected Roles: {vUserSelectedRoles}")
 
 		# Ensure we're operating on TDKD server.
-		self.vGuild = self.bot.get_guild(settings.DISCORD_GUILD)
+		self.vGuild = self.bot.get_guild(botData.settings.BotSettings.discordGuild)
 		if self.vGuild is None:
 			# Try again using non-cache "fetch":
-			self.vGuild = await self.bot.fetch_guild(settings.DISCORD_GUILD)
+			self.vGuild = await self.bot.fetch_guild(botData.settings.BotSettings.discordGuild)
 			if self.vGuild is None:
 				BotPrinter.LogError("Failed to find guild for updating roles!")
 				return

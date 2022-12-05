@@ -15,9 +15,9 @@ import sched
 
 import botUtils
 from botUtils import BotPrinter as BUPrint
-import botData
-from botData import OperationData as OpsData
 
+import botData.operations
+from botData.operations import OperationData as OpsData
 from opsManager import OperationManager as OpsMan
 
 class CommanderStatus(enum.Enum):
@@ -93,7 +93,7 @@ class Commander():
 		vEmbed.add_field(name=f"START(ED) {botUtils.DateFormatter.GetDiscordTime(self.vOpData.date, botUtils.DateFormat.Dynamic)}", value=f"{botUtils.DateFormatter.GetDiscordTime(self.vOpData.date, botUtils.DateFormat.DateTimeLong)}", inline=True)
 		
 		vSignedUpCount = 0
-		role: botData.OpRoleData
+		role: botData.operations.OpRoleData
 		for role in self.vOpData.roles:
 			vSignedUpCount += len(role.players)
 		vEmbed.add_field(name="USERS | ROLES | RESERVES", value=f"{vSignedUpCount} | {len(self.vOpData.roles)} | {len(self.vOpData.reserves)}", inline=True)
@@ -101,7 +101,7 @@ class Commander():
 		# Only show verbose role info during the early stages.  Reduces clutter afterwards.
 		if self.vCommanderStatus.value > CommanderStatus.Started.value:
 			vEmbed.add_field(name="", value="")
-			role: botData.OpRoleData
+			role: botData.operations.OpRoleData
 			for role in self.vOpData.roles:
 				vUsersInRole = ""
 				for user in role.players:
@@ -134,7 +134,7 @@ class Commander():
 		"""
 		pass
 
-	def GetRoleName(self, p_role:botData.OpRoleData):
+	def GetRoleName(self, p_role:botData.operations.OpRoleData):
 		"""
 		# GET ROLE NAME
 		Convenience function to get a role name with icon prefix, if applicable.		

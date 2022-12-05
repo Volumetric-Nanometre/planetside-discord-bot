@@ -9,10 +9,11 @@ import discord
 from discord.ext import commands
 
 
-import settings
+from botData import settings as botSettings
+import botData.operations as OpData 
 import botUtils
 from botUtils import BotPrinter as BUPrint
-import botData
+# import botData
 
 
 class OperationManager():
@@ -41,10 +42,11 @@ class OperationManager():
 
 		Recursively 'updates' all active live Ops so that views are refreshed and usable again.
 		"""
-		vOpData : botData.OperationData
+		BUPrint.Info("Refreshing Ops...")
+		vOpData : OpData.OperationData
 		for vOpData in self.vLiveOps:
 			await self.UpdateMessage(vOpData)
-			BUPrint.Info(f"Refreshing Op: \n{vOpData}\n")
+			BUPrint.Info(f"	-> Refreshing Op: \n{vOpData}\n")
 
 	def SetBotRef(p_botRef):
 		OperationManager.vBotRef = p_botRef
@@ -52,12 +54,12 @@ class OperationManager():
 
 	def GetOps():
 		"""
-		RETURN - Type: list(str), containing filenames of current saved Ops.
+		RETURN - Type: list(str), containing filenames of current Live Ops.
 		
 		"""
 		botUtils.BotPrinter.Debug("Getting Ops list...")
 		# vOpsDir = f"{settings.botDir}/{settings.opsFolderName}/"
-		return botUtils.FilesAndFolders.GetFiles(botUtils.FilesAndFolders.GetOpsFolder(), ".bin")
+		return botUtils.FilesAndFolders.GetFiles( botSettings.Directories.liveOpsDir, ".bin")
 
 
 	def LoadOps(self):
@@ -65,10 +67,13 @@ class OperationManager():
 		Clear current list of LiveOps, then load from files in opsList. 
 		"""
 		self.vLiveOps.clear()
-		
+		BUPrint.Debug("Loading Ops...")
 		for currentFileName in OperationManager.GetOps():
-			vFullPath = f"{botUtils.FilesAndFolders.GetOpsFolder()}{currentFileName}"
-			self.vLiveOps.append(OperationManager.LoadFromFile(vFullPath))
+			BUPrint.Debug(f"Loading data from {currentFileName}")
+			vFullPath = f"{botSettings.Directories.liveOpsDir}{currentFileName}"
+			vFile: OpData.OperationData = OperationManager.LoadFromFile(vFullPath)
+			if vFile is not None:
+				self.vLiveOps.append(OperationManager.LoadFromFile(vFullPath))
 
 
 
@@ -79,11 +84,11 @@ class OperationManager():
 		
 		## RETURN : list(str)
 		"""
-		vDir = f"{settings.botDir}/{settings.defaultOpsDir}"
-		return botUtils.FilesAndFolders.GetFiles(vDir, ".bin")
+		# vDir = f"{settings.botDir}/{settings.defaultOpsDir}"
+		return botUtils.FilesAndFolders.GetFiles(botSettings.Directories.savedDefaultsDir, ".bin")
 
 
-	async def RemoveOperation(self, p_opData: botData.OperationData):
+	async def RemoveOperation(self, p_opData: OpData.OperationData):
 		"""
 		# REMOVE OPERATION:
 
@@ -102,7 +107,7 @@ class OperationManager():
 		bIsDefault = False # Convenience bool to avoid having to check filename
 
 		if p_opData.fileName == None:
-			vFileToRemove = f"{botUtils.FilesAndFolders.GetDefaultsFolder}{p_opData.name}.bin"
+			vFileToRemove = f"{botSettings.Directories.savedDefaultsDir}{p_opData.name}.bin"
 			bIsDefault = True
 		else:
 			vFileToRemove = botUtils.FilesAndFolders.GetOpFullPath(p_opData.fileName)
@@ -165,14 +170,14 @@ class OperationManager():
 
 
 	def createOpsFolder():
-		if (not os.path.exists(f"{settings.botDir}/{settings.opsFolderName}") ):
+		if (not os.path.exists( botSettings.Directories.liveOpsDir ) ):
 			try:
-				os.makedirs(f"{settings.botDir}/{settings.opsFolderName}")
+				os.makedirs( botSettings.Directories.liveOpsDir )
 			except:
 				botUtils.BotPrinter.LogError("Failed to create folder for Ops data!")
 
 	
-	def SaveToFile(p_opsData: botData.OperationData):
+	def SaveToFile(p_opsData: OpData.OperationData):
 		"""
 		# SAVE TO FILE:
 		Saves the Operation Data to file.
@@ -190,12 +195,12 @@ class OperationManager():
 		# temp_opToSave = copy.deepcopy(p_opsData)
 
 		
-		vFilePath = f"{settings.botDir}/"
+		vFilePath = ""
 		if p_opsData.fileName == "": # No filename, save as new default ops using Name.
-			vFilePath += f"{settings.defaultOpsDir}/{p_opsData.name}.bin"
+			vFilePath += f"{botSettings.Directories.savedDefaultsDir}{p_opsData.name}.bin"
 		else:
-			vFilePath += f"{settings.opsFolderName}/{p_opsData.fileName}.bin"
-
+			vFilePath += f"{botSettings.Directories.liveOpsDir}{p_opsData.fileName}.bin"
+		BUPrint.Debug(f"Saving file: {vFilePath}")
 		try:
 			botUtils.FilesAndFolders.GetLock(botUtils.FilesAndFolders.GetLockFilePath(p_opsData.fileName))
 			with open(vFilePath, "wb") as vFile:
@@ -223,25 +228,25 @@ class OperationManager():
 		BUPrint.Info(f"Loading Operation Data from file. Path:{p_opFilePath}")
 
 		try:
-			botUtils.FilesAndFolders.GetLock( f"{p_opFilePath}{settings.lockFileAffix}" )
+			botUtils.FilesAndFolders.GetLock( f"{p_opFilePath}{botSettings.Directories.lockFileAffix}" )
 			with open(p_opFilePath, "rb") as vFile:
-				vLoadedOpData : botData.OperationData = pickle.load(vFile)
+				vLoadedOpData : OpData.OperationData = pickle.load(vFile)
 			BUPrint.Info("Data loaded sucessfully!")
-			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{settings.lockFileAffix}")
+			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{botSettings.Directories.lockFileAffix}")
 			return vLoadedOpData
 
 		except EOFError as vError:
 			BUPrint.LogErrorExc("Failed to open file. Check to ensure the file has not been overwritten and is not 0 bytes!", p_exception=vError)
-			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{settings.lockFileAffix}")
+			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{botSettings.Directories.lockFileAffix}")
 			return None
 
 		except Exception as vError:
-			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{settings.lockFileAffix}")
+			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{botSettings.Directories.lockFileAffix}")
 			BUPrint.LogErrorExc("Failed to open file!", p_exception=vError)
 			return None
 
 
-	async def AddNewLiveOp(self, p_opData: botData.OperationData):
+	async def AddNewLiveOp(self, p_opData: OpData.OperationData):
 		"""
 		# ADD NEW LIVE OP:
 
@@ -270,7 +275,7 @@ class OperationManager():
 		return True
 
 
-	async def AddNewLive_PostOp(self, p_opData:botData.OperationData):
+	async def AddNewLive_PostOp(self, p_opData:OpData.OperationData):
 		"""
 		# POST OP:  
 		A sub-function for AddNewLiveOp
@@ -307,7 +312,7 @@ class OperationManager():
 		return True
 
 
-	async def AddNewLive_GetTargetChannel(self, p_opsData: botData.OperationData):
+	async def AddNewLive_GetTargetChannel(self, p_opsData: OpData.OperationData):
 		"""
 		# GET TARGET CHANNEL:
 
@@ -325,41 +330,51 @@ class OperationManager():
 
 		vGuild = self.vBotRef.guilds[0]
 		if vGuild is None:
+			BUPrint.Debug("	-> Guild is none, trying fetch instead.")
 			# Try again using non-cache "fetch":
-			vGuild = await self.vBotRef.fetch_guild(settings.DISCORD_GUILD)
+			vGuild = await self.vBotRef.fetch_guild(botSettings.BotSettings.discordGuild)
 			if vGuild is None:
 				botUtils.BotPrinter.LogError("Failed to find guild for getting Ops Channel!")
 				return None
-		opsCategory = discord.utils.find(lambda items: items.name == "SIGN UP", vGuild.categories)
+			BUPrint.Debug("	-> Guild obtained.")
+		opsCategory = discord.utils.find(lambda items: items.name == botSettings.SignUps.signupCategory, vGuild.categories)
 
 		if opsCategory == None:
 			BUPrint.Info("SIGNUP CATEGORY NOT FOUND!  Check settings and ensure signupCategory matches the name of the category to be used; including capitalisation!")
 			return None
 
 		argument: str
-		for argument in p_opsData.arguments:
-			BUPrint.Debug(f"Parsing argument: {argument}")
-			channel = None
-			if argument.find("CHN=") != -1:
-				BUPrint.Debug("Argument for channel found!")
-				vCleanArg = argument.strip("CHN=")
-				channel = discord.utils.find(lambda items: items.name == vCleanArg, vGuild.text_channels)
-				if channel != None:
-					return channel
-				else:
-					BUPrint.Info(f"No existing matching channel, creating channel {vCleanArg}")
-					channel = await vGuild.create_text_channel(
-						name=vCleanArg,
-						category=opsCategory 
-					)
-					return channel
+		BUPrint.Debug("	-> Parsing arguments...")
+		if len(p_opsData.arguments) != 0 and p_opsData.arguments is not None:
+			for argument in p_opsData.arguments:
+				BUPrint.Debug(f"	-> Argument: {argument}")
+				channel = None
+				if argument.find("CHN=") != -1:
+					BUPrint.Debug("	-> Argument for channel found!")
+					vCleanArg = argument.strip("CHN=")
+					channel = discord.utils.find(lambda items: items.name == vCleanArg.lower(), vGuild.text_channels)
+					if channel != None:
+						return channel
+					else:
+						BUPrint.Info(f"	-> No existing matching channel, creating channel: {vCleanArg}")
+						try:
+							channel = await vGuild.create_text_channel(
+							name=vCleanArg,
+							category=opsCategory 
+							)
+							return channel
+						except discord.HTTPException as vError:
+							BUPrint.LogErrorExc("Failed to create channel", vError)
+							return None
+
+
 
 		# If code reaches here, no channel was found.
-		BUPrint.Info(f"Target Ops Channel not specified (or missing preceeding 'CHN='")
-		# BUPrint.Debug(f"Finding {p_opsData.name} in {vGuild.text_channels}.\n\n")
+		BUPrint.Info(f"	-> Target Ops Channel not specified (or missing preceeding 'CHN=')")
 		channel = discord.utils.find(lambda items: items.name == p_opsData.name.lower(), vGuild.text_channels)
 
 		if channel == None:
+			BUPrint.Debug("	-> No existing chanel, creating new one.")
 			channel = await vGuild.create_text_channel(
 							name=p_opsData.name,
 							category=opsCategory
@@ -368,7 +383,7 @@ class OperationManager():
 		return channel 
 
 
-	async def AddNewLive_GenerateEmbed(self, p_opsData: botData.OperationData):
+	async def AddNewLive_GenerateEmbed(self, p_opsData: OpData.OperationData):
 		"""
 		# GENERATE EMBED
 		A sub function to AddNewLiveOps
@@ -398,7 +413,7 @@ class OperationManager():
 			)
 
 		# Generate lists for roles:
-		role: botData.OpRoleData
+		role: OpData.OpRoleData
 		for role in p_opsData.roles:
 			vSignedUpUsers: str = ""
 			if len(role.players) == 0:
@@ -446,7 +461,7 @@ class OperationManager():
 		return vEmbed
 
 
-	async def AddNewLive_GenerateView(self, p_opsData: botData.OperationData):
+	async def AddNewLive_GenerateView(self, p_opsData: OpData.OperationData):
 		vView = discord.ui.View(timeout=None)
 		vRoleSelector = OpsRoleSelector(p_opsData)
 		vRoleSelector.UpdateOptions()
@@ -456,7 +471,7 @@ class OperationManager():
 		return vView
 
 
-	async def UpdateMessage(self, p_opData: botData.OperationData):
+	async def UpdateMessage(self, p_opData: OpData.OperationData):
 		"""
 		# UPDATE MESSAGE
 		
@@ -474,8 +489,8 @@ class OperationManager():
 		
 		try:
 			vMessage: discord.Message = await vChannel.fetch_message(p_opData.messageID)
-		except Exception as error:
-				BUPrint.LogErrorExc("Failed to get message! Posting a new one...", error)
+		except discord.NotFound as error:
+				BUPrint.LogErrorExc("Message not found! Posting a new one...", error)
 				if not await self.AddNewLive_PostOp(p_opData):
 					BUPrint.Info("Failed to add new message. Possibly corrupt data? Removing this Ops file!")
 					await self.RemoveOperation(p_opData)
@@ -483,12 +498,19 @@ class OperationManager():
 					OperationManager.SaveToFile(p_opData)
 				return
 
+		except discord.Forbidden as error:
+			BUPrint.LogErrorExc("Bot does not have correct privilages (post message!", error)
+			return
+		except discord.HTTPException as error:
+			BUPrint.LogErrorExc("Unable to retrieve the message!", error)
+			return
+
 		vNewEmbed = await self.AddNewLive_GenerateEmbed(p_opData)
 		vView = await self.AddNewLive_GenerateView(p_opData)
 		await vMessage.edit(embed=vNewEmbed, view=vView)
 
 
-	def RemoveUser(p_opData:botData.OperationData, p_userToRemove:str):
+	def RemoveUser(p_opData:OpData.OperationData, p_userToRemove:str):
 		"""
 		# REMOVE USER:
 		Iterates over all roles (including reserve) and removes the player ID if present.
@@ -507,7 +529,7 @@ class OperationManager():
 
 
 class OpsRoleSelector(discord.ui.Select):
-	def __init__(self, p_opsData: botData.OperationData):
+	def __init__(self, p_opsData: OpData.OperationData):
 		defaultOption = discord.SelectOption(label="Default", value="Default")
 		self.vOpsData = p_opsData
 		super().__init__(placeholder="Choose a role...", options=[defaultOption])
@@ -515,8 +537,8 @@ class OpsRoleSelector(discord.ui.Select):
 	async def callback(self, pInteraction: discord.Interaction):
 		botUtils.BotPrinter.Debug(f"User {pInteraction.user.name} has signed up to {self.vOpsData.fileName} with role: {self.values[0]}")
 		vOpMan = OperationManager()		
-		vSelectedRole: botData.OpRoleData = None
-		role: botData.OpRoleData
+		vSelectedRole: OpData.OpRoleData = None
+		role: OpData.OpRoleData
 		for role in self.vOpsData.roles:
 			if self.values[0] == role.roleName:
 				vSelectedRole = role
@@ -544,10 +566,10 @@ class OpsRoleSelector(discord.ui.Select):
 	
 	def UpdateOptions(self):
 		self.options.clear()
-		role: botData.OpRoleData
+		role: OpData.OpRoleData
 
 		# Always add a default used to resign players.
-		self.add_option(label="Resign", value="Resign", emoji=settings.resignIcon)
+		self.add_option(label="Resign", value="Resign", emoji=botSettings.SignUps.resignIcon)
 
 		for role in self.vOpsData.roles:
 			if( len(role.players) < int(role.maxPositions) or int(role.maxPositions) <= 0 ):
@@ -562,9 +584,9 @@ class OpsRoleSelector(discord.ui.Select):
 
 
 class OpsRoleReserve(discord.ui.Button):
-	def __init__(self, p_opsData : botData.OperationData):
+	def __init__(self, p_opsData : OpData.OperationData):
 		self.vOpsData = p_opsData
-		super().__init__(label="Reserve", emoji=settings.reserveIcon)
+		super().__init__(label="Reserve", emoji=botSettings.SignUps.reserveIcon)
 
 	async def callback(self, pInteraction: discord.Interaction):
 		
@@ -587,7 +609,7 @@ class OpsRoleReserve(discord.ui.Button):
 
 
 class OpsEditor(discord.ui.View):
-	def __init__(self, pBot: commands.Bot, pOpsData: botData.OperationData):
+	def __init__(self, pBot: commands.Bot, pOpsData: OpData.OperationData):
 		self.vBot = pBot
 		self.vOpsData = pOpsData # Original data, not edited.
 		# self.EditedData = pOpsData # Edited data, applied and saved.
@@ -664,7 +686,7 @@ class OpsEditor(discord.ui.View):
 	async def btnNewDefault(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		BUPrint.Info(f"Saving a new default! {self.vOpsData.name}")
 		# Set status of Ops back to OPEN.
-		self.vOpsData.status = botData.OpsStatus.open
+		self.vOpsData.status = OpData.OpsStatus.open
 
 		vOldFilename = self.vOpsData.fileName
 		# Ensure fileName is empty so its saved as a default
@@ -722,9 +744,9 @@ class EditDates(discord.ui.Modal):
 		min_length=1, max_length=2,
 		required=False
 	)
-	def __init__(self, *, title: str = "Edit Date/Time", pOpData: botData.OperationData):
+	def __init__(self, *, title: str = "Edit Date/Time", pOpData: OpData.OperationData):
 		self.title = title
-		self.vData : botData.OperationData = pOpData
+		self.vData : OpData.OperationData = pOpData
 		self.PresetFields()
 		super().__init__()
 
@@ -798,9 +820,9 @@ class EditInfo(discord.ui.Modal):
 	)
 
 
-	def __init__(self, *, title: str = "Edit Ops Name/Descriptions", pOpData: botData.OperationData):
+	def __init__(self, *, title: str = "Edit Ops Name/Descriptions", pOpData: OpData.OperationData):
 		self.title = title
-		self.vData : botData.OperationData = pOpData
+		self.vData : OpData.OperationData = pOpData
 		self.PresetFields()
 		super().__init__()
 
@@ -869,7 +891,7 @@ class EditRoles(discord.ui.Modal):
 		style=discord.TextStyle.paragraph,
 		required=False
 	)
-	def __init__(self, *, title: str = "Edit Roles", pOpData: botData.OperationData):
+	def __init__(self, *, title: str = "Edit Roles", pOpData: OpData.OperationData):
 		self.title = title
 		self.vData = pOpData
 		self.PresetFields()
@@ -897,7 +919,7 @@ class EditRoles(discord.ui.Modal):
 		botUtils.BotPrinter.Debug(f"Size of array: {len(vRoleNames)}")
 		while vIndex < len(vRoleNames):
 
-			vCurrentRole = botData.OpRoleData(pRoleName=vRoleNames[vIndex], pRoleIcon=vRoleEmoji[vIndex], pMaxPos=int(vRoleMax[vIndex]))
+			vCurrentRole = OpData.OpRoleData(roleName=vRoleNames[vIndex], roleIcon=vRoleEmoji[vIndex], maxPositions=int(vRoleMax[vIndex]))
 			if vIndex < len(self.vData.roles) :
 				# Index is on an existing role, adjust values to keep any signed up users.
 				self.vData.roles[vIndex].roleName = vCurrentRole.roleName
@@ -926,7 +948,7 @@ class EditRoles(discord.ui.Modal):
 		vRoleMembers: str = "DISPLAY PURPOSES ONLY\n"
 		vRoleMaxPos: str = ""
 
-		roleIndex: botData.OpRoleData
+		roleIndex: OpData.OpRoleData
 		for roleIndex in self.vData.roles:
 			vRoleNames += f"{roleIndex.roleName}\n"
 			vRoleMembers += f"{roleIndex.players}\n"

@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord import ui
 import auraxium
 
-import settings
+import botData.settings
 from botUtils import BotPrinter
 
 class NewUser(discord.ui.Modal, title="Welcome!\nPlease enter your PS2 Character name"):
@@ -40,7 +40,7 @@ class NewUser(discord.ui.Modal, title="Welcome!\nPlease enter your PS2 Character
 		BotPrinter.Debug(f"Checking player name for {pUser.name}: {pIGN}")
 
 		async with auraxium.Client() as ps2Client:
-			ps2Client.service_id = settings.PS2_SVS_ID
+			ps2Client.service_id = botData.settings.BotSettings.ps2ServiceID
 			player = await ps2Client.get_by_name(auraxium.ps2.Character, f"{pIGN}")
 			if player is not None:
 				BotPrinter.Debug("Found IGN!  Compiling new nickname")
