@@ -7,8 +7,7 @@ These settings pertain to the overall behaviour of the bot, not individual items
 import botData.envVars as Env
 
 from enum import Enum
-from dataclasses import dataclass, field
-import datetime
+from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class BotSettings():
@@ -20,6 +19,20 @@ class BotSettings():
 
 	# Debug Enabled: set to false
 	bDebugEnabled = True
+
+	# New User Admin Chanel: the channel (ID) new user join requests are sent to.
+	newUser_adminChannel = 1049424595750506527
+	# Gate Channel: Channel (ID) where new user join forms are sent to.
+	newUser_gateChannelID = 1041860598822096950
+	# Minimum Read time: The number of minutes a user has to wait (to read the rules) before they are able to request access.
+	newUser_readTimer = 2
+	# Warn if a user claims a ps2 character name with a rank equal or higher than this (numerical, lower = higher rank.)
+	newUser_outfitRankWarn = 4
+	# Provides a dropdown containing these roles.
+	newUser_roles = ["Guest", "Recruit", "TDKD", "The Washed Masses", "The Unwashed Masses"]
+	# The Jump URL "rules" leads to (ensure this leads to the rules post!)
+	newUser_rulesURL = "https://discord.com/channels/321688140802949120/1049523449867022348/1049523492166565939"
+
 
 	def __repr__(self) -> str:
 		vString = "	GENERAL BOT SETTINGS\n"
