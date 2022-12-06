@@ -2,10 +2,9 @@
 @author Michael O'Donnell
 """
 import asyncio
-import os
-import enum
 import datetime
 import traceback
+import atexit
 
 import discord
 from discord import app_commands
@@ -23,6 +22,8 @@ import opsCommander
 
 # import chatlinker
 BUPrint.Info(f"Starting bot with settings:\n{settings.BotSettings()}\n{settings.Directories()}\n{settings.SignUps()}")
+
+botUtils.FilesAndFolders.SetupFolders()
 
 class Bot(commands.Bot):
 
@@ -42,6 +43,7 @@ class Bot(commands.Bot):
         self.tree.copy_global_to(guild=vGuildObj)
         await self.tree.sync(guild=vGuildObj)
         # await self.add_cog(chatlinker.ChatLinker(self))
+        await self.add_cog(newUser.NewUser(self))
 
     async def on_ready(self):
         BUPrint.Info(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.BotSettings.discordGuild}\n')
@@ -58,10 +60,10 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.send('You do not have the correct role for this command.', ephemeral=True)
 
-@bot.event
-async def on_member_join(pMember:discord.User):
-	channel = bot.get_channel(358702477962379274)
-	channel.send("Welcome!  To continue, use `/join`.")
+# @bot.event
+# async def on_member_join(pMember:discord.User):
+# 	channel = bot.get_channel(358702477962379274)
+# 	channel.send("Welcome!  To continue, use `/join`.")
 
 
 
@@ -217,6 +219,10 @@ async def autocompleteFileList( pInteraction: discord.Interaction, pTypedStr: st
 			choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option.replace(".bin", "")))
 	return choices
 
+async def exit_handler():
+	BUPrint.Info("Bot shutting down.")
+
+atexit.register(exit_handler)
 
 # START
 BUPrint.Debug("Bot running...")

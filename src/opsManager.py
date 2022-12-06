@@ -42,7 +42,7 @@ class OperationManager():
 
 		Recursively 'updates' all active live Ops so that views are refreshed and usable again.
 		"""
-		BUPrint.Info("Refreshing Ops...")
+		BUPrint.Info(f"Refreshing Ops ({len(self.vLiveOps)})...")
 		vOpData : OpData.OperationData
 		for vOpData in self.vLiveOps:
 			await self.UpdateMessage(vOpData)
