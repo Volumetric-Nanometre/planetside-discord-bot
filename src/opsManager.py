@@ -230,8 +230,8 @@ class OperationManager():
 			botUtils.FilesAndFolders.GetLock( f"{p_opFilePath}{botSettings.Directories.lockFileAffix}" )
 			with open(p_opFilePath, "rb") as vFile:
 				vLoadedOpData : OpData.OperationData = pickle.load(vFile)
-			BUPrint.Info(f"Operation: {vLoadedOpData.fileName} loaded sucessfully!")
 			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{botSettings.Directories.lockFileAffix}")
+			BUPrint.Info(f"Operation: {vLoadedOpData.fileName} loaded sucessfully!")
 			return vLoadedOpData
 
 		except EOFError as vError:
