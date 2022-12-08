@@ -82,13 +82,13 @@ class RoleManager(discord.ui.View):
 				if self.bAddRoles:
 					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
 						BotPrinter.Debug("ADDING ROLE")
-						await self.vUser.add_roles( serverRoleIndex )
+						await self.vUser.add_roles( serverRoleIndex, reason="User self assigned role with /roles command." )
 
 				# Remove roles:
 				else:
 					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
 						BotPrinter.Debug("REMOVING ROLE")
-						await self.vUser.remove_roles( serverRoleIndex )
+						await self.vUser.remove_roles( serverRoleIndex, reason="User self unassigned role with /roles command" )
 			else:
 				BotPrinter.Debug("Role is not user-assignable. Skipping...")
 
@@ -229,5 +229,3 @@ class GameRoles2(RoleSelection):
 # 		]
 # 		super().__init__(placeholder="Choose your other game roles!", min_values=0, max_values=25, options=vOptions)
 	#  Make sure "max values" matches the number of roles.  It bugs out if higher than the actual amount of roles available.
-
-#https://github.com/Rapptz/discord.py/blob/v2.0.1/examples/views/dropdown.py
