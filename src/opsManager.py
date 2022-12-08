@@ -42,11 +42,10 @@ class OperationManager():
 
 		Recursively 'updates' all active live Ops so that views are refreshed and usable again.
 		"""
-		BUPrint.Info(f"Refreshing Ops ({len(self.vLiveOps)})...")
 		vOpData : OpData.OperationData
 		for vOpData in self.vLiveOps:
 			await self.UpdateMessage(vOpData)
-			BUPrint.Info(f"	-> Refreshing Op: \n{vOpData}\n")
+			BUPrint.Info(f"Refreshing {vOpData}\n")
 
 	def SetBotRef(p_botRef):
 		OperationManager.vBotRef = p_botRef
@@ -225,13 +224,13 @@ class OperationManager():
 
 		p_opFilePath: The FULL filepath to load from.
 		"""
-		BUPrint.Info(f"Loading Operation Data from file. Path:{p_opFilePath}")
+		BUPrint.Debug(f"Loading Operation Data from file. Path:{p_opFilePath}")
 
 		try:
 			botUtils.FilesAndFolders.GetLock( f"{p_opFilePath}{botSettings.Directories.lockFileAffix}" )
 			with open(p_opFilePath, "rb") as vFile:
 				vLoadedOpData : OpData.OperationData = pickle.load(vFile)
-			BUPrint.Info("Data loaded sucessfully!")
+			BUPrint.Info(f"Operation: {vLoadedOpData.fileName} loaded sucessfully!")
 			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{botSettings.Directories.lockFileAffix}")
 			return vLoadedOpData
 
@@ -370,7 +369,7 @@ class OperationManager():
 
 
 		# If code reaches here, no channel was found.
-		BUPrint.Info(f"	-> Target Ops Channel not specified (or missing preceeding 'CHN=')")
+		BUPrint.Debug(f"	-> Target Ops Channel not specified (or missing preceeding 'CHN=')")
 		channel = discord.utils.find(lambda items: items.name == p_opsData.name.lower(), vGuild.text_channels)
 
 		if channel == None:
@@ -393,7 +392,7 @@ class OperationManager():
 		## RETURNS 
 		discord.Embed with information from p_opsData.
 		"""
-		BUPrint.Info("	-> Generating Embed...")
+		BUPrint.Debug("	-> Generating Embed...")
 		vTitleStr = f"{p_opsData.name.upper()} | {botUtils.DateFormatter.GetDiscordTime(p_opsData.date, botUtils.DateFormat.DateTimeLong)}"
 
 		vEmbed = discord.Embed(colour=botUtils.Colours.openSignup.value,
@@ -480,7 +479,7 @@ class OperationManager():
 
 		## RETURN: None
 		"""
-		BUPrint.Info("	-> Updating Op Message")
+		BUPrint.Debug("	-> Updating Op Message")
 		try:
 			vChannel: discord.TextChannel = await self.AddNewLive_GetTargetChannel(p_opsData=p_opData)
 		except Exception as error:

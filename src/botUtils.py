@@ -179,7 +179,7 @@ class FilesAndFolders():
 
 		NOTE: Will wait until any existing lock stops existing before creating.
 		"""
-		BotPrinter.Info(f"Getting lock file for: {p_opLockFile}")
+		BotPrinter.Debug(f"Getting lock file for: {p_opLockFile}")
 		attempsLeft = 5
 		while FilesAndFolders.IsLocked(p_opLockFile):
 			if attempsLeft > 0:
@@ -190,7 +190,7 @@ class FilesAndFolders():
 				return False
 
 		# No lock file exists!
-		BotPrinter.Info(f"	-> Creating lock file... ")
+		BotPrinter.Debug(f"	-> Creating lock file... ")
 		return FilesAndFolders.CreateLock(p_opLockFile)
 
 
@@ -226,7 +226,7 @@ class FilesAndFolders():
 		True - On success (or file doens't exist)
 		False - On Failure (exception)
 		"""
-		BotPrinter.Info(f"Releasing lock for {p_opLockFile}")
+		BotPrinter.Debug(f"Releasing lock for {p_opLockFile}")
 		# lockFile = f"{FilesAndFolders.GetOpsFolder()}{p_opFileName}{settings.lockFileAffix}"
 
 		if(FilesAndFolders.IsLocked(p_opLockFile)):
