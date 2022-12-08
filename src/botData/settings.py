@@ -20,7 +20,7 @@ class BotSettings():
 	botDir		 = Env.BOT_DIR
 
 	# Debug Enabled: set to false
-	bDebugEnabled = False
+	bDebugEnabled = True
 
 # USED PRIMARILY BY NEW USER
 	# New User Admin Chanel: the channel (ID) new user join requests are sent to.
@@ -148,8 +148,10 @@ class Roles():
 	"""
 	# ROLES
 	For convenience sake, all roles used within selectors are stored here
+
+	NOTE: Selectors have a MAXIMUM limit of 25 items.
 	"""
-	# discord.SelectOption(label="", value="", description="", emoji=""),
+	# SelectOption(label="", value="", description="", emoji=""),
 
 	# Provides a dropdown containing these roles for giving to new users.
 	newUser_roles = [ 
@@ -163,47 +165,48 @@ class Roles():
 	# ADD ROLES - TDKD:  Roles used in the /roles command, "tdkd" role selector 
 	addRoles_TDKD = [
 		#SelectOption(label="Planetside", value="TDKD", description="The main role for TDKD planetside.", emoji=''),
-		SelectOption(label="Planetside Pings", value="ps2", description="Non-major PS2 events/fellow drunken doggos looking for company"),
-		SelectOption(label="Sober Dogs", value="1040751250163122176", description="More serious, coordinated infantry events"),
-		SelectOption(label="Base Busters", value="LogiDogs", description="Base building and busting events"),
-		SelectOption(label="Armour Dogs", value="ArmourDogs", description="Ground vehicle related events"),
-		SelectOption(label="Dog Fighters", value="dogfighter", description="Small aerial vehicle related events"),
-		SelectOption(label="Royal Air Woofs", value="RAW", description="Heavy aerial vehicle related events"),
-		SelectOption(label="PS2 Twitter", value="Twitter", description="Planetside 2 Twitter posts"),
-		SelectOption(label="Jaeger", value="IdontfuckinknowCactusHelp", description="Jeager events")
+		SelectOption(label="Planetside Pings", value="977873609815105596", description="Non-major PS2 events/fellow drunken doggos looking for company"),
+		SelectOption(label="Sober Dogs", value="1040751250163122176", description="More serious, coordinated infantry events"), # Dev value: 1040751250163122176 | Live value 745004244171620533
+		SelectOption(label="Base Busters", value="811363100787736627", description="Base building and busting events"),
+		SelectOption(label="Armour Dogs", value="781309511532544001", description="Ground vehicle related events"),
+		SelectOption(label="Dog Fighters", value="788390750982766612", description="Small aerial vehicle related events"),
+		SelectOption(label="Royal Air Woofs", value="848612413943054376", description="Heavy aerial vehicle related events"),
+		SelectOption(label="PS2 Twitter", value="832241383326744586", description="Planetside 2 Twitter posts"),
+		SelectOption(label="Jaeger", value="1024713062776844318", description="Jeager events")
 		# discord.SelectOption(label="", value="", description="", emoji='')
 	]
 
 	# ADD ROLES - GAMES : Role selectors used in the /roles command.
 	addRoles_games1 = [
-		SelectOption(label="Post Scriptum", value="1"),
-		SelectOption(label="Squad", value="2"),
-		SelectOption(label="Space Engineers", value="3"),
-		SelectOption(label="Deep Rock Galactic", value="4"),
-		SelectOption(label="Valheim", value="5"),
-		SelectOption(label="Terraria", value="6"),
-		SelectOption(label="Apex Legends", value="7"),
-		SelectOption(label="Minecraft", value="8"),
-		SelectOption(label="Team Fortress 2", value="9"),
-		SelectOption(label="Dungeon and Dragons", value="10"),
-		SelectOption(label="Warframe", value="11"),
-		SelectOption(label="Supreme Commander", value="12"),
-		SelectOption(label="Battlefield 2042", value="13"),
-		SelectOption(label="Conqueror's Blade", value="14"),
-		SelectOption(label="Stellaris", value="15"),
-		SelectOption(label="Sea of Thieves", value="16"),
-		SelectOption(label="Back 4 Blood", value="17"),
-		SelectOption(label="Garrys' Mod", value="18"),
-		SelectOption(label="Killing Floor 2", value="19"),
-		SelectOption(label="Vermintide", value="20"),
-		SelectOption(label="Total War: Warhammer", value="21"),
-		SelectOption(label="Factorio", value="22"),
-		SelectOption(label="Warthunder", value="23"),
-		SelectOption(label="Gates of Hell", value="24"),
-		SelectOption(label="Overwatch", value="25")
+		SelectOption(label="Post Scriptum", value="791308463241691146"),
+		SelectOption(label="Squad", value="808413252685529108"),
+		SelectOption(label="Space Engineers", value="805234496026050601"),
+		SelectOption(label="Deep Rock Galactic", value="803340218756366423"),
+		SelectOption(label="Valheim", value="818490876631711794"),
+		SelectOption(label="Terraria", value="825106136378245180"),
+		SelectOption(label="Apex Legends", value="825106272856571985"),
+		SelectOption(label="Minecraft", value="824708493076201473"),
+		SelectOption(label="Team Fortress 2", value="826943611303100496"),
+		SelectOption(label="Dungeon and Dragons", value="864175083152343070"),
+		SelectOption(label="Warframe", value="872593227734208512"),
+		SelectOption(label="Supreme Commander", value="887338095802982441"),
+		SelectOption(label="Battlefield 2042", value="894232796619472987"),
+		SelectOption(label="Conqueror's Blade", value="896008973906509885"),
+		SelectOption(label="Stellaris", value="911972761948266547"),
+		SelectOption(label="Eve Online", value="900009823867916310"),
+		SelectOption(label="Sea of Thieves", value="916802105719783454"),
+		SelectOption(label="Back 4 Blood", value="916804112337756160"),
+		SelectOption(label="Garrys' Mod", value="916803968674439300"),
+		SelectOption(label="Killing Floor 2", value="916804287370240131"),
+		SelectOption(label="Vermintide", value="929376317944791040"),
+		SelectOption(label="Total War: Warhammer", value="931201327869079553"),
+		SelectOption(label="Factorio", value="939894580688605274"),
+		SelectOption(label="Warthunder", value="976598559266857030"),
+		SelectOption(label="Gates of Hell", value="1000366778133774528")
 	]
 
 	addRoles_games2 = [
-		SelectOption(label="World of Tanks", value="987"),
-		SelectOption(label="Star Citizen", value="654")		
+		SelectOption(label="Overwatch", value="1029138196518420531"),
+		SelectOption(label="World of Tanks", value="1038125253806788768"),
+		SelectOption(label="Star Citizen", value="1037797784566370318")		
 	]

@@ -99,12 +99,7 @@ class RoleSelection(discord.ui.Select):
 		await pInteraction.response.defer(ephemeral=True, thinking=False)
 
 ###
-# ADDING NEW ROLES
-# Label: Displayed to user.
-# Value: The ID number of the role.  Breaks if typed but not specified.
-# Description: Not needed, descriptive text shown to user.
-# Emoji: self explanitory: will break if typed emoji="" but no emoji id given
-#
+# ADDING NEW ROLES : go to botData -> Settings -> class Roles
 # 'max_values' should always equate to the maximum number of roles available.
 # Unless you wish for users to repeateldy run the command to add/remove roles. :p
 
@@ -114,22 +109,18 @@ class TDKDRoles(RoleSelection):
 		self.parentView: RoleManager
 		vOptions = botData.settings.Roles.addRoles_TDKD
 
-		super().__init__(placeholder="TDKD/PS2 Notification roles", min_values=0, max_values=8, options=vOptions)
-
+		super().__init__(placeholder="TDKD/PS2 Notification roles", min_values=0, max_values=len(botData.settings.Roles.addRoles_TDKD), options=vOptions)
 
 
 class GameRoles1(RoleSelection):
 	def __init__(self):
 		self.parentView:RoleManager
 		vOptions = botData.settings.Roles.addRoles_games1
-		super().__init__(placeholder="Other Games roles", min_values=0, max_values=25, options=vOptions)
-	
-	# async def callback(self, pInteraction: discord.Interaction):
-		# await self.parentView.UpateUserRoles()
+		super().__init__(placeholder="Other Games roles", min_values=0, max_values=len(botData.settings.Roles.addRoles_games1), options=vOptions)
 
 
 class GameRoles2(RoleSelection):
 	def __init__(self):
 		vOptions = botData.settings.Roles.addRoles_games2
-		super().__init__(placeholder="Other Games roles", min_values=0, max_values=2, options=vOptions)
+		super().__init__(placeholder="Other Games roles", min_values=0, max_values=len(botData.settings.Roles.addRoles_games2), options=vOptions)
 	#  Make sure "max values" matches the number of roles.  It bugs out if higher than the actual amount of roles available.
