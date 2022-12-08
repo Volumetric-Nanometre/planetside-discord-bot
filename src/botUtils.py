@@ -88,6 +88,9 @@ class Colours(enum.Enum):
 	opsStarted = discord.Colour.from_rgb(255,0,0)
 	editing = discord.Colour.from_rgb(204, 102, 0)
 	commander = discord.Colour.from_rgb(0, 255, 360)
+	userRequest = discord.Colour.from_rgb(106, 77, 255)
+	userWarnOkay = discord.Colour.from_rgb(170, 255, 0)
+	userWarning = discord.Colour.from_rgb(255, 85, 0)
 	
 	
 		

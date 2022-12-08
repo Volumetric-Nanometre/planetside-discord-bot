@@ -36,14 +36,18 @@ class Bot(commands.Bot):
         self.vOpCommander = opsCommander.Commander(None)
         opsManager.OperationManager.SetBotRef(self)
 
+		# Objects with CHANNEL refs
+        # self.vNewUserReq = newUser.NewUserRequest(None)
+
     async def setup_hook(self):
-		# Needed for later functions, which want a discord object instead of a plain string.
-        vGuildObj = await botUtils.GetGuild(p_BotRef=self)
         BUPrint.Info("Setting up hooks...")
+        # Needed for later functions, which want a discord object instead of a plain string.
+        vGuildObj = await botUtils.GetGuild(p_BotRef=self)       
         self.tree.copy_global_to(guild=vGuildObj)
         await self.tree.sync(guild=vGuildObj)
-        # await self.add_cog(chatlinker.ChatLinker(self))
+
         await self.add_cog(newUser.NewUser(self))
+        # await self.add_cog(chatlinker.ChatLinker(self))
 
     async def on_ready(self):
         BUPrint.Info(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.BotSettings.discordGuild}\n')
@@ -51,6 +55,7 @@ class Bot(commands.Bot):
         
 		# Ensure all opCommanders have a botref.
         self.vOpCommander.vBotRef = self
+        # self.vNewUserReq.vRequestChannel = await self.fetch_channel()
 
 
 bot = Bot()
@@ -219,11 +224,11 @@ async def autocompleteFileList( pInteraction: discord.Interaction, pTypedStr: st
 			choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option.replace(".bin", "")))
 	return choices
 
-async def exit_handler():
+def exit_handler():
 	BUPrint.Info("Bot shutting down.")
 
 atexit.register(exit_handler)
 
 # START
 BUPrint.Debug("Bot running...")
-asyncio.run(bot.run(settings.BotSettings.discordToken))
+asyncio.run(bot.run(settings.BotSettings.discordToken), debug=settings.BotSettings.bDebugEnabled)
