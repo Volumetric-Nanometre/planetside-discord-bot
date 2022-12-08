@@ -65,15 +65,11 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.send('You do not have the correct role for this command.', ephemeral=True)
 
-# @bot.event
-# async def on_member_join(pMember:discord.User):
-# 	channel = bot.get_channel(358702477962379274)
-# 	channel.send("Welcome!  To continue, use `/join`.")
-
 
 
 
 # APP COMMANDS
+#TODO: Move into cogs.
 
 
 
@@ -92,14 +88,6 @@ async def userroles(pInteraction: discord.Interaction, isAddingRole: bool):
 	else:
 		vMessageTitle = "**Select the roles you want to REMOVE**"
 	await pInteraction.response.send_message(vMessageTitle, view=vView, ephemeral=True)
-
-
-
-# NEW USER (/join)
-
-@bot.tree.command(name="join", description="Show the join window if you have closed it.")
-async def newuserjoin(pInteraction: discord.Interaction):
-	await pInteraction.response.send_modal( newUser.NewUser())
 
 
 

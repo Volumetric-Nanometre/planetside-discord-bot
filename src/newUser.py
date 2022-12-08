@@ -16,7 +16,7 @@ class NewUserData:
 	"""
 	Minimal dataclass to hold data about a new user.
 	"""
-	bIsFirstLoop = True # Used during loop to not enable button on first iteration.
+	bIsFirstLoop = True # MUST BE TRUE ON INITIALISATION! Used during loop to not enable button on first iteration.
 	userObj : discord.Member = None
 	joinMessage : discord.Message = None
 	ps2CharObj: auraxium.ps2.Character = None
@@ -156,7 +156,7 @@ class NewUser_btnRequest(discord.ui.Button):
 			# NEW ADMIN ENTRY HERE
 			vRequest = NewUserRequest(vUserData)
 			await vRequest.SendRequest()
-			await pInteraction.response.send_message("Your request has been sent!  Please wait, you will be notified if it has been accepted!", ephemeral=True)
+			await pInteraction.response.send_message("**Your request has been sent!**\n\nPlease wait, you will be notified if it has been accepted!", ephemeral=True)
 			await vUserData.joinMessage.delete()
 
 		else:
@@ -257,7 +257,7 @@ class NewUserRequest():
 		Creates and returns a list of embeds detailing the user who requested to join.
 		"""
 	# USER INFO EMBED
-		embed_userInfo = discord.Embed(colour=botUtils.Colours.userRequest.value, title=f"JOIN REQUEST: {self.userData.userObj.display_name}", description=f"User joined the server: {botUtils.DateFormatter.GetDiscordTime( pDate=self.userData.joinMessage.created_at, pFormat=botUtils.DateFormat.TimeShorthand)}")
+		embed_userInfo = discord.Embed(colour=botUtils.Colours.userRequest.value, title=f"JOIN REQUEST: {self.userData.userObj.display_name}", description=f"User joined the server: {botUtils.DateFormatter.GetDiscordTime( pDate=self.userData.joinMessage.created_at, pFormat=botUtils.DateFormat.Dynamic)}")
 		
 		embed_userInfo.add_field(name="User ID", value=f"`{self.userData.userObj.id}`")
 		embed_userInfo.add_field(name="User Name", value=f"{self.userData.userObj.name}")
@@ -268,7 +268,7 @@ class NewUserRequest():
 		if self.userData.ps2CharObj != None:
 			embed_ps2 = discord.Embed(color=botUtils.Colours.userRequest.value, title=f"PS2 CHARACTER")
 			embed_ps2.add_field(name="Character Name", value=f"{self.userData.ps2CharObj.data.name}")
-			embed_ps2.add_field(name="Prestiege", value=f"{self.userData.ps2CharObj.data.prestige_level}", inline=True)
+			embed_ps2.add_field(name="BattleRank", value=f"{self.userData.ps2CharObj.data.battle_rank}", inline=True)
 		if( self.userData.ps2OutfitCharObj != None ):
 			embed_ps2.add_field(name="Outfit", value=f"{self.userData.ps2OutfitName}", inline=True)
 			embed_ps2.add_field(name="Rank", value=f"{self.userData.ps2OutfitCharObj.rank}", inline=True)
@@ -337,39 +337,46 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 	async def callback(self, pInteraction: discord.Interaction):
 		
 		# Assign given role:
-		BotPrinter.Debug(f"Assigning {self.values[0]} to {self.userData.userObj.display_name}")
 		vGuild = await pInteraction.client.fetch_guild(botData.settings.BotSettings.discordGuild)
-		BotPrinter.Debug(f"Guild Obj: {vGuild}")
 		vAllRoles = await vGuild.fetch_roles()
-		BotPrinter.Debug(f"Roles: {vAllRoles}")
 		vRole: discord.Role = None
 		roleIndex: discord.Role
 		for roleIndex in vAllRoles:
-			BotPrinter.Debug(f"Current role: {roleIndex.name}|{roleIndex.id}")
-			if roleIndex.id == self.values[0]:
+			if roleIndex.id == int(self.values[0]):
+				BotPrinter.Debug("	-> ROLE MATCH")
 				vRole = roleIndex
 				break
-		BotPrinter.Debug(f"Role to Assign: {vRole}")
+
+		BotPrinter.Info(f"Assigning {vRole.name} to {self.userData.userObj.display_name}")
 		await self.userData.userObj.add_roles(vRole, reason=f"Assigned role on join request. Accepted by {pInteraction.user.display_name}")
 
 		# Rename
 		if self.userData.ps2CharName != None:
 			vNewNick = ""
-			if self.userData.ps2OutfitCharObj != None:
-				vNewNick += f"({self.userData.ps2OutfitAlias}) "
+			# Prepend any outfit tag if any and NOT TDKD
+			if self.userData.ps2OutfitCharObj != None and self.userData.self.userData.ps2OutfitAlias != "TDKD":
+				vNewNick += f"[{self.userData.ps2OutfitAlias}] "
 			vNewNick += f"{self.userData.ps2CharName}"
 
 			await self.userData.userObj.edit(nick=vNewNick)
 
 		# Cleanup Join Request Channel
-		await pInteraction.response.send_message(f"{pInteraction.user.display_name} confirmed {self.userData.ps2CharName}'s request with role {vRole.name}.")
+		vConfirmName: str = ""
+		if self.userData.ps2CharObj != None:
+			vConfirmName = self.userData.ps2CharName
+		else:
+			vConfirmName = self.userData.userObj.display_name
+
+		await pInteraction.response.send_message(f"{pInteraction.user.display_name} confirmed {vConfirmName}'s request with role {vRole.name}.")
 		await self.parentRequest.requestMessage.delete()
 
+		BotPrinter.Debug("Alerting user they have been accepted.")
 		# Alert User
-		vGeneralChannel = vGuild.fetch_channel(botData.settings.BotSettings.generalChanelID)
-		vGeneralChannel.send(f"Welcome, {self.userData.userObj.mention}!\nYou have been assigned the role: {vRole.name}.\n\nMake sure to use `/roles` to assign both PS2 and other game related roles (and access related channels)!")
+		vGeneralChannel = await vGuild.fetch_channel(botData.settings.BotSettings.generalChanelID)
+		await vGeneralChannel.send(f"Welcome, {self.userData.userObj.mention}!\nYou have been assigned the role: {vRole.name}.\n\nMake sure to use `/roles` to assign both PS2 and other game related roles (and access related channels)!")
 
 		# TODO: Create server User Library entry for new user.
 
+		BotPrinter.Debug("Removing Userdata from list.")
 		# Remove userData item from list
 		NewUser.userDatas.remove(self.userData)
