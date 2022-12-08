@@ -89,7 +89,7 @@ class NewUser(commands.Cog):
 
 			vView = self.GenerateView(p_member.id)
 			gateChannel = self.botRef.get_channel(botData.settings.BotSettings.newUser_gateChannelID)
-			userData.joinMessage:discord.Message = await gateChannel.send(view=vView, embed=vEmbed)
+			userData.joinMessage:discord.Message = await gateChannel.send(f"{p_member.mention}",  view=vView, embed=vEmbed)
 			# BotPrinter.Debug(f"Join Message: {userData.joinMessage}")
 
 			await self.enableRequestBtn.start(p_member.id)
@@ -334,8 +334,10 @@ class NewUserRequest():
 		vView = discord.ui.View(timeout=None)
 		btn_roles = NewUserRequest_btnAssignRole(self.userData, self)
 		btn_reject = NewUserRequest_btnReject(self.userData, self)
+		btn_ban = NewUserRequest_btnBan(self.userData, self)
 		vView.add_item(btn_roles)
 		vView.add_item(btn_reject)
+		vView.add_item(btn_ban)
 
 		self.requestMessage = await self.vRequestChannel.send(view=vView, embeds=self.GenerateReports())
 		BotPrinter.Debug("	-> New User Join Request sent!")
@@ -405,7 +407,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		if self.userData.ps2CharName != None:
 			vNewNick = ""
 			# Prepend any outfit tag if any and NOT TDKD
-			if self.userData.ps2OutfitCharObj != None and self.userData.self.userData.ps2OutfitAlias != "TDKD":
+			if self.userData.ps2OutfitCharObj != None and self.userData.ps2OutfitAlias != "TDKD":
 				vNewNick += f"[{self.userData.ps2OutfitAlias}] "
 			vNewNick += f"{self.userData.ps2CharName}"
 
