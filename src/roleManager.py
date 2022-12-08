@@ -112,18 +112,7 @@ class RoleSelection(discord.ui.Select):
 class TDKDRoles(RoleSelection):
 	def __init__(self):
 		self.parentView: RoleManager
-		vOptions = [
-			# discord.SelectOption(label="Planetside", value="TDKD", description="The main role for TDKD planetside.", emoji=''),
-			discord.SelectOption(label="Planetside Pings", value="ps2", description="Non-major PS2 events/fellow drunken doggos looking for company"),
-			discord.SelectOption(label="Sober Dogs", value="1040751250163122176", description="More serious, coordinated infantry events"),
-			discord.SelectOption(label="Base Busters", value="LogiDogs", description="Base building and busting events"),
-			discord.SelectOption(label="Armour Dogs", value="ArmourDogs", description="Ground vehicle related events"),
-			discord.SelectOption(label="Dog Fighters", value="dogfighter", description="Small aerial vehicle related events"),
-			discord.SelectOption(label="Royal Air Woofs", value="RAW", description="Heavy aerial vehicle related events"),
-			discord.SelectOption(label="PS2 Twitter", value="Twitter", description="Planetside 2 Twitter posts"),
-			discord.SelectOption(label="Jaeger", value="IdontfuckinknowCactusHelp", description="Jeager events")
-			# discord.SelectOption(label="", value="", description="", emoji='')
-		]
+		vOptions = botData.settings.Roles.addRoles_TDKD
 
 		super().__init__(placeholder="TDKD/PS2 Notification roles", min_values=0, max_values=8, options=vOptions)
 
@@ -132,33 +121,7 @@ class TDKDRoles(RoleSelection):
 class GameRoles1(RoleSelection):
 	def __init__(self):
 		self.parentView:RoleManager
-		vOptions = [
-			discord.SelectOption(label="Post Scriptum", value="1"),
-			discord.SelectOption(label="Squad", value="2"),
-			discord.SelectOption(label="Space Engineers", value="3"),
-			discord.SelectOption(label="Deep Rock Galactic", value="4"),
-			discord.SelectOption(label="Valheim", value="5"),
-			discord.SelectOption(label="Terraria", value="6"),
-			discord.SelectOption(label="Apex Legends", value="7"),
-			discord.SelectOption(label="Minecraft", value="8"),
-			discord.SelectOption(label="Team Fortress 2", value="9"),
-			discord.SelectOption(label="Dungeon and Dragons", value="10"),
-			discord.SelectOption(label="Warframe", value="11"),
-			discord.SelectOption(label="Supreme Commander", value="12"),
-			discord.SelectOption(label="Battlefield 2042", value="13"),
-			discord.SelectOption(label="Conqueror's Blade", value="14"),
-			discord.SelectOption(label="Stellaris", value="15"),
-			discord.SelectOption(label="Sea of Thieves", value="16"),
-			discord.SelectOption(label="Back 4 Blood", value="17"),
-			discord.SelectOption(label="Garrys' Mod", value="18"),
-			discord.SelectOption(label="Killing Floor 2", value="19"),
-			discord.SelectOption(label="Vermintide", value="20"),
-			discord.SelectOption(label="Total War: Warhammer", value="21"),
-			discord.SelectOption(label="Factorio", value="22"),
-			discord.SelectOption(label="Warthunder", value="23"),
-			discord.SelectOption(label="Gates of Hell", value="24"),
-			discord.SelectOption(label="Overwatch", value="25")
-		]
+		vOptions = botData.settings.Roles.addRoles_games1
 		super().__init__(placeholder="Other Games roles", min_values=0, max_values=25, options=vOptions)
 	
 	# async def callback(self, pInteraction: discord.Interaction):
@@ -167,65 +130,6 @@ class GameRoles1(RoleSelection):
 
 class GameRoles2(RoleSelection):
 	def __init__(self):
-		vOptions = [
-			discord.SelectOption(label="World of Tanks", value="987"),
-			discord.SelectOption(label="Star Citizen", value="654")
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji=""),
-			# discord.SelectOption(label="", value="", description="", emoji="")
-		]
+		vOptions = botData.settings.Roles.addRoles_games2
 		super().__init__(placeholder="Other Games roles", min_values=0, max_values=2, options=vOptions)
-
-
-
-# class GameRoles0(RoleSelection):
-# 	def __init__(self):
-# 		vOptions = [
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji=""),
-# 			discord.SelectOption(label="", value="", description="", emoji="")
-# 		]
-# 		super().__init__(placeholder="Choose your other game roles!", min_values=0, max_values=25, options=vOptions)
 	#  Make sure "max values" matches the number of roles.  It bugs out if higher than the actual amount of roles available.

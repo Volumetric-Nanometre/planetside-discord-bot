@@ -22,6 +22,7 @@ class BotSettings():
 	# Debug Enabled: set to false
 	bDebugEnabled = False
 
+# USED PRIMARILY BY NEW USER
 	# New User Admin Chanel: the channel (ID) new user join requests are sent to.
 	newUser_adminChannel = 1049424595750506527
 	# Gate Channel: Channel (ID) where new user join forms are sent to.
@@ -34,15 +35,6 @@ class BotSettings():
 	newUser_outfitRankWarn = 4
 	# New User Date Warning, discord account is less than x months old.
 	newUser_newAccntWarn = 3
-
-	# Provides a dropdown containing these roles.
-	newUser_roles = [ 
-		SelectOption(label="Guest", value="roleIDHere_123"),
-		SelectOption(label="Recruit", value="roleIDHere_566"),
-		SelectOption(label="TDKD", value="1050286811940921344"),
-		SelectOption(label="The Washed Masses", value="roleIDHere_741"),
-		SelectOption(label="The Unwashed Masses", value="roleIDHere_963")
-	]
 
 	# The Jump URL "rules" leads to (ensure this leads to the rules post!)
 	newUser_rulesURL = "https://discord.com/channels/321688140802949120/1049523449867022348/1049523492166565939"
@@ -149,3 +141,69 @@ class Messages:
 
 	# Displayed after the mention line when a new user joins.
 	newUserWelcome = "Make sure to use `/roles` to assign both PS2 and other game related roles (and access related channels)!"
+
+
+@dataclass(frozen=True)
+class Roles():
+	"""
+	# ROLES
+	For convenience sake, all roles used within selectors are stored here
+	"""
+	# discord.SelectOption(label="", value="", description="", emoji=""),
+
+	# Provides a dropdown containing these roles for giving to new users.
+	newUser_roles = [ 
+		SelectOption(label="Guest", value="roleIDHere_123"), # Couldn't find someone with this role to copy the ID from.
+		SelectOption(label="Recruit", value="780253442605842472"),
+		SelectOption(label="TDKD", value="1050286811940921344"), # 1050286811940921344 <- Dev server RoleID | 710472193045299260 <- Live server RoleID
+		SelectOption(label="The Washed Masses", value="710502581893595166"),
+		SelectOption(label="The Unwashed Masses", value="719219680434192405")
+	]
+
+	# ADD ROLES - TDKD:  Roles used in the /roles command, "tdkd" role selector 
+	addRoles_TDKD = [
+		#SelectOption(label="Planetside", value="TDKD", description="The main role for TDKD planetside.", emoji=''),
+		SelectOption(label="Planetside Pings", value="ps2", description="Non-major PS2 events/fellow drunken doggos looking for company"),
+		SelectOption(label="Sober Dogs", value="1040751250163122176", description="More serious, coordinated infantry events"),
+		SelectOption(label="Base Busters", value="LogiDogs", description="Base building and busting events"),
+		SelectOption(label="Armour Dogs", value="ArmourDogs", description="Ground vehicle related events"),
+		SelectOption(label="Dog Fighters", value="dogfighter", description="Small aerial vehicle related events"),
+		SelectOption(label="Royal Air Woofs", value="RAW", description="Heavy aerial vehicle related events"),
+		SelectOption(label="PS2 Twitter", value="Twitter", description="Planetside 2 Twitter posts"),
+		SelectOption(label="Jaeger", value="IdontfuckinknowCactusHelp", description="Jeager events")
+		# discord.SelectOption(label="", value="", description="", emoji='')
+	]
+
+	# ADD ROLES - GAMES : Role selectors used in the /roles command.
+	addRoles_games1 = [
+		SelectOption(label="Post Scriptum", value="1"),
+		SelectOption(label="Squad", value="2"),
+		SelectOption(label="Space Engineers", value="3"),
+		SelectOption(label="Deep Rock Galactic", value="4"),
+		SelectOption(label="Valheim", value="5"),
+		SelectOption(label="Terraria", value="6"),
+		SelectOption(label="Apex Legends", value="7"),
+		SelectOption(label="Minecraft", value="8"),
+		SelectOption(label="Team Fortress 2", value="9"),
+		SelectOption(label="Dungeon and Dragons", value="10"),
+		SelectOption(label="Warframe", value="11"),
+		SelectOption(label="Supreme Commander", value="12"),
+		SelectOption(label="Battlefield 2042", value="13"),
+		SelectOption(label="Conqueror's Blade", value="14"),
+		SelectOption(label="Stellaris", value="15"),
+		SelectOption(label="Sea of Thieves", value="16"),
+		SelectOption(label="Back 4 Blood", value="17"),
+		SelectOption(label="Garrys' Mod", value="18"),
+		SelectOption(label="Killing Floor 2", value="19"),
+		SelectOption(label="Vermintide", value="20"),
+		SelectOption(label="Total War: Warhammer", value="21"),
+		SelectOption(label="Factorio", value="22"),
+		SelectOption(label="Warthunder", value="23"),
+		SelectOption(label="Gates of Hell", value="24"),
+		SelectOption(label="Overwatch", value="25")
+	]
+
+	addRoles_games2 = [
+		SelectOption(label="World of Tanks", value="987"),
+		SelectOption(label="Star Citizen", value="654")		
+	]

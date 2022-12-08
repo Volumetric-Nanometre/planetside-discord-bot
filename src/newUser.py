@@ -361,8 +361,8 @@ class NewUserRequest_btnReject(discord.ui.Button):
 
 class NewUserRequest_btnBan(discord.ui.Button):
 	def __init__(self, p_userData:NewUserData, p_parent):
-		self.userData = p_userData
-		self.parentRequest = p_parent
+		self.userData:NewUserData = p_userData
+		self.parentRequest:NewUserRequest = p_parent
 
 		super().__init__(
 			style=discord.ButtonStyle.red,
@@ -378,13 +378,13 @@ class NewUserRequest_btnBan(discord.ui.Button):
 
 class NewUserRequest_btnAssignRole(discord.ui.Select):
 	def __init__(self, p_userData:NewUserData, p_parent:NewUserRequest):
-		self.userData = p_userData
-		self.parentRequest = p_parent
+		self.userData:NewUserData = p_userData
+		self.parentRequest:NewUserRequest = p_parent
 
 		super().__init__(
 			custom_id=f"{self.userData.userObj.id}_joinRole",
 			placeholder="Assign a role...",
-			options=botData.settings.BotSettings.newUser_roles
+			options=botData.settings.Roles.newUser_roles
 		) # END - Init
 
 	async def callback(self, pInteraction: discord.Interaction):
