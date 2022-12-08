@@ -33,13 +33,6 @@ class NewUser(commands.Cog):
 		self.newReq:NewUserRequest = NewUserRequest(p_userData=None)
 		self.newReq.vBotRef = pBot
 
-	async def GetChannels(self):
-		self.newReq.vRequestChannel = await self.botRef.fetch_channel(botData.settings.BotSettings.newUser_adminChannel)
-		# self.newReq.vBotRef = self.botRef
-
-		# self.nameModal = PS2NameModal(p_parent=self)
-		# self.userData = NewUserData()
-
 	def GetUserData(self, p_id: str):
 		"""
 		Returns the `NewUserData` with matching user ID.
@@ -52,6 +45,25 @@ class NewUser(commands.Cog):
 		BotPrinter.Info("No userdata matching the ID found!")
 		return None
 
+	@commands.Cog.listener("on_ready")
+	async def startup(self):
+		"""
+		# STARTUP
+		Clears the gate channel of all posts, and the join-req channel of all posts.
+		This is here to keep start-up and shutdown clean:
+
+		In the event the bot is shutdown while users are in the process of joining, the VIEWs cease to function.
+		Given the low likelyhood of a user being affected by down-time, post a message afterwards instructing them to leave and re-join.
+		"""
+		BotPrinter.Info("Purging Join Posts and sent Requests...")
+		gateChannel = self.botRef.get_channel(botData.settings.BotSettings.newUser_gateChannelID)
+		await gateChannel.purge(reason="Start-up/Shutdown Purge.")
+		BotPrinter.Debug("	-> Gate channel Purged.")
+		adminRequestChannel = self.botRef.get_channel(botData.settings.BotSettings.newUser_adminChannel)
+		await adminRequestChannel.purge(reason="Startup/Shutdown Purge")
+		BotPrinter.Debug("	-> Request Channel Purged.")
+		await gateChannel.send(botData.settings.Messages.gateChannelDefaultMsg)
+
 	@commands.Cog.listener("on_member_join")
 	async def promptUser(self, p_member: discord.Member):
 		if NewUserRequest.vRequestChannel == None:
@@ -59,6 +71,7 @@ class NewUser(commands.Cog):
 			if(NewUserRequest.vRequestChannel == None):
 				BotPrinter.Info("NEW USER REQUEST CHANNEL NOT FOUND!")
 				return
+
 	
 		if( p_member not in self.userDatas):
 			# self.botRef = p_bot
@@ -69,10 +82,10 @@ class NewUser(commands.Cog):
 
 			vEmbed = discord.Embed(colour=discord.Colour.from_rgb(0, 200, 50), 
 				title=f"Welcome to The Drunken Dogs, {p_member.display_name}!", 
-				description="To continue, use the buttons below to provide your Planetside 2 character name, and read the rules.\nThen you can request access, and wait for one of our admins to get you set up!"
+				description=botData.settings.Messages.newUserInfo
 			) # End - vEmbed
 
-			vEmbed.add_field(name="ACCEPTANCE OF RULES", value="By pressing 'REQUEST ACCESS', you are confirming **you have read**, **understand**, and **agree to adhere** by the rules.", inline=True)
+			vEmbed.add_field(name="ACCEPTANCE OF RULES", value=botData.settings.Messages.newUserRuleDeclaration, inline=True)
 
 			vView = self.GenerateView(p_member.id)
 			gateChannel = self.botRef.get_channel(botData.settings.BotSettings.newUser_gateChannelID)
@@ -83,6 +96,7 @@ class NewUser(commands.Cog):
 		
 		else:
 			BotPrinter.Info("User already has an entry!")
+	
 	# Count must be set to 2.  1st loop is initial call, then 2nd loop is after timer.
 	@tasks.loop(minutes=botData.settings.BotSettings.newUser_readTimer, count=2)
 	async def enableRequestBtn(self, p_userID):
@@ -117,6 +131,7 @@ class NewUser(commands.Cog):
 		vView.add_item(btnRequest)
 
 		return vView
+
 
 
 class NewUser_btnPs2Name(discord.ui.Button):
@@ -318,10 +333,46 @@ class NewUserRequest():
 		BotPrinter.Debug("Preparing Send Request...")
 		vView = discord.ui.View(timeout=None)
 		btn_roles = NewUserRequest_btnAssignRole(self.userData, self)
+		btn_reject = NewUserRequest_btnReject(self.userData, self)
 		vView.add_item(btn_roles)
+		vView.add_item(btn_reject)
 
 		self.requestMessage = await self.vRequestChannel.send(view=vView, embeds=self.GenerateReports())
 		BotPrinter.Debug("	-> New User Join Request sent!")
+
+class NewUserRequest_btnReject(discord.ui.Button):
+	def __init__(self, p_userData:NewUserData, p_parent: NewUserRequest):
+		self.userData = p_userData
+		self.parentRequest = p_parent
+
+		super().__init__(
+			style=discord.ButtonStyle.red,
+			label="Reject",
+			custom_id=f"{self.parentRequest.userData.userObj.id}_NewUserReq_Reject",
+			row=1
+		)
+
+	async def callback(self, pInteraction: discord.Interaction):
+		await self.userData.userObj.kick(reason=f"User join request denied by {pInteraction.user.display_name}")
+		await pInteraction.response.send_message(f"{pInteraction.user.display_name} **denied** {self.userData.userObj.display_name}'s request.")
+		await self.parentRequest.requestMessage.delete()
+
+class NewUserRequest_btnBan(discord.ui.Button):
+	def __init__(self, p_userData:NewUserData, p_parent):
+		self.userData = p_userData
+		self.parentRequest = p_parent
+
+		super().__init__(
+			style=discord.ButtonStyle.red,
+			label="Ban",
+			custom_id=f"{self.parentRequest.userData.userObj.id}_NewUserReq_Ban",
+			row=1
+		)
+
+	async def callback(self, pInteraction: discord.Interaction):
+		await self.userData.userObj.ban(reason=f"User join request denied by {pInteraction.user.display_name}")
+		await pInteraction.response.send_message(f"{pInteraction.user.display_name} **denied** {self.userData.userObj.display_name}'s request and **banned** the user.")
+		await self.parentRequest.requestMessage.delete()
 
 class NewUserRequest_btnAssignRole(discord.ui.Select):
 	def __init__(self, p_userData:NewUserData, p_parent:NewUserRequest):
@@ -367,13 +418,13 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		else:
 			vConfirmName = self.userData.userObj.display_name
 
-		await pInteraction.response.send_message(f"{pInteraction.user.display_name} confirmed {vConfirmName}'s request with role {vRole.name}.")
+		await pInteraction.response.send_message(f"{pInteraction.user.display_name} **confirmed** {vConfirmName}'s request with role {vRole.name}.")
 		await self.parentRequest.requestMessage.delete()
 
 		BotPrinter.Debug("Alerting user they have been accepted.")
 		# Alert User
 		vGeneralChannel = await vGuild.fetch_channel(botData.settings.BotSettings.generalChanelID)
-		await vGeneralChannel.send(f"Welcome, {self.userData.userObj.mention}!\nYou have been assigned the role: {vRole.name}.\n\nMake sure to use `/roles` to assign both PS2 and other game related roles (and access related channels)!")
+		await vGeneralChannel.send(f"Welcome, {self.userData.userObj.mention}!\nYou have been assigned the role: {vRole.name}.\n\n{botData.settings.Messages.newUserWelcome}")
 
 		# TODO: Create server User Library entry for new user.
 

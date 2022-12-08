@@ -51,7 +51,9 @@ class Bot(commands.Bot):
 
     async def on_ready(self):
         BUPrint.Info(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.BotSettings.discordGuild}\n')
+
         await self.vOpsManager.RefreshOps()
+
         
 		# Ensure all opCommanders have a botref.
         self.vOpCommander.vBotRef = self
