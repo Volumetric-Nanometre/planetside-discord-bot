@@ -25,21 +25,26 @@ class BotSettings():
 # USED PRIMARILY BY NEW USER
 	# New User Admin Chanel: the channel (ID) new user join requests are sent to.
 	newUser_adminChannel = 1049424595750506527
+
 	# Gate Channel: Channel (ID) where new user join forms are sent to.
 	newUser_gateChannelID = 1041860598822096950
+
 	#General Channel: ID of the general channel.
 	generalChanelID = 358702477962379274
+
 	# Minimum Read time: The number of minutes a user has to wait (to read the rules) before they are able to request access.
 	newUser_readTimer = 1
+
 	# Warn if a user claims a ps2 character name with a rank equal or higher than this (numerical, lower = higher rank.)
 	newUser_outfitRankWarn = 4
+
 	# New User Date Warning, discord account is less than x months old.
 	newUser_newAccntWarn = 3
 
 	# The Jump URL "rules" leads to (ensure this leads to the rules post!)
 	newUser_rulesURL = "https://discord.com/channels/321688140802949120/1049523449867022348/1049523492166565939"
 
-
+	# Collapse for ease of reading.
 	def __repr__(self) -> str:
 		vString = "\n	GENERAL BOT SETTINGS\n"
 		vString += f"	> DebugEnabled: {self.bDebugEnabled}\n"
@@ -82,14 +87,14 @@ class Directories:
 	# Number of attempts to try obtaining a lock before returning.
 	lockFileRetry = 5
 
-
+	# Collapse for ease of reading.
 	def __repr__(self) -> str:
 		vString = "	BOT DIRECTORY SETTINGS\n"
 		vString += f"	> Prefix Dir : {self.prefixDir}\n"
 		vString += f"	> LiveOps Dir: {self.liveOpsDir}\n" 
 		vString += f"	> DefaultsDir: {self.savedDefaultsDir}\n" 
 		vString += f"	> UserLib Dir: {self.userLibrary}\n\n" 
-		vString += f"	> LockFile Affix: {self.lockFileAffix}\n" 
+		vString += f"	> LockFile Affix: {self.lockFileAffix} | Retries: {self.lockFileRetry}\n" 
 		return vString
 
 
@@ -131,7 +136,7 @@ class Messages:
 	"""
 	
 	# Displayed in the GATE channel on bot startup (after purging).
-	gateChannelDefaultMsg = "Welcome to TDKD.\nIf a join request has not been created for you, or you have already sent one and it's no longer here, please re-join the server. Our bot has been restarted."
+	gateChannelDefaultMsg = "Welcome to TDKD.\nIf a join request has not been created for you, or you have already sent one and it's no longer here, please re-join the server. \nOur bot has been restarted."
 
 	# Displayed in the embed for new users in their gate message.
 	newUserInfo = "Use the buttons below to provide your Planetside 2 character name and read the rules.\nThen you can request access, and wait for one of our admins to get you set up!"
