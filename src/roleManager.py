@@ -12,6 +12,7 @@ import botData.settings
 from botUtils import BotPrinter as BUPrint
 from botUtils import UserHasCommandPerms
 from botData.settings import BotSettings
+import botData.settings
 
 
 class UserRoles(commands.GroupCog):
@@ -27,7 +28,7 @@ class UserRoles(commands.GroupCog):
 		Command enabling a user to select role(s) they wish to add to themselves.
 		"""
 		# HARDCODED ROLE USEAGE:
-		if not await UserHasCommandPerms(pInteraction.user, (BotSettings.roleRestrict_level_0 + BotSettings.roleRestrict_level_1 + BotSettings.roleRestrict_level_2 + BotSettings.roleRestrict_level_3), pInteraction):
+		if not await UserHasCommandPerms(pInteraction.user, (botData.settings.CommandRestrictionLevels.level3), pInteraction):
 			return
 
 		vView = RoleManager(p_bot=self.bot, p_user=pInteraction.user, pIsAdding=True)
@@ -41,7 +42,7 @@ class UserRoles(commands.GroupCog):
 		# REMOVE USER ROLE
 		Command enabling a user to select role(s) they wish to remove from themselves.
 		"""
-		if not await UserHasCommandPerms(pInteraction.user, (BotSettings.roleRestrict_level_0 + BotSettings.roleRestrict_level_1 + BotSettings.roleRestrict_level_2 + BotSettings.roleRestrict_level_3), pInteraction):
+		if not await UserHasCommandPerms(pInteraction.user, (botData.settings.CommandRestrictionLevels.level3), pInteraction):
 			return
 
 		vView = RoleManager(p_bot=self.bot, p_user=pInteraction.user, pIsAdding=False)

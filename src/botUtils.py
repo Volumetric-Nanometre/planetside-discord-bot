@@ -2,6 +2,7 @@ import os
 import datetime
 import time
 from botData.settings import BotSettings
+from botData.settings import CommandRestrictionLevels
 from botData.settings import Directories
 import traceback
 import enum
@@ -275,7 +276,7 @@ class EmojiLibrary(enum.Enum):
 	# Ground Vehicles
 	ICON_ = ""
 
-async def UserHasCommandPerms(p_callingUser:discord.Member, p_roleList:list, p_interaction: discord.Interaction):
+async def UserHasCommandPerms(p_callingUser:discord.Member, p_requiredLevel:CommandRestrictionLevels, p_interaction: discord.Interaction):
 	"""
 	# USER HAS VALID PERMS
 	Checks if the user provided has any role within the role list provided.
@@ -283,14 +284,15 @@ async def UserHasCommandPerms(p_callingUser:discord.Member, p_roleList:list, p_i
 	NOTE: If `settings.bForceRoleRestrictions` is false, this always returns true.
 	"""
 	if BotSettings.bForceRoleRestrictions:
-		BotPrinter.Debug(f"Required Roles: {p_roleList}")
+
+		BotPrinter.Debug(f"Required Roles: {p_requiredLevel.value}")
 		role: discord.Role
 		for role in p_callingUser.roles:
 			if BotSettings.bForceRestrictions_useID:
-				if role.id in p_roleList:
+				if role.id in p_requiredLevel.value:
 					return True
 			else:
-				if role.name in p_roleList:
+				if role.name in p_requiredLevel.value:
 					return True
 		await p_interaction.response.send_message("You do not have valid permission to use this command!", ephemeral=True)
 		return False

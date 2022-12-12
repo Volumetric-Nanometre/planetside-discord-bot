@@ -7,6 +7,7 @@ These settings pertain to the overall behaviour of the bot, not individual items
 from discord import SelectOption
 import botData.envVars as Env
 from dataclasses import dataclass
+from enum import Enum
 
 @dataclass(frozen=True)
 class BotSettings():
@@ -19,7 +20,7 @@ class BotSettings():
 	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
 
-	# Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below.
+	# Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below; users unable to call commands setup within the client are still unable to call commands regardless of this setting.  As such, this is merely a redundancy.
 	bForceRoleRestrictions = True
 
 	# Force Role Restrictions, use ID: set to TRUE if Role IDs are used instead of role names.
@@ -71,8 +72,29 @@ class BotSettings():
 		vString += f"	> DiscordGuild: {self.discordGuild}\n"
 		vString += f"	> PS2ServiceID: {self.ps2ServiceID}\n"
 		vString += f"	> BotDirectory: {self.botDir}\n"
+		vString += f"	> Force Role Restrictions: {self.bForceRoleRestrictions}\n"
+		vString += f"	> Role Restriction Using IDs: {self.bForceRestrictions_useID}\n"
+		vString += f"	> Level 0: {self.roleRestrict_level_0}\n"
+		vString += f"	> Level 1: {self.roleRestrict_level_1}\n"
+		vString += f"	> Level 2: {self.roleRestrict_level_2}\n"
+		vString += f"	> Level 3: {self.roleRestrict_level_3}\n"
+		vString += f"	> New user Admin Channel: {self.newUser_adminChannel}\n"
+		vString += f"	> New user Gate channel : {self.newUser_gateChannelID}\n"
+		vString += f"	> New user Rules URL: {self.newUser_rulesURL}\n"
+		vString += f"	> New user | Read timer:{self.newUser_readTimer} | AccountWarn: {self.newUser_newAccntWarn} | OutfitRank Warn: {self.newUser_outfitRankWarn}\n"
 		return vString
 
+class CommandRestrictionLevels(Enum):
+	"""
+	# COMMAND RESTRICTION LEVELS
+	Convenience Enum for setting levels.
+
+	Should be used instead of raw roleRestrict_level_n
+	"""
+	level0 = BotSettings.roleRestrict_level_0
+	level1 = level0 + BotSettings.roleRestrict_level_1
+	level2 = level1 + BotSettings.roleRestrict_level_2
+	level3 =level2 + BotSettings.roleRestrict_level_3
 
 @dataclass(frozen=True)
 class Directories:

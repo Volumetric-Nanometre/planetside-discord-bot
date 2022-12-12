@@ -45,7 +45,7 @@ class Operations(commands.GroupCog):
 		pArguments: str = ""
 	):
 		# HARDCODED ROLE USEAGE:
-		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.BotSettings.roleRestrict_level_0 + botSettings.BotSettings.roleRestrict_level_1), pInteraction):
+		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandRestrictionLevels.level1), pInteraction):
 			return
 
 		botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
@@ -125,7 +125,7 @@ class Operations(commands.GroupCog):
 	async def editopsevent(self, pInteraction: discord.Interaction, pOpsToEdit: str):
 
 		# HARDCODED ROLE USEAGE:
-		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.BotSettings.roleRestrict_level_0 + botSettings.BotSettings.roleRestrict_level_1), pInteraction):
+		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandRestrictionLevels.level1), pInteraction):
 			return
 
 		BUPrint.Info(f"Editing Ops data for {pOpsToEdit}")
