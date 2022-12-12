@@ -332,7 +332,7 @@ class NewUserRequest():
 
 		# RECRUIT SUGGESTION
 		if self.userData.ps2OutfitCharObj != None and self.userData.ps2OutfitAlias == "TDKD" and self.userData.ps2OutfitCharObj.rank == "Recruit":
-			embed_warnings.add_field(name="🆕 TDKD RECRUIT", value="This users ps2 character is a TDKD recruit.")
+			embed_warnings.add_field(name="🆕 TDKD RECRUIT", value="This users ps2 character is a TDKD recruit.", inline=False)
 
 		vreturnList: list = []
 		vreturnList.append(embed_userInfo)
