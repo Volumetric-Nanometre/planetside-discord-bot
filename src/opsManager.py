@@ -481,7 +481,7 @@ class OperationManager():
 				if argument.find("CHN=") != -1:
 					BUPrint.Debug("	-> Argument for channel found!")
 					vCleanArg = argument.strip("CHN=")
-					channel = discord.utils.find(lambda items: items.name == vCleanArg.lower(), vGuild.text_channels)
+					channel = discord.utils.find(lambda items: items.name == vCleanArg.lower().replace(" ", "-"), vGuild.text_channels)
 					if channel != None:
 						return channel
 					else:
@@ -500,7 +500,7 @@ class OperationManager():
 
 		# If code reaches here, no channel was found.
 		BUPrint.Debug(f"	-> Target Ops Channel not specified (or missing preceeding 'CHN=')")
-		channel = discord.utils.find(lambda items: items.name == p_opsData.name.lower(), vGuild.text_channels)
+		channel = discord.utils.find(lambda items: items.name == p_opsData.name.lower().replace(" ", "-"), vGuild.text_channels)
 
 		if channel == None:
 			BUPrint.Debug("	-> No existing chanel, creating new one.")
