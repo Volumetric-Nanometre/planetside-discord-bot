@@ -9,8 +9,36 @@ import discord.utils
 import asyncio
 
 import botData.settings 
-from botUtils import BotPrinter
+from botUtils import BotPrinter as BUPrint
 
+
+class UserRoles(commands.GroupCog):
+	def __init__(self, p_bot):
+		super().__init__()
+		self.bot: commands.Bot = p_bot
+		BUPrint.Info("COG: User Roles loaded")
+
+	@discord.app_commands.command(name="add", description="Select roles you wish to add.")
+	async def adduserrole(self, pInteraction: discord.Interaction):
+		"""
+		# ADD USER ROLE
+		Command enabling a user to select role(s) they wish to add to themselves.
+		"""
+		vView = RoleManager(p_bot=self.bot, p_user=pInteraction.user, pIsAdding=True)
+		vView.vInteraction = pInteraction
+
+		await pInteraction.response.send_message(botData.settings.Messages.userAddingRoles, view=vView, ephemeral=True)
+	
+	@discord.app_commands.command(name="remove", description="Select roles you wish to remove.")
+	async def removeuserrole(self, pInteraction: discord.Interaction):
+		"""
+		# REMOVE USER ROLE
+		Command enabling a user to select role(s) they wish to remove from themselves.
+		"""
+		vView = RoleManager(p_bot=self.bot, p_user=pInteraction.user, pIsAdding=False)
+		vView.vInteraction = pInteraction
+
+		await pInteraction.response.send_message(botData.settings.Messages.userAddingRoles, view=vView, ephemeral=True)
 
 class RoleManager(discord.ui.View):
 	def __init__(self, p_bot, p_user: discord.Member, pIsAdding: bool):
@@ -29,7 +57,7 @@ class RoleManager(discord.ui.View):
 		self.vGameRoles2.parentView = self
 
 		self.bAddRoles = pIsAdding
-		BotPrinter.Debug(f"{p_user.name} is updating roles.  Adding new roles: {self.bAddRoles}")
+		BUPrint.Debug(f"{p_user.name} is updating roles.  Adding new roles: {self.bAddRoles}")
 		
 		self.add_item(self.vTDKDRoles)
 		self.add_item(self.vGameRoles1)
@@ -52,11 +80,11 @@ class RoleManager(discord.ui.View):
 		for role in vOptionList:
 			vUserRolesList.append(role.value)
 
-		BotPrinter.Debug(f"User Role List: {vUserRolesList}")
+		BUPrint.Debug(f"User Role List: {vUserRolesList}")
 
 		# Create a list of selected user roles.
 		vUserSelectedRoles = self.vTDKDRoles.values + self.vGameRoles1.values + self.vGameRoles2.values
-		BotPrinter.Debug(f"Selected Roles: {vUserSelectedRoles}")
+		BUPrint.Debug(f"Selected Roles: {vUserSelectedRoles}")
 
 		# Ensure we're operating on TDKD server.
 		self.vGuild = self.bot.get_guild(botData.settings.BotSettings.discordGuild)
@@ -64,16 +92,16 @@ class RoleManager(discord.ui.View):
 			# Try again using non-cache "fetch":
 			self.vGuild = await self.bot.fetch_guild(botData.settings.BotSettings.discordGuild)
 			if self.vGuild is None:
-				BotPrinter.LogError("Failed to find guild for updating roles!")
+				BUPrint.LogError("Failed to find guild for updating roles!")
 				return
-		BotPrinter.Debug(f"Guild Object: {self.vGuild}")
+		BUPrint.Debug(f"Guild Object: {self.vGuild}")
 
 		# Get all the roles in the server.
 		vServerRoles = await self.vGuild.fetch_roles()
 				
 		# Assign new:
 		for serverRoleIndex in vServerRoles:
-			BotPrinter.Debug(f"Current Index- ID:Name : {serverRoleIndex.id} : {serverRoleIndex.name}")
+			BUPrint.Debug(f"Current Index- ID:Name : {serverRoleIndex.id} : {serverRoleIndex.name}")
 
 		# New loop
 			# Only proceed if role is one a user can add/remove
@@ -81,16 +109,16 @@ class RoleManager(discord.ui.View):
 				# Add roles:
 				if self.bAddRoles:
 					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
-						BotPrinter.Debug("ADDING ROLE")
+						BUPrint.Debug("ADDING ROLE")
 						await self.vUser.add_roles( serverRoleIndex, reason="User self assigned role with /roles command." )
 
 				# Remove roles:
 				else:
 					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
-						BotPrinter.Debug("REMOVING ROLE")
+						BUPrint.Debug("REMOVING ROLE")
 						await self.vUser.remove_roles( serverRoleIndex, reason="User self unassigned role with /roles command" )
 			else:
-				BotPrinter.Debug("Role is not user-assignable. Skipping...")
+				BUPrint.Debug("Role is not user-assignable. Skipping...")
 
 
 

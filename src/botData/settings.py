@@ -131,7 +131,7 @@ class SignUps:
 @dataclass(frozen=True)
 class Messages:
 	"""
-	#MESSAGES
+	# MESSAGES
 	Messages used throughout the bot, typically for end-users, stored here for convenient editing purposes.
 	"""
 	
@@ -147,6 +147,12 @@ class Messages:
 	# Displayed after the mention line when a new user joins.
 	newUserWelcome = "Make sure to use `/roles` to assign both PS2 and other game related roles (and access related channels)!"
 
+	# Displayed when a user is choosing roles to ADD.
+	userAddingRoles = "Select the roles you wish to **ADD** using the dropdowns, then click update."
+
+	# Displayed when a user is choosing roles to REMOVE.
+	userRemovingRoles = "Select the roles you wish to **REMOVE** using the dropdowns, then click Update."
+
 
 @dataclass(frozen=True)
 class Roles():
@@ -154,7 +160,8 @@ class Roles():
 	# ROLES
 	For convenience sake, all roles used within selectors are stored here
 
-	NOTE: Selectors have a MAXIMUM limit of 25 items.
+	NOTE: Selectors have a MAXIMUM limit of 25 items;
+			This is a discord imposed limit.
 	"""
 	# SelectOption(label="", value="", description="", emoji=""),
 
