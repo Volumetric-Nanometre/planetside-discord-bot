@@ -283,7 +283,7 @@ class NewUserRequest():
 		if self.userData.ps2CharObj != None:
 			embed_ps2 = discord.Embed(color=botUtils.Colours.userRequest.value, title=f"PS2 CHARACTER")
 			embed_ps2.add_field(name="Character Name", value=f"{self.userData.ps2CharObj.data.name}")
-			embed_ps2.add_field(name="BattleRank", value=f"{self.userData.ps2CharObj.data.battle_rank}", inline=True)
+			embed_ps2.add_field(name="BattleRank", value=f"{self.userData.ps2CharObj.data.battle_rank.value}", inline=True)
 		if( self.userData.ps2OutfitCharObj != None ):
 			embed_ps2.add_field(name="Outfit", value=f"{self.userData.ps2OutfitName}", inline=True)
 			embed_ps2.add_field(name="Rank", value=f"{self.userData.ps2OutfitCharObj.rank}", inline=True)
@@ -291,30 +291,48 @@ class NewUserRequest():
 			embed_ps2.add_field(name="Member Since", value=f"{botUtils.DateFormatter.GetDiscordTime(joinDate,botUtils.DateFormat.DateTimeShort)}", inline=True)
 
 	# WARNINGS EMBED
-		embed_warnings = discord.Embed(colour=botUtils.Colours.userWarnOkay.value, title="WARNINGS", description="Detailed warning checks are listed below.\n\n")
-		
+		embed_warnings = discord.Embed(colour=botUtils.Colours.userWarnOkay.value, title="WARNINGS & CHECKS", description="Detailed warning checks are listed below.\n\n")
+
+		# Compiled string of warnings.
+		strWarnings: str = ""
+		# Compiled strings of Okay/Infos.
+		strOkay: str = ""
+
 		# New Discord Account
 		vDateNow = datetime.datetime.now(tz=datetime.timezone.utc)
 		vWarnDate = vDateNow - dateutil.relativedelta.relativedelta(months=-3)
 		if self.userData.userObj.created_at < vWarnDate:
-			embed_warnings.add_field(name="⚠️ DISCORD ACCOUNT AGE", value=f"This discord account was created within the last {botData.settings.BotSettings.newUser_newAccntWarn} months", inline=False)
+			# embed_warnings.add_field(name="⚠️ DISCORD ACCOUNT AGE", value=f"This discord account was created within the last {botData.settings.BotSettings.newUser_newAccntWarn} months", inline=False)
 			embed_warnings._colour = botUtils.Colours.userWarning.value
+			strWarnings += f"DISCORD ACCOUNT AGE:\n> Account was created within the last {botData.settings.BotSettings.newUser_newAccntWarn} months!\n"
 		else:
-			embed_warnings.add_field(name="✅ DISCORD ACCOUNT AGE", value=f"This discord account is older than {botData.settings.BotSettings.newUser_newAccntWarn} months", inline=False)
+			# embed_warnings.add_field(name="✅ DISCORD ACCOUNT AGE", value=f"This discord account is older than {botData.settings.BotSettings.newUser_newAccntWarn} months", inline=False)
+			strOkay += f"> Discord Account is over {botData.settings.BotSettings.newUser_newAccntWarn} months old.\n"
 
 		# PS2 Invalid Char Name
 		if self.userData.ps2CharObj == None:
-			embed_warnings.add_field(name="⚠️ PS2 CHARACTER", value="No valid PS2 Character name was provided.", inline=False)
+			# embed_warnings.add_field(name="⚠️ PS2 CHARACTER", value="No valid PS2 Character name was provided.", inline=False)
 			embed_warnings._colour = botUtils.Colours.userWarning.value
+			strWarnings += "NO VALID PS2 CHARACTER:\n> User has not provided a valid ps2 character\n"
 		else:
-			embed_warnings.add_field(name="✅ PS2 CHARACTER", value="User has provided a valid PS2 Character name.", inline=False)
+			# embed_warnings.add_field(name="✅ PS2 CHARACTER", value="User has provided a valid PS2 Character name.", inline=False)
+			strOkay += "- Valid PS2 character provided\n"
 
 		# IMPERSONATION WARNING
 		if self.userData.ps2OutfitCharObj != None and self.userData.ps2OutfitCharObj.rank_ordinal < botData.settings.BotSettings.newUser_outfitRankWarn:
-			embed_warnings.add_field(name="⚠️ IMPERSONATION CHECK", value=f"This user is claiming to be a character with a high **({self.userData.ps2OutfitCharObj.rank_ordinal})** Outfit **({self.userData.ps2OutfitName})** Rank **({self.userData.ps2OutfitCharObj.rank})!**", inline=False)
+			# embed_warnings.add_field(name="⚠️ IMPERSONATION CHECK", value=f"This user is claiming to be a character with a high **({self.userData.ps2OutfitCharObj.rank_ordinal})** Outfit **({self.userData.ps2OutfitName})** Rank **({self.userData.ps2OutfitCharObj.rank})!**", inline=False)
 			embed_warnings._colour = botUtils.Colours.userWarning.value
+			strWarnings += f"HIGH RANK USER:\n> Claiming a character with a high *({self.userData.ps2OutfitCharObj.rank_ordinal})* Outfit *({self.userData.ps2OutfitName})* Rank *({self.userData.ps2OutfitCharObj.rank})!*"
 		else:
-			embed_warnings.add_field(name="✅ IMPERSONATION CHECK", value=f"This users claimed character is not a high ranking outfit member.", inline=False)
+			# embed_warnings.add_field(name="✅ IMPERSONATION CHECK", value=f"This users claimed character is not a high ranking outfit member.", inline=False)
+			strOkay += "- Users claimed character is not a high ranking outfit member.\n"
+
+		embed_warnings.add_field(name="⚠️ WARNINGS", value=strWarnings, inline=True)
+		embed_warnings.add_field(name="✅ CHECKS", value=strOkay, inline=True)
+
+		# RECRUIT SUGGESTION
+		if self.userData.ps2OutfitCharObj != None and self.userData.ps2OutfitAlias == "TDKD" and self.userData.ps2OutfitCharObj.rank == "Recruit":
+			embed_warnings.add_field(name="🆕 TDKD RECRUIT", value="This users ps2 character is a TDKD recruit.")
 
 		vreturnList: list = []
 		vreturnList.append(embed_userInfo)

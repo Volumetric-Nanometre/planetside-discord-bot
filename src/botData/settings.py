@@ -19,7 +19,7 @@ class BotSettings():
 	ps2ServiceID = Env.PS2_SVS_ID
 	botDir		 = Env.BOT_DIR
 
-	# Debug Enabled: set to false
+	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
 
 # USED PRIMARILY BY NEW USER
