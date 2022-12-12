@@ -5,10 +5,7 @@ All settings for the bot are listed below, split into classes which can act as h
 These settings pertain to the overall behaviour of the bot, not individual items.
 """
 from discord import SelectOption
-
 import botData.envVars as Env
-
-from enum import Enum
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
@@ -21,6 +18,24 @@ class BotSettings():
 
 	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
+
+	# Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below.
+	bForceRoleRestrictions = True
+
+	# Force Role Restrictions, use ID: set to TRUE if Role IDs are used instead of role names.
+	bForceRestrictions_useID = False
+
+	# Role Restrict Level 0 : Used for major bot commands.
+	roleRestrict_level_0 = ["CO"]
+
+	# Role Restrict Level 1 : Used for most Operations related commands.
+	roleRestrict_level_1 = ["Captain", "Lieutenant"]
+
+	# Role restrict Level 2: Used for commands that should be limited to mid-tier roles.
+	roleRestrict_level_2 = ["Sergeant", "Corporal", "Lance-Corporal"]
+
+	# Role Restrict Level 3: Used for commands that should be usable by base roled members.
+	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses"]
 
 # USED PRIMARILY BY NEW USER
 	# New User Admin Chanel: the channel (ID) new user join requests are sent to.
@@ -169,7 +184,7 @@ class Roles():
 	newUser_roles = [ 
 		SelectOption(label="Guest", value="roleIDHere_123"), # Couldn't find someone with this role to copy the ID from.
 		SelectOption(label="Recruit", value="780253442605842472"),
-		SelectOption(label="TDKD", value="1050286811940921344"), # 1050286811940921344 <- Dev server RoleID | 710472193045299260 <- Live server RoleID
+		SelectOption(label="TDKD", value="710472193045299260"), # 1050286811940921344 <- Dev server RoleID | 710472193045299260 <- Live server RoleID
 		SelectOption(label="The Washed Masses", value="710502581893595166"),
 		SelectOption(label="The Unwashed Masses", value="719219680434192405")
 	]
@@ -177,8 +192,8 @@ class Roles():
 	# ADD ROLES - TDKD:  Roles used in the /roles command, "tdkd" role selector 
 	addRoles_TDKD = [
 		#SelectOption(label="Planetside", value="TDKD", description="The main role for TDKD planetside.", emoji=''),
-		SelectOption(label="Planetside Pings", value="977873609815105596", description="Non-major PS2 events/fellow drunken doggos looking for company"),
-		SelectOption(label="Sober Dogs", value="1040751250163122176", description="More serious, coordinated infantry events"), # Dev value: 1040751250163122176 | Live value 745004244171620533
+		SelectOption(label="Planetside Pings", value="977873609815105596", description="Non-major PS2 events/fellow\n drunken doggos looking for company"),
+		SelectOption(label="Sober Dogs", value="745004244171620533", description="More serious, coordinated infantry events"), # Dev value: 1040751250163122176 | Live value 745004244171620533
 		SelectOption(label="Base Busters", value="811363100787736627", description="Base building and busting events"),
 		SelectOption(label="Armour Dogs", value="781309511532544001", description="Ground vehicle related events"),
 		SelectOption(label="Dog Fighters", value="788390750982766612", description="Small aerial vehicle related events"),
