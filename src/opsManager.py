@@ -60,6 +60,7 @@ class Operations(commands.GroupCog):
 		newOpsData.date = vDate
 
 		if vOpTypeStr not in OperationManager.GetDefaults():
+			# USER IS USING A NON-DEFAULT/CUSTOM
 			newOpsData.status = OpData.OpsStatus.editing
 
 			vEditor: OpsEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
@@ -71,11 +72,14 @@ class Operations(commands.GroupCog):
 
 		else:
 			# MAKE SURE TO SWAP OP DATA FILE LATER, ELSE YOU WILL OVERWRITE THE SAVED DEFAULT
-			# vOpsMessage = opsManager.OpsMessage(pOpsDataFile=f"{settings.botDir}/{settings.defaultOpsDir}/{optype}", pOpsData=None, pBot=bot)
-			# vOpsMessage.getDataFromFile()
 
-			vFilePath = f"{botSettings.Directories.savedDefaultsDir}/{optype}"
+			vFilePath = f"{botSettings.Directories.savedDefaultsDir}{optype}"
 			newOpsData = OperationManager.LoadFromFile(vFilePath)
+
+			if newOpsData == None:
+				botUtils.FilesAndFolders.DeleteCorruptFile(vFilePath)
+				await pInteraction.response.send_message("The default you tried to use is corrupt and has been removed.  Please try again using another Ops, or create a new default.", ephemeral=True)
+				return
 
 
 			# Update date & args to the one given by the command
@@ -119,8 +123,13 @@ class Operations(commands.GroupCog):
 		BUPrint.Info(f"Editing Ops data for {pOpsToEdit}")
 		vLiveOpData:OpData.OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
 
-		vEditor = OpsEditor(pBot=self.bot, pOpsData=vLiveOpData)
-		await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
+		if vLiveOpData != None:
+			vEditor = OpsEditor(pBot=self.bot, pOpsData=vLiveOpData)
+			await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
+		else:
+			botUtils.FilesAndFolders.DeleteCorruptFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit) )
+			await pInteraction.response.send_message("The operation you wished to edit was corrupt and has been removed.", ephemeral=True)
+			return
 
 
 	@editopsevent.autocomplete("pOpsToEdit")
@@ -136,7 +145,7 @@ class Operations(commands.GroupCog):
 				# Allows bypassing discords max 25 item limit on dropdown lists.
 				choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option.replace(".bin", "")))
 		return choices
-
+# END- Commands.CogGroup
 
 
 class OperationManager():
@@ -180,7 +189,6 @@ class OperationManager():
 		
 		"""
 		botUtils.BotPrinter.Debug("Getting Ops list...")
-		# vOpsDir = f"{settings.botDir}/{settings.opsFolderName}/"
 		return botUtils.FilesAndFolders.GetFiles( botSettings.Directories.liveOpsDir, ".bin")
 
 
@@ -206,7 +214,6 @@ class OperationManager():
 		
 		## RETURN : list(str)
 		"""
-		# vDir = f"{settings.botDir}/{settings.defaultOpsDir}"
 		return botUtils.FilesAndFolders.GetFiles(botSettings.Directories.savedDefaultsDir, ".bin")
 
 

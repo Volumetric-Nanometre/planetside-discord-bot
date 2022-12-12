@@ -92,8 +92,7 @@ class Colours(enum.Enum):
 	userWarnOkay = discord.Colour.from_rgb(170, 255, 0)
 	userWarning = discord.Colour.from_rgb(255, 85, 0)
 	
-	
-		
+			
 class DateFormatter():
 
 	# Used to clear up repeating code
@@ -116,6 +115,10 @@ class FilesAndFolders():
 		"""
 		FilesAndFolders.GenerateDefaultOpsFolder()
 		FilesAndFolders.GenerateLiveOpsFolder()
+
+	def DeleteCorruptFile(pDir: str):
+		BotPrinter.Info(f"Corrupt file being removed: {pDir}")
+		os.remove(pDir)
 
 	def GetFiles(pDir: str, pEndsWith: str = ""):
 		vDataFiles: list = []
