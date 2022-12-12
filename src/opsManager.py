@@ -44,6 +44,9 @@ class Operations(commands.GroupCog):
 		pYear: int  = datetime.datetime.now().year,
 		pArguments: str = ""
 	):
+		# HARDCODED ROLE USEAGE:
+		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.BotSettings.roleRestrict_level_0 + botSettings.BotSettings.roleRestrict_level_1), pInteraction):
+			return
 
 		botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
 		vDate = datetime.datetime(
@@ -120,6 +123,11 @@ class Operations(commands.GroupCog):
 	@app_commands.describe(pOpsToEdit="Select the current live Op data to edit.")
 	@app_commands.rename(pOpsToEdit="file")
 	async def editopsevent(self, pInteraction: discord.Interaction, pOpsToEdit: str):
+
+		# HARDCODED ROLE USEAGE:
+		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.BotSettings.roleRestrict_level_0 + botSettings.BotSettings.roleRestrict_level_1), pInteraction):
+			return
+
 		BUPrint.Info(f"Editing Ops data for {pOpsToEdit}")
 		vLiveOpData:OpData.OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
 

@@ -263,6 +263,7 @@ async def GetGuild(p_BotRef : commands.Bot):
 		BotPrinter.LogErrorExc("Unable to get guild.", p_exception=vError)
 		return None
 
+
 class EmojiLibrary(enum.Enum):
 	# Infantry Classes
 	ICON_LA = ""
@@ -273,3 +274,25 @@ class EmojiLibrary(enum.Enum):
 	ICON_MAX = ""
 	# Ground Vehicles
 	ICON_ = ""
+
+async def UserHasCommandPerms(p_callingUser:discord.Member, p_roleList:list, p_interaction: discord.Interaction):
+	"""
+	# USER HAS VALID PERMS
+	Checks if the user provided has any role within the role list provided.
+
+	NOTE: If `settings.bForceRoleRestrictions` is false, this always returns true.
+	"""
+	if BotSettings.bForceRoleRestrictions:
+		BotPrinter.Debug(f"Required Roles: {p_roleList}")
+		role: discord.Role
+		for role in p_callingUser.roles:
+			if BotSettings.bForceRestrictions_useID:
+				if role.id in p_roleList:
+					return True
+			else:
+				if role.name in p_roleList:
+					return True
+		await p_interaction.response.send_message("You do not have valid permission to use this command!", ephemeral=True)
+		return False
+	else:
+		return True
