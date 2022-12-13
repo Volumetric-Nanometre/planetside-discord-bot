@@ -6,7 +6,6 @@
 #			 Users are offered the ability to provide anonymised feedback via the bot regarding the event.  This is fed to the command channel.
 # End Ops -> Removes the signup.
 
-
 import discord
 import discord.ext
 from discord.ext import tasks, commands
@@ -15,39 +14,10 @@ import sched
 
 import botUtils
 from botUtils import BotPrinter as BUPrint
-
+import botData.settings as BotSettings
 import botData.operations
 from botData.operations import OperationData as OpsData
 from opsManager import OperationManager as OpsMan
-
-class CommanderStatus(enum.Enum):
-	Init = -10		# Init: Commander has been created.
-	Standby = 0 	# Standby: Commander has been posted and waiting.
-	Prep = 10 		# Prep: Ops has started 30 minute prior Prep (either manually or by bot)
-	Started = 20 	# Started: Ops has been started (either manually or by bot.)
-	Debrief = 30	# Debrief: Pre-End stage, users are given a reactionary View to provide feedback
-	Ended = 40		# Ended: User has ended Ops,  auto-cleanup.
-
-class AutoCommander(commands.Cog):
-	"""
-	# AUTO COMMANDER
-
-	A cog that sets up and automatically creates commanders for Operation events.
-	"""
-	def __init__(self) -> None:
-		pass
-		tasks.Loop()
-
-	async def StartAutoCommander(self):
-		# Use OpsManager to start an ops.
-		# Create a Commander.
-		# Lookit Sched
-		pass
-
-		#datetime - timedelta(minutes=0)
-class AutoCommanderInstance():
-	def __init__(self) -> None:
-		pass
 
 
 class Commander():
@@ -107,8 +77,6 @@ class Commander():
 				for user in role.players:
 					vUsersInRole += f"{self.vBotRef.get_user(int(user))}\n"
 				vEmbed.add_field( name=f"{self.GetRoleName(role)}")
-
-
 
 	def GenerateEmbed_Connections(self):
 		"""

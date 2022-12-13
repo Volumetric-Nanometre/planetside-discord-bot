@@ -13,7 +13,7 @@ import newUser
 from botData import settings
 import roleManager
 import opsManager
-import opsCommander
+import OpCommander.autoCommander as OpCommander
 
 # import chatlinker
 BUPrint.Info(f"Starting bot with settings:\n{settings.BotSettings()}\n{settings.Directories()}\n{settings.SignUps()}")
@@ -28,8 +28,6 @@ class Bot(commands.Bot):
 
 		# Objects with BOT refs
         self.vOpsManager = opsManager.OperationManager()
-        self.vOpCommander = opsCommander.Commander(None)
-        self.vOpCommander.vBotRef = self
         opsManager.OperationManager.SetBotRef(self)
 
 		# Objects with CHANNEL refs
@@ -43,6 +41,8 @@ class Bot(commands.Bot):
         await self.add_cog(newUser.NewUser(pBot=self))
         await self.add_cog(roleManager.UserRoles(p_bot=self))
         await self.add_cog(opsManager.Operations(p_bot=self))
+        await self.add_cog(OpCommander.AutoCommander(p_bot=self))
+        await self.add_check(OpCommander.CommanderCommands(p_bot=self))
         # await self.add_cog(chatlinker.ChatLinker(self))
 
         self.tree.copy_global_to(guild=self.vGuildObj)
