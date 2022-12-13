@@ -1,14 +1,13 @@
 # Ops Manager: Manages creating, editing and removing of Ops.
+# For live ops being started, see OpsCommander
 
 import os
 import datetime
 import pickle
 
-
 import discord
 from discord.ext import commands
 from discord import app_commands
-
 
 from botData import settings as botSettings
 import botData.operations as OpData
@@ -76,7 +75,6 @@ class Operations(commands.GroupCog):
 
 		else:
 			# MAKE SURE TO SWAP OP DATA FILE LATER, ELSE YOU WILL OVERWRITE THE SAVED DEFAULT
-
 			vFilePath = f"{botSettings.Directories.savedDefaultsDir}{optype}"
 			newOpsData = OperationManager.LoadFromFile(vFilePath)
 
@@ -85,14 +83,13 @@ class Operations(commands.GroupCog):
 				await pInteraction.response.send_message("The default you tried to use is corrupt and has been removed.  Please try again using another Ops, or create a new default.", ephemeral=True)
 				return
 
-
 			# Update date & args to the one given by the command
 			newOpsData.date = vDate
 			newOpsData.arguments += pArguments
 
 			if(edit):
 				vEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
-				await pInteraction.response.send_message(f"*Editing OpData for\n\n {optype}*", view=vEditor, ephemeral=True)
+				await pInteraction.response.send_message(f"**Editing OpData for** *{optype}*", view=vEditor, ephemeral=True)
 				# vEditor.vMessage = await pInteraction.original_response()
 
 			else:
@@ -129,7 +126,7 @@ class Operations(commands.GroupCog):
 		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandRestrictionLevels.level1), pInteraction):
 			return
 
-		BUPrint.Info(f"Editing Ops data for {pOpsToEdit}")
+		BUPrint.Info(f"**Editing Ops data for** *{pOpsToEdit}*")
 		vLiveOpData:OpData.OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
 
 		if vLiveOpData != None:
@@ -145,7 +142,6 @@ class Operations(commands.GroupCog):
 	async def autocompleteFileList(self, pInteraction: discord.Interaction, pTypedStr: str):
 		choices: list = []
 		vDataFiles: list = OperationManager.GetOps()
-
 
 		option: str
 		for option in vDataFiles:
@@ -163,11 +159,7 @@ class OperationManager():
 
 	Holds list of saved op file names, and their corresponding opData object.
 	Should be used to manage Op related messages, including creation, deletion and editing.
-
-	To ensure there's always one reference and thus avoid weakref objects for pickling, the bot itself should hold an instance (and set botRef).
 	"""
-
-	# vOpsList: list = []
 	vLiveOps: list = [] # List of Live Ops (botData.OperationData)
 	vBotRef: commands.Bot
 	
@@ -242,9 +234,9 @@ class OperationManager():
 		"""
 		BUPrint.Info(f"Removing Operation: {p_opData}")
 		vFileToRemove : str = ""
-		bIsDefault = False # Convenience bool to avoid having to check filename
+		bIsDefault = False # Convenience bool to avoid having to check messageID repeatedly
 
-		if p_opData.fileName == None:
+		if p_opData.messageID == "":
 			vFileToRemove = f"{botSettings.Directories.savedDefaultsDir}{p_opData.name}.bin"
 			bIsDefault = True
 		else:
@@ -276,11 +268,12 @@ class OperationManager():
 			return False
 
 	# Remove from OpList
-		BUPrint.Info("	-> Removing OpData from LiveOps...")
-		try:
-			self.vLiveOps.remove(p_opData)
-		except ValueError:
-			BUPrint.Debug("	-> Couldn't remove OpData from LiveList.  Bad reference?")
+		if not bIsDefault:
+			BUPrint.Info("	-> Removing OpData from LiveOps...")
+			try:
+				self.vLiveOps.remove(p_opData)
+			except ValueError:
+				BUPrint.Debug("	-> Couldn't remove OpData from LiveList.  Bad reference?")
 
 		BUPrint.Info("	-> OPERATION REMOVED!")
 		return True
@@ -529,10 +522,16 @@ class OperationManager():
 								description=f"Starts {botUtils.DateFormatter.GetDiscordTime(p_opsData.date, botUtils.DateFormat.Dynamic)}"
 							)
 
+
 		vEmbed.add_field(inline=False,
 			name=f"About {p_opsData.name}",
 			value=p_opsData.description
 		)
+
+		if p_opsData.managedBy != "":
+			vEmbed.add_field(inline=False,
+				name="Managed By:",
+				value=self.GetManagedBy(p_opsData))
 
 		if(p_opsData.customMessage != ""):
 			vEmbed.add_field(inline=False,
@@ -636,6 +635,17 @@ class OperationManager():
 		vNewEmbed = await self.AddNewLive_GenerateEmbed(p_opData)
 		vView = await self.AddNewLive_GenerateView(p_opData)
 		await vMessage.edit(embed=vNewEmbed, view=vView)
+
+	def GetManagedBy(self, p_opData: OpData.OperationData):
+		"""
+		# GET MANAGED BY
+		Returns a mentionable of a user specified to be the person running the Op.
+		"""
+		vMember: discord.Member = discord.utils.find(lambda member: member.name == p_opData.managedBy, self.vBotRef.guilds[0].members)
+		if vMember != None:
+			return vMember.mention
+		
+		return None
 
 
 	def RemoveUser(p_opData:OpData.OperationData, p_userToRemove:str):

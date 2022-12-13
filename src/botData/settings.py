@@ -3,6 +3,8 @@ SETTINGS
 
 All settings for the bot are listed below, split into classes which can act as headers for easier finding.
 These settings pertain to the overall behaviour of the bot, not individual items.
+
+If you're looking for Emoji Library, see `botUtils.EmojiLibrary`.
 """
 from discord import SelectOption
 import botData.envVars as Env
