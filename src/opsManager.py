@@ -15,6 +15,7 @@ import botData.operations as OpData
 import botUtils
 from botUtils import BotPrinter as BUPrint
 # import botData
+from botModals.opsManagerModals import *
 
 
 class Operations(commands.GroupCog):
@@ -762,7 +763,7 @@ class OpsEditor(discord.ui.View):
 						custom_id="EditDate",
 						row=0)
 	async def btnEditDate(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = EditDates(title="Edit Date/Time", pOpData=self.vOpsData)
+		vEditModal = editDates.EditDates(p_opData=self.vOpsData)
 		vEditModal.custom_id="EditDateModal"
 		await pInteraction.response.send_modal( vEditModal )
 	
@@ -773,7 +774,7 @@ class OpsEditor(discord.ui.View):
 						custom_id="EditInfo",
 						row=0)
 	async def btnEditInfo(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = EditInfo(title="Edit Info", pOpData=self.vOpsData)
+		vEditModal = editInfo.EditInfo(p_OpData=self.vOpsData)
 		vEditModal.custom_id="EditInfoModal"
 		await pInteraction.response.send_modal( vEditModal )
 
@@ -784,7 +785,8 @@ class OpsEditor(discord.ui.View):
 						custom_id="EditRoles",
 						row=0)
 	async def btnEditRoles(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = EditRoles(title="Edit Roles", pOpData=self.vOpsData)
+		# vEditModal = EditRoles(title="Edit Roles", pOpData=self.vOpsData)
+		vEditModal = editRoles.EditRoles(p_opData=self.vOpsData)
 		vEditModal.custom_id="EditRolesModal"
 		await pInteraction.response.send_modal( vEditModal )
 	
@@ -846,262 +848,3 @@ class OpsEditor(discord.ui.View):
 		vOpMan = OperationManager()
 		await vOpMan.RemoveOperation(self.vOpsData)
 		await pInteraction.response.send_message("Operation was removed!", ephemeral=True)
-
-###############################
-# EDIT DATES
-
-class EditDates(discord.ui.Modal):
-	txtYear = discord.ui.TextInput(
-		label="Year",
-		placeholder="Full year",
-		min_length=4, max_length=4,
-		required=False
-	)
-	txtDay = discord.ui.TextInput(
-		label="Day",
-		placeholder="Day of month",
-		min_length=1, max_length=2,
-		required=False
-	)
-	txtMonth = discord.ui.TextInput(
-		label="Month",
-		placeholder="What month?  Numerical value!",
-		min_length=1, max_length=2,
-		required=False
-	)
-	txtHour = discord.ui.TextInput(
-		label="Hour",
-		placeholder="Hour",
-		min_length=1, max_length=2,
-		required=False
-	)
-	txtMinute = discord.ui.TextInput(
-		label="Minute",
-		placeholder="Minute",
-		min_length=1, max_length=2,
-		required=False
-	)
-	def __init__(self, *, title: str = "Edit Date/Time", pOpData: OpData.OperationData):
-		self.title = title
-		self.vData : OpData.OperationData = pOpData
-		self.PresetFields()
-		super().__init__()
-
-	async def on_eror(self, pInteraction: discord.Interaction, error: Exception):
-		botUtils.BotPrinter.LogError("Error occured on Edit Date Modal.", p_exception=error)
-
-	async def on_timeout(self):
-		await self.stop()
-
-	# Where the fun happens!
-	async def on_submit(self, pInteraction: discord.Interaction):
-		botUtils.BotPrinter.Debug("Edit Dates Modal submitted, creating new date...")
-
-		newDateTime = datetime.datetime(
-			year=int(self.txtYear.value),
-			month=int(self.txtMonth.value),
-			day=int(self.txtDay.value),
-			hour=int(self.txtHour.value),
-			minute=int(self.txtMinute.value),
-			tzinfo=datetime.timezone.utc
-		)
-
-		self.vData.date = newDateTime
-
-		await pInteraction.response.defer()
-
-	def PresetFields(self):
-		botUtils.BotPrinter.Debug(f"Auto-filling modal (DATE) with existing data: {self.vData.date}")
-		self.txtYear.default = str(self.vData.date.year)
-		self.txtDay.default = str(self.vData.date.day)
-		self.txtMonth.default = str(self.vData.date.month)
-		self.txtHour.default = str(self.vData.date.hour)
-		self.txtMinute.default = str(self.vData.date.minute)
-
-###############################
-# EDIT INFO
-
-class EditInfo(discord.ui.Modal):
-	txtName = discord.ui.TextInput(
-		label="Ops Name",
-		placeholder="Name of the Ops (used as the defaults name)",
-		min_length=3, max_length=50,
-		required=True
-	)
-	txtDescription = discord.ui.TextInput(
-		label="Description",
-		placeholder="Brief explanation of this Ops",
-		style=discord.TextStyle.paragraph,
-		max_length=400,
-		required=True
-	)
-	txtMessage = discord.ui.TextInput(
-		label="Details",
-		placeholder="Optional detailed message about this ops.",
-		style=discord.TextStyle.paragraph,
-		max_length=800,
-		required=False
-	)
-
-	txtVoiceChannels = discord.ui.TextInput(
-		label="Voice Channels",
-		placeholder="A list of voice channels (per line) to create for this Operation.",
-		style=discord.TextStyle.paragraph,
-		required=False
-	)
-	txtArguments = discord.ui.TextInput(
-		label="Commands",
-		placeholder="Optional commands (per line) to modify behaviour.",
-		style=discord.TextStyle.paragraph,
-		required=False
-	)
-
-
-	def __init__(self, *, title: str = "Edit Ops Name/Descriptions", pOpData: OpData.OperationData):
-		self.title = title
-		self.vData : OpData.OperationData = pOpData
-		self.PresetFields()
-		super().__init__()
-
-	async def on_eror(self, pInteraction: discord.Interaction, error: Exception):
-		botUtils.BotPrinter.LogError("Error occured on Edit Info Modal", p_exception=error)
-
-	async def on_timeout(self):
-		await self.stop()
-
-	# Where the fun happens!
-	async def on_submit(self, pInteraction: discord.Interaction):
-		botUtils.BotPrinter.Debug("Edit Info Modal submitted...")
-
-		self.vData.name = self.txtName.value
-		self.vData.description = self.txtDescription.value
-		self.vData.customMessage = self.txtMessage.value
-
-		self.txtVoiceChannels.value.split("\n")
-		self.vData.voiceChannels = self.txtVoiceChannels.value.split("\n")
-		self.vData.arguments = self.txtArguments.value.split("\n")
-
-		await pInteraction.response.defer()
-
-	def PresetFields(self):
-		botUtils.BotPrinter.Debug("Auto-filling modal (INFO) with existing data.")
-		self.txtName.default = self.vData.name
-		self.txtMessage.default = self.vData.customMessage
-		self.txtDescription.default = self.vData.description
-		
-		vTempStr: str = ""
-		for channel in self.vData.voiceChannels:
-			vTempStr += f"{channel}\n"		
-		self.txtVoiceChannels.default = vTempStr.strip()
-		
-		vTempStr = ""
-		for argument in self.vData.arguments:
-			BUPrint.Debug(f"Adding Arg {argument} to modal.")
-			vTempStr += f"{argument}\n"
-		self.txtArguments.default = vTempStr.strip()
-
-###############################
-# EDIT ROLES
-
-class EditRoles(discord.ui.Modal):
-	txtEmoji = discord.ui.TextInput(
-		label="Emoji",
-		placeholder="EmojiID String per line",
-		style=discord.TextStyle.paragraph,
-		required=True
-	)
-	txtRoleName = discord.ui.TextInput(
-		label="Role Name",
-		placeholder="Light Assault\nHeavy Assault\nEtc...",
-		style=discord.TextStyle.paragraph,
-		required=True
-	)
-	txtRoleMaxPos = discord.ui.TextInput(
-		label="Max Positions",
-		placeholder="Max positions.",
-		style=discord.TextStyle.paragraph,
-		required=True
-	)
-	txtRolePlayers = discord.ui.TextInput(
-		label="Players",
-		placeholder="Player IDs",
-		style=discord.TextStyle.paragraph,
-		required=False
-	)
-	def __init__(self, *, title: str = "Edit Roles", pOpData: OpData.OperationData):
-		self.title = title
-		self.vData = pOpData
-		self.PresetFields()
-		super().__init__()
-
-	async def on_eror(self, pInteraction: discord.Interaction, error: Exception):
-		botUtils.BotPrinter.LogError("Error occured on Edit Roles modal.", p_exception=error)
-
-	async def on_timeout(self):
-		await self.stop()
-
-	# Where the fun happens!
-	async def on_submit(self, pInteraction: discord.Interaction):
-		botUtils.BotPrinter.Debug("Edit Roles Modal submitted...")
-		vRoleNames = self.txtRoleName.value.splitlines()
-		vRoleEmoji = self.txtEmoji.value.splitlines()
-		vRoleMax = self.txtRoleMaxPos.value.splitlines()
-		
-		# If user made an error, don't proceed- inconstsent lengths!
-		if len(vRoleNames) != len(vRoleEmoji) != len(vRoleMax):
-			await pInteraction.response.send_message('Inconsistent array lengths in fields!  \nMake sure the number of lines matches in all three fields.\n\nFor empty Emojis, use "".', ephemeral=True)
-			return
-
-		vIndex = 0
-		botUtils.BotPrinter.Debug(f"Size of array: {len(vRoleNames)}")
-		while vIndex < len(vRoleNames):
-
-			vCurrentRole = OpData.OpRoleData(roleName=vRoleNames[vIndex], roleIcon=vRoleEmoji[vIndex], maxPositions=int(vRoleMax[vIndex]))
-			if vIndex < len(self.vData.roles) :
-				# Index is on an existing role, adjust values to keep any signed up users.
-				self.vData.roles[vIndex].roleName = vCurrentRole.roleName
-				self.vData.roles[vIndex].maxPositions = vCurrentRole.maxPositions
-				if vCurrentRole.roleIcon == "-" or vCurrentRole.roleIcon == '""' or vCurrentRole.roleIcon == "":
-					BUPrint.Debug("Setting role icon to NONE")
-					self.vData.roles[vIndex].roleIcon = "-"
-				else:
-					# If using a shorthand, parse:
-					if vCurrentRole.roleIcon.__contains__("ICON_"):
-						BUPrint.Debug("Icon library icon specified, parsing for result...")
-						self.vData.roles[vIndex].roleIcon = botUtils.EmojiLibrary.ParseStringToEmoji(vCurrentRole.roleIcon)
-					else:
-						self.vData.roles[vIndex].roleIcon = vCurrentRole.roleIcon
-			else:
-				# Index is a new role, append!
-				self.vData.roles.append(vCurrentRole)
-
-			vIndex += 1
-		# End of while loop.
-		botUtils.BotPrinter.Debug("Roles updated!")
-		await pInteraction.response.defer()
-
-
-	# Prefill fields:
-	def PresetFields(self):
-		botUtils.BotPrinter.Debug("Auto-filling modal (ROLES) with existing data.")
-		
-		vRoleNames: str = ""
-		vRoleEmojis: str = ""
-		vRoleMembers: str = "DISPLAY PURPOSES ONLY\n"
-		vRoleMaxPos: str = ""
-
-		roleIndex: OpData.OpRoleData
-		for roleIndex in self.vData.roles:
-			vRoleNames += f"{roleIndex.roleName}\n"
-			vRoleMembers += f"{roleIndex.players}\n"
-			vRoleMaxPos += f"{roleIndex.maxPositions}\n"
-			if roleIndex.roleIcon == None:
-				vRoleEmojis += '-\n'
-			else:
-				vRoleEmojis += f"{roleIndex.roleIcon}\n"
-
-	# Set the text inputs to existing values:
-		self.txtRoleName.default = vRoleNames.strip()
-		self.txtEmoji.default = vRoleEmojis.strip()
-		self.txtRoleMaxPos.default = vRoleMaxPos.strip()
-		self.txtRolePlayers.default = vRoleMembers.strip()
