@@ -1065,7 +1065,12 @@ class EditRoles(discord.ui.Modal):
 					BUPrint.Debug("Setting role icon to NONE")
 					self.vData.roles[vIndex].roleIcon = "-"
 				else:
-					self.vData.roles[vIndex].roleIcon = vCurrentRole.roleIcon
+					# If using a shorthand, parse:
+					if vCurrentRole.roleIcon.__contains__("ICON_"):
+						BUPrint.Debug("Icon library icon specified, parsing for result...")
+						self.vData.roles[vIndex].roleIcon = botUtils.EmojiLibrary.ParseStringToEmoji(vCurrentRole.roleIcon)
+					else:
+						self.vData.roles[vIndex].roleIcon = vCurrentRole.roleIcon
 			else:
 				# Index is a new role, append!
 				self.vData.roles.append(vCurrentRole)

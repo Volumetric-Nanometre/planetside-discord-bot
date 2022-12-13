@@ -267,14 +267,40 @@ async def GetGuild(p_BotRef : commands.Bot):
 
 class EmojiLibrary(enum.Enum):
 	# Infantry Classes
-	ICON_LA = ""
-	ICON_HA = ""
-	ICON_ENG = ""
-	ICON_MED = ""
-	ICON_INF = ""
-	ICON_MAX = ""
+	ICON_LA  = "<:Icon_Light_Assault:795726936759468093>"
+	ICON_HA  = "<:Icon_Heavy_Assault:795726910344003605>"
+	ICON_ENG = "<:Icon_Engineer:795726888763916349>"
+	ICON_MED = "<:Icon_Combat_Medic:795726867960692806>"
+	ICON_INF = "<:Icon_Infiltrator:795726922264215612>"
+	ICON_MAX = "<:Icon_MAX:795726948365631559>"
 	# Ground Vehicles
-	ICON_ = ""
+	ICON_ANT  = "<:Icon_ANT:795727784239824896>"
+	ICON_MBT  = "<:Icon_Vanguard:795727955896565781>"
+	ICON_TANK = "<:Icon_Lightning:795727852875677776>"
+	ICON_HAR  = "<:Icon_Harasser:795727814220840970>"
+	ICON_SUN  = "<:Icon_Sunderer:795727911549272104>"
+	# Air Vehicles
+	ICON_VAL = "<:Icon_Valkyrie:795727937735098388>"
+	ICON_GAL = "<:Icon_Galaxy:795727799591239760>"
+	ICON_LIB = "<:Icon_Liberator:795727831605837874>"
+	ICON_REA = "<:Icon_Reaver:795727893342846986>"
+	ICON_DER = "<:Icon_Dervish:861303237062950942>"
+	ICON_BAS = "<:Icon_Bastion:861304226957361162>"
+	# OTHER
+	ICON_GUNNER = "<:Icon_Infiltrator:795726922264215612>"
+
+	def ParseStringToEmoji(p_str:str):
+		"""
+		# PARSE STRING TO EMOJI
+		Returns the value of a given emoji name.
+		"""
+		for emote in EmojiLibrary:
+			if emote.name == p_str:
+				BotPrinter.Debug(f"Emoji {p_str} found in library!")
+				return emote.value
+		BotPrinter.Debug(f"Name {p_str} does not match a emoji library entry.")
+
+
 
 async def UserHasCommandPerms(p_callingUser:discord.Member, p_requiredLevel:CommandRestrictionLevels, p_interaction: discord.Interaction):
 	"""
