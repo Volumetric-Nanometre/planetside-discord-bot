@@ -48,7 +48,7 @@ class UserRoles(commands.GroupCog):
 		vView = RoleManager(p_bot=self.bot, p_user=pInteraction.user, pIsAdding=False)
 		vView.vInteraction = pInteraction
 
-		await pInteraction.response.send_message(botData.settings.Messages.userAddingRoles, view=vView, ephemeral=True)
+		await pInteraction.response.send_message(botData.settings.Messages.userRemovingRoles, view=vView, ephemeral=True)
 
 class RoleManager(discord.ui.View):
 	def __init__(self, p_bot, p_user: discord.Member, pIsAdding: bool):

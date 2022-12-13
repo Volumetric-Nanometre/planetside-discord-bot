@@ -10,6 +10,7 @@ import datetime, dateutil.relativedelta
 import botData.settings
 from botUtils import BotPrinter
 import botUtils
+from botData.settings import CommandRestrictionLevels
 
 @dataclasses.dataclass
 class NewUserData:
@@ -373,6 +374,10 @@ class NewUserRequest_btnReject(discord.ui.Button):
 		)
 
 	async def callback(self, pInteraction: discord.Interaction):
+		# HARDCODED ROLE USEAGE:
+		if not await botUtils.UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level0), pInteraction):
+			return
+
 		await self.userData.userObj.kick(reason=f"User join request denied by {pInteraction.user.display_name}")
 		await pInteraction.response.send_message(f"{pInteraction.user.display_name} **denied** {self.userData.userObj.display_name}'s request.")
 		await self.parentRequest.requestMessage.delete()
@@ -390,6 +395,9 @@ class NewUserRequest_btnBan(discord.ui.Button):
 		)
 
 	async def callback(self, pInteraction: discord.Interaction):
+		if not await botUtils.UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level0), pInteraction):
+			return
+
 		await self.userData.userObj.ban(reason=f"User join request denied by {pInteraction.user.display_name}")
 		await pInteraction.response.send_message(f"{pInteraction.user.display_name} **denied** {self.userData.userObj.display_name}'s request and **banned** the user.")
 		await self.parentRequest.requestMessage.delete()
@@ -406,7 +414,9 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		) # END - Init
 
 	async def callback(self, pInteraction: discord.Interaction):
-		
+		if not await botUtils.UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level0), pInteraction):
+			return
+
 		# Assign given role:
 		vGuild = await pInteraction.client.fetch_guild(botData.settings.BotSettings.discordGuild)
 		vAllRoles = await vGuild.fetch_roles()
