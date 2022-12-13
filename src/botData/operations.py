@@ -39,7 +39,7 @@ class OperationOptions:
 	"""
 	bUseReserve : bool = True # Only enable built in RESERVE if true.
 	bUseCompact : bool = False # Not yet used, argument: -COMPACT; does not show a member list for each role.
-	bAutoStart : bool = True # If false, 
+	bAutoStart : bool = True # If false, someone must use editOps to start the commander.
 
 
 @dataclass
@@ -57,8 +57,10 @@ class OperationData:
 	date : datetime.datetime = datetime.datetime.now()
 	description : str = ""
 	customMessage : str = ""
+	managedBy:str = ""
 	messageID : str = "" # Stored to make accessing and editing quicker/avoid having to find it.
 	status : OpsStatus = OpsStatus.open
+	targetChannel: str = ""
 	voiceChannels: list = field(default_factory=list)
 	arguments: list = field(default_factory=list)
 	options: OperationOptions = OperationOptions()

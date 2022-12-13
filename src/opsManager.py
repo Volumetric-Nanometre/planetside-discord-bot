@@ -92,7 +92,7 @@ class Operations(commands.GroupCog):
 
 			if(edit):
 				vEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
-				await pInteraction.response.send_message(f"*Editing OpData for {optype}*", view=vEditor, ephemeral=True)
+				await pInteraction.response.send_message(f"*Editing OpData for\n\n {optype}*", view=vEditor, ephemeral=True)
 				# vEditor.vMessage = await pInteraction.original_response()
 
 			else:
@@ -483,42 +483,32 @@ class OperationManager():
 
 		argument: str
 		BUPrint.Debug("	-> Parsing arguments...")
-		if len(p_opsData.arguments) != 0 and p_opsData.arguments is not None:
-			for argument in p_opsData.arguments:
-				BUPrint.Debug(f"	-> Argument: {argument}")
-				channel = None
-				if argument.find("CHN=") != -1:
-					BUPrint.Debug("	-> Argument for channel found!")
-					vCleanArg = argument.strip("CHN=")
-					channel = discord.utils.find(lambda items: items.name == vCleanArg.lower().replace(" ", "-"), vGuild.text_channels)
-					if channel != None:
-						return channel
-					else:
-						BUPrint.Info(f"	-> No existing matching channel, creating channel: {vCleanArg}")
-						try:
-							channel = await vGuild.create_text_channel(
-							name=vCleanArg,
-							category=opsCategory 
+		channel = None
+		if p_opsData.targetChannel != "":
+			channel = discord.utils.find(lambda items: items.name == p_opsData.targetChannel.lower().replace(" ", "-"), vGuild.text_channels)
+			if channel != None:
+				return channel
+			else:
+				BUPrint.Info(f"	-> No existing matching channel, creating channel: {p_opsData.targetChannel}")
+				try:
+					channel = await vGuild.create_text_channel(
+					name=p_opsData.targetChannel,
+					category=opsCategory 
+					)
+					return channel
+				except discord.HTTPException as vError:
+					BUPrint.LogErrorExc("Failed to create channel", vError)
+					return None
+		else:
+			BUPrint.Debug(f"	-> Target Ops Channel not specified")
+			channel = discord.utils.find(lambda items: items.name == p_opsData.name.lower().replace(" ", "-"), vGuild.text_channels)
+			if channel == None:
+				BUPrint.Debug("	-> No existing chanel, creating new one.")
+				channel = await vGuild.create_text_channel(
+								name=p_opsData.name,
+								category=opsCategory
 							)
-							return channel
-						except discord.HTTPException as vError:
-							BUPrint.LogErrorExc("Failed to create channel", vError)
-							return None
-
-
-
-		# If code reaches here, no channel was found.
-		BUPrint.Debug(f"	-> Target Ops Channel not specified (or missing preceeding 'CHN=')")
-		channel = discord.utils.find(lambda items: items.name == p_opsData.name.lower().replace(" ", "-"), vGuild.text_channels)
-
-		if channel == None:
-			BUPrint.Debug("	-> No existing chanel, creating new one.")
-			channel = await vGuild.create_text_channel(
-							name=p_opsData.name,
-							category=opsCategory
-						)
-		
-		return channel 
+			return channel 
 
 
 	async def AddNewLive_GenerateEmbed(self, p_opsData: OpData.OperationData):
@@ -758,7 +748,7 @@ class OpsEditor(discord.ui.View):
 # # # # # # Edit Buttons
 	editButtonStyle = discord.ButtonStyle.grey
 	# Edit Date:
-	@discord.ui.button( label="Edit Date",
+	@discord.ui.button( label="Edit Date/Time",
 						style=editButtonStyle, 
 						custom_id="EditDate",
 						row=0)
@@ -770,7 +760,7 @@ class OpsEditor(discord.ui.View):
 	# Edit Info
 	@discord.ui.button(
 						style=editButtonStyle, 
-						label="Edit Info",
+						label="Edit Op Info",
 						custom_id="EditInfo",
 						row=0)
 	async def btnEditInfo(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
@@ -785,17 +775,28 @@ class OpsEditor(discord.ui.View):
 						custom_id="EditRoles",
 						row=0)
 	async def btnEditRoles(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		# vEditModal = EditRoles(title="Edit Roles", pOpData=self.vOpsData)
 		vEditModal = editRoles.EditRoles(p_opData=self.vOpsData)
 		vEditModal.custom_id="EditRolesModal"
+		await pInteraction.response.send_modal( vEditModal )
+
+	# Edit Channels
+	@discord.ui.button(
+						style=editButtonStyle, 
+						label="Edit Channels",
+						custom_id="EditChannels",
+						row=0)
+	async def btnEditChannels(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
+		vEditModal = editChannels.EditChannels(p_OpData=self.vOpsData)
+		vEditModal.custom_id="EditChannelsModal"
 		await pInteraction.response.send_modal( vEditModal )
 	
 # # # # # # # Confirm/Save buttons:
 	@discord.ui.button(
-						style=discord.ButtonStyle.danger, 
+						style=discord.ButtonStyle.green, 
 						label="Apply/Send",
 						custom_id="EditorApply",
-						row=2)
+						emoji="📨",
+						row=4)
 	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		self.vOpsData.GenerateFileName()
 		vOpManager = OperationManager()
@@ -815,13 +816,12 @@ class OpsEditor(discord.ui.View):
 			vOpMan = OperationManager()
 			await vOpMan.UpdateMessage(self.vOpsData)
 
-
-
 	@discord.ui.button( 
 						style=discord.ButtonStyle.primary, 
 						label="New Default",
 						custom_id="EditorNewDefault",
-						row=2)
+						emoji="💾",
+						row=4)
 	async def btnNewDefault(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		BUPrint.Info(f"Saving a new default! {self.vOpsData.name}")
 		# Set status of Ops back to OPEN.
@@ -831,17 +831,18 @@ class OpsEditor(discord.ui.View):
 		# Ensure fileName is empty so its saved as a default
 		self.vOpsData.fileName = ""
 		OperationManager.SaveToFile(self.vOpsData)
-		BUPrint.Debug("Saved!")
+		BUPrint.Debug("	-> Saved!")
 
 		self.vOpsData.fileName = vOldFilename
 
-		# await pInteraction.followup.send(f"Added new default: {self.vOpsData.name}!", ephemeral=True)
 		await pInteraction.response.send_message(f"Added new default: {self.vOpsData.name}!", ephemeral=True)
 
+# # # # # # DELETE BUTTON
 	@discord.ui.button(
 						style=discord.ButtonStyle.danger,
 						label="Delete",
 						custom_id="EditorDelete",
+						emoji="⚠️",
 						row=4)
 	async def btnDelete(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):
 		BUPrint.Info("Deleting Operation!")

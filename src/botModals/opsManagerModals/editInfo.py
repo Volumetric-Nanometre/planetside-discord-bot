@@ -25,19 +25,26 @@ class EditInfo(baseModal.BaseModal):
 		max_length=800,
 		required=False
 	)
+	txtRunner = discord.ui.TextInput(
+		label="Managing User",
+		placeholder="The user who will oversee this operation",
+		style=discord.TextStyle.short,
+		max_length=80,
+		required=False
+	)
 
-	txtVoiceChannels = discord.ui.TextInput(
-		label="Voice Channels",
-		placeholder="A list of voice channels (per line) to create for this Operation.",
-		style=discord.TextStyle.paragraph,
-		required=False
-	)
-	txtArguments = discord.ui.TextInput(
-		label="Commands",
-		placeholder="Optional commands (per line) to modify behaviour.",
-		style=discord.TextStyle.paragraph,
-		required=False
-	)
+	# txtVoiceChannels = discord.ui.TextInput(
+	# 	label="Voice Channels",
+	# 	placeholder="A list of voice channels (per line) to create for this Operation.",
+	# 	style=discord.TextStyle.paragraph,
+	# 	required=False
+	# )
+	# txtArguments = discord.ui.TextInput(
+	# 	label="Commands",
+	# 	placeholder="Optional commands (per line) to modify behaviour.",
+	# 	style=discord.TextStyle.paragraph,
+	# 	required=False
+	# )
 
 
 	def __init__(self, *, p_OpData: OpData.OperationData):
@@ -50,10 +57,10 @@ class EditInfo(baseModal.BaseModal):
 		self.vOpData.name = self.txtName.value
 		self.vOpData.description = self.txtDescription.value
 		self.vOpData.customMessage = self.txtMessage.value
-
-		self.txtVoiceChannels.value.split("\n")
-		self.vOpData.voiceChannels = self.txtVoiceChannels.value.split("\n")
-		self.vOpData.arguments = self.txtArguments.value.split("\n")
+		self.vOpData.managedBy = self.txtRunner.value
+		# self.txtVoiceChannels.value.split("\n")
+		# self.vOpData.voiceChannels = self.txtVoiceChannels.value.split("\n")
+		# self.vOpData.arguments = self.txtArguments.value.split("\n")
 
 		await pInteraction.response.defer()
 
@@ -62,14 +69,14 @@ class EditInfo(baseModal.BaseModal):
 		self.txtName.default = self.vOpData.name
 		self.txtMessage.default = self.vOpData.customMessage
 		self.txtDescription.default = self.vOpData.description
+		self.txtRunner.default = self.vOpData.managedBy
+		# vTempStr: str = ""
+		# for channel in self.vOpData.voiceChannels:
+		# 	vTempStr += f"{channel}\n"		
+		# self.txtVoiceChannels.default = vTempStr.strip()
 		
-		vTempStr: str = ""
-		for channel in self.vOpData.voiceChannels:
-			vTempStr += f"{channel}\n"		
-		self.txtVoiceChannels.default = vTempStr.strip()
-		
-		vTempStr = ""
-		for argument in self.vOpData.arguments:
-			BUPrint.Debug(f"Adding Arg {argument} to modal.")
-			vTempStr += f"{argument}\n"
-		self.txtArguments.default = vTempStr.strip()
+		# vTempStr = ""
+		# for argument in self.vOpData.arguments:
+		# 	BUPrint.Debug(f"Adding Arg {argument} to modal.")
+		# 	vTempStr += f"{argument}\n"
+		# self.txtArguments.default = vTempStr.strip()

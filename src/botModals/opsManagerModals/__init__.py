@@ -1,1 +1,1 @@
-__all__ = ["editRoles", "editDates", "editInfo"]
+__all__ = ["editRoles", "editDates", "editInfo", "editChannels"]
