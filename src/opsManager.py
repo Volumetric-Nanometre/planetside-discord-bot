@@ -664,8 +664,6 @@ class OperationManager():
 ##################################################################
 # MESSAGES	
 
-
-
 class OpsRoleSelector(discord.ui.Select):
 	def __init__(self, p_opsData: OpData.OperationData):
 		defaultOption = discord.SelectOption(label="Default", value="Default")
@@ -753,7 +751,8 @@ class OpsEditor(discord.ui.View):
 		# self.EditedData = pOpsData # Edited data, applied and saved.
 		BUPrint.Info("Ops Editor Instantiated")
 		super().__init__(timeout=None)
-		
+		helpBtn = btnHelp()
+		self.add_item(helpBtn)
 
 # # # # # # Edit Buttons
 	editButtonStyle = discord.ButtonStyle.grey
@@ -859,3 +858,13 @@ class OpsEditor(discord.ui.View):
 		vOpMan = OperationManager()
 		await vOpMan.RemoveOperation(self.vOpsData)
 		await pInteraction.response.send_message("Operation was removed!", ephemeral=True)
+
+class btnHelp(discord.ui.Button):
+	def __init__(self):
+		super().__init__(
+			label="Help",
+			style=discord.ButtonStyle.link,
+			url="https://github.com/LCWilliams/planetside-discord-bot/wiki/Ops-Editor",
+			emoji="❓",
+			row=4
+		)
