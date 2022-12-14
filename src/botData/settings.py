@@ -5,6 +5,9 @@ All settings for the bot are listed below, split into classes which can act as h
 These settings pertain to the overall behaviour of the bot, not individual items.
 
 If you're looking for Emoji Library, see `botUtils.EmojiLibrary`.
+
+For more help:
+https://github.com/LCWilliams/planetside-discord-bot/wiki/Bot-Configuration/
 """
 from discord import SelectOption
 import botData.envVars as Env
@@ -28,30 +31,13 @@ class BotSettings():
 	# ID of a channel which users are moved to when their current one is removed.
 	fallbackVoiceChat = 326783867036106752
 
-
-	"""ROLE RESTRICT LEVELS:  
-	These split discord roles into levels, while primarily for limiting command usage, they are also used to set role permissions to channels.
-	
-	The code checks if role name or id matches, so you have the option to use both.
-
-	Levels explained:
-	Level 0		Most major commands and admin related functionality.
-	Level 1		Allowed Most Operation related commands
-	Level 2		Allowed most sub-Operation related commands (EG: they can see/use Op Commanders during running events)
-	Level 3		Allowed user only commands; this is the "general" member level.
-
-	For ease of use, use the Enum `CommandRestrictionLevels` instead of these values directly; as the enum cascades the levels.
-	"""
-	# Role Restrict Level 0 : Major bot commands.
+	# ROLE RESTRICTION LEVELS:
 	roleRestrict_level_0 = ["CO"]
 
-	# Role Restrict Level 1 : Operations related commands.
 	roleRestrict_level_1 = ["Captain", "Lieutenant"]
 
-	# Role restrict Level 2: Mid-tier role allowable commands.
 	roleRestrict_level_2 = ["Sergeant", "Corporal", "Lance-Corporal"]
 
-	# Role Restrict Level 3: General member role commands.
 	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
 
 	# Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below; users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.  As such, this is merely a redundancy if security concerned.
@@ -107,17 +93,6 @@ class BotSettings():
 		vString += f"	> Fallback Voice Chat: {self.fallbackVoiceChat}\n"
 		return vString
 
-class CommandRestrictionLevels(Enum):
-	"""
-	# COMMAND RESTRICTION LEVELS
-	Convenience Enum for setting levels, or to get a list of roles.
-
-	Should almost always be used instead of raw roleRestrict_level_n
-	"""
-	level0 = BotSettings.roleRestrict_level_0
-	level1 = level0 + BotSettings.roleRestrict_level_1
-	level2 = level1 + BotSettings.roleRestrict_level_2
-	level3 =level2 + BotSettings.roleRestrict_level_3
 
 @dataclass(frozen=True)
 class Directories:
@@ -282,3 +257,17 @@ class Roles():
 		SelectOption(label="World of Tanks", value="1038125253806788768"),
 		SelectOption(label="Star Citizen", value="1037797784566370318")		
 	]
+
+
+
+class CommandRestrictionLevels(Enum):
+	"""
+	# COMMAND RESTRICTION LEVELS
+	Convenience Enum for setting levels, or to get a list of roles.
+
+	Should almost always be used instead of raw roleRestrict_level_n
+	"""
+	level0 = BotSettings.roleRestrict_level_0
+	level1 = level0 + BotSettings.roleRestrict_level_1
+	level2 = level1 + BotSettings.roleRestrict_level_2
+	level3 =level2 + BotSettings.roleRestrict_level_3
