@@ -51,14 +51,12 @@ class Commander():
 		# GENERATE COMMANDER
 
 		Either creates, or updates an existing Commander view, using the current status.
+		The commander view does not include the INFO embed, since it does not need to be updated.
 		"""
 		vMessageView = discord.ui.View(timeout=None)
 		# add buttons here
 		vEmbeds:list = []
 
-		if self.vCommanderStatus.value < CommanderStatus.Started.value:
-			vEmbeds.append( self.GenerateEmbed_OpInfo() )
-			self.vMessage = await self.commanderChannel.send(view=vMessageView, embeds=vEmbeds)
 
 	async def CommanderSetup(self):
 		"""
@@ -81,7 +79,8 @@ class Commander():
 				vGuild.default_role: discord.PermissionOverwrite(read_messages=False)
 			}
 
-			vAdminRoleList = BotSettings.BotSettings.roleRestrict_level_2 + BotSettings.BotSettings.roleRestrict_level_1 + BotSettings.BotSettings.roleRestrict_level_0
+			# This restriction level is for the commander chanel (and any future admin channel creations!)
+			vAdminRoleList = BotSettings.CommandRestrictionLevels.level2.value
 			
 			vUserRoles = []
 			vAdminRoles = []
@@ -119,17 +118,16 @@ class Commander():
 					BUPrint.LogErrorExc("	-> Invalid permission overwrites", error)
 					return
 
-			# Add Commander text channel
+			# Add Commander text channel and post Op Info embed (the one that isn't repeatedly updated)
 			BUPrint.Debug("	-> Posting commander")
 			self.commanderChannel = await self.vCategory.create_text_channel(name="OPS COMMANDER", overwrites=adminUserOverwrites)
-			# await vCommanderChnl.send(f"**OPERATION COMMANDER** for {self.vOpData.name}", embed=self.GenerateEmbed_OpInfo(), view=vMessageView)
+			await self.commanderChannel.send(f"**OPERATION INFORMATION** for {self.vOpData.name}", embed=self.GenerateEmbed_OpInfo())
 
 			# Create always present voice channels:
 			BUPrint.Debug("	-> Creating default chanels")
 			for newChannel in botData.operations.DefaultChannels.persistentVoice:
 				channel:discord.VoiceChannel = await self.vCategory.create_voice_channel(name=newChannel)
-				# for role in vUserRoles:
-				# 	await channel.set_permissions(target=role, overwrite=generalUserOverwrites)
+
 
 			# Create custom voice channels if present
 			if len(self.vOpData.voiceChannels) != 0 and self.vOpData.voiceChannels[0] != "":
@@ -137,8 +135,6 @@ class Commander():
 				for newChannel in self.vOpData.voiceChannels:
 					BUPrint.Debug(f"	-> Adding channel: {newChannel}")
 					channel = await self.vCategory.create_voice_channel(name=newChannel)
-					# for role in vUserRoles:
-					# 	await channel.set_permissions(target=role, overwrite=generalUserOverwrites)
 
 
 			else: # No custom voice channels given, use default
@@ -146,13 +142,13 @@ class Commander():
 				for newChannel in botData.operations.DefaultChannels.voiceChannels:
 					BUPrint.Debug(f"	-> Adding channel: {newChannel}")
 					channel = await self.vCategory.create_voice_channel(name=newChannel)
-					# for role in vUserRoles:
-					# 	await channel.set_permissions(target=role, overwrite=generalUserOverwrites)
 
 
 			# Set to standby and return.
 			self.vCommanderStatus = CommanderStatus.Standby
 			return
+		else:
+			BUPrint.Info("Commander has already been set up!")
 
 	async def RemoveChannels(self):
 		"""
@@ -188,6 +184,9 @@ class Commander():
 		# Remove empty category
 		await self.vCategory.delete(reason="Auto removal of category after Operation end.")
 
+		#removethisinamoment
+		await self.vAuraxClient.close()
+
 	def GenerateEmbed_OpInfo(self):
 		"""
 		# GENERATE EMBED : OpInfo
@@ -210,22 +209,37 @@ class Commander():
 		for role in self.vOpData.roles:
 			vSignedUpCount += len(role.players)
 			if role.maxPositions > 0:
-				vLimitedRoleCount += vLimitedRoleCount
+				vLimitedRoleCount += role.maxPositions
 				vFilledLimitedRole += len(role.players)
 		vEmbed.add_field(
-			name="USERS | ROLES | RESERVES",
-			value=f"{vSignedUpCount} | {len(self.vOpData.roles)}({vFilledLimitedRole}/{vLimitedRoleCount}) | {len(self.vOpData.reserves)}", 
+			name="USERS",
+			value=f"{vSignedUpCount}", 
 			inline=True
 		)
 
-		# Only show verbose role info during the early stages.  Reduces clutter afterwards.
-		if self.vCommanderStatus.value > CommanderStatus.Started.value:
-			role: botData.operations.OpRoleData
-			for role in self.vOpData.roles:
-				vUsersInRole = ""
+		vEmbed.add_field(
+			name="ROLES",
+			value=f"Roles:{len(self.vOpData.roles)}\nLimited Role Spaces:{vFilledLimitedRole}/{vLimitedRoleCount})",
+			inline=True
+			)
+		
+		if self.vOpData.options.bUseReserve:
+			vEmbed.add_field(
+				name="RESERVES",
+				value=f"{len(self.vOpData.reserves)}",
+				inline=False
+				)
+
+
+		role: botData.operations.OpRoleData
+		for role in self.vOpData.roles:
+			
+			vUsersInRole = ""
+			if len(role.players) != 0:
 				for user in role.players:
-					vUsersInRole += f"{self.vBotRef.get_user(int(user))}\n"
-				vEmbed.add_field( name=f"{self.GetRoleName(role)}", value=vUsersInRole)
+					vUsersInRole += f"{self.vBotRef.get_user(int(user)).mention}\n"
+				
+				vEmbed.add_field( name=f"{self.GetRoleName(role)}", value=vUsersInRole, inline=True)
 
 		return vEmbed
 
@@ -256,13 +270,18 @@ class Commander():
 	def GetRoleName(self, p_role:botData.operations.OpRoleData):
 		"""
 		# GET ROLE NAME
-		Convenience function to get a role name with icon prefix, if applicable.		
+		Convenience function to get a role name with icon prefix if applicable, and append current/max, if applicable.	
 		"""
 		vRoleName = ""
 		if p_role.roleIcon != "-":
 			vRoleName = f"{p_role.roleIcon}{p_role.roleName}"
 		else:
 			vRoleName = p_role.roleName
+
+		if p_role.maxPositions > 0:
+			vRoleName += f" ({len(p_role.players)}/{p_role.maxPositions})"
+		else:
+			vRoleName += f" ({len(p_role.players)})"
 
 		return vRoleName
 
