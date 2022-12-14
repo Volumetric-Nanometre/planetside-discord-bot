@@ -29,8 +29,19 @@ class BotSettings():
 	fallbackVoiceChat = 326783867036106752
 
 
-# ROLE RESTRICT LEVELS:  These split any non-user assignable roles into levels, while primarily for limiting command usage, they are also used to set role permissions to channels.
+	"""ROLE RESTRICT LEVELS:  
+	These split discord roles into levels, while primarily for limiting command usage, they are also used to set role permissions to channels.
+	
+	The code checks if role name or id matches, so you have the option to use both.
 
+	Levels explained:
+	Level 0		Most major commands and admin related functionality.
+	Level 1		Allowed Most Operation related commands
+	Level 2		Allowed most sub-Operation related commands (EG: they can see/use Op Commanders during running events)
+	Level 3		Allowed user only commands; this is the "general" member level.
+
+	For ease of use, use the Enum `CommandRestrictionLevels` instead of these values directly; as the enum cascades the levels.
+	"""
 	# Role Restrict Level 0 : Major bot commands.
 	roleRestrict_level_0 = ["CO"]
 
@@ -45,9 +56,6 @@ class BotSettings():
 
 	# Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below; users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.  As such, this is merely a redundancy if security concerned.
 	bForceRoleRestrictions = True
-
-	# Force Role Restrictions, use ID: set to TRUE if Role IDs are used instead of role names.
-	bForceRestrictions_useID = False
 
 
 # `NEW USER`

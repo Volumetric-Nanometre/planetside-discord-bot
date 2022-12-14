@@ -316,13 +316,10 @@ async def UserHasCommandPerms(p_callingUser:discord.Member, p_requiredLevel:Comm
 		BotPrinter.Debug(f"Required Roles: {p_requiredLevel.value}")
 		role: discord.Role
 		for role in p_callingUser.roles:
-			if BotSettings.bForceRestrictions_useID:
-				if role.id in p_requiredLevel.value:
-					return True
-			else:
-				if role.name in p_requiredLevel.value:
+				if role.id in p_requiredLevel.value or role.name in p_requiredLevel.value:
 					return True
 		await p_interaction.response.send_message("You do not have valid permission to use this command!", ephemeral=True)
 		return False
+
 	else:
 		return True
