@@ -31,13 +31,11 @@ class Bot(commands.Bot):
         opsManager.OperationManager.SetBotRef(self)
         OpCommander.OperationCommander.vBotRef = self
 
-		# Objects with CHANNEL refs
-        # self.vNewUserReq = newUser.NewUserRequest(None)
 
     async def setup_hook(self):
         BUPrint.Info("Setting up hooks...")
         # Needed for later functions, which want a discord object instead of a plain string.
-        self.vGuildObj = await botUtils.GetGuild(p_BotRef=self)       
+        self.vGuildObj = await botUtils.GetGuild(p_BotRef=self)
 # COGS
         await self.add_cog(newUser.NewUser(pBot=self))
         await self.add_cog(roleManager.UserRoles(p_bot=self))
@@ -48,6 +46,7 @@ class Bot(commands.Bot):
 
         self.tree.copy_global_to(guild=self.vGuildObj)
         await self.tree.sync(guild=self.vGuildObj)
+
 
     async def on_ready(self):
         BUPrint.Info(f'Logged in as {self.user.name} ({self.user.id}) on Guild {self.vGuildObj.name}\n')
