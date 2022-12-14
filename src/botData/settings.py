@@ -22,25 +22,35 @@ class BotSettings():
 	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
 
+	# Enable Ops Tracking: if true, an ops commander also tracks the live operation.
+	bEnableLiveOpsTracking = True
+
+	# ID of a channel which users are moved to when their current one is removed.
+	fallbackVoiceChat = 326783867036106752
+
+
+# ROLE RESTRICT LEVELS:  These split any non-user assignable roles into levels, while primarily for limiting command usage, they are also used to set role permissions to channels.
+
+	# Role Restrict Level 0 : Major bot commands.
+	roleRestrict_level_0 = ["CO"]
+
+	# Role Restrict Level 1 : Operations related commands.
+	roleRestrict_level_1 = ["Captain", "Lieutenant"]
+
+	# Role restrict Level 2: Mid-tier role allowable commands.
+	roleRestrict_level_2 = ["Sergeant", "Corporal", "Lance-Corporal"]
+
+	# Role Restrict Level 3: General member role commands.
+	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
+
 	# Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below; users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.  As such, this is merely a redundancy if security concerned.
 	bForceRoleRestrictions = True
 
 	# Force Role Restrictions, use ID: set to TRUE if Role IDs are used instead of role names.
 	bForceRestrictions_useID = False
 
-	# Role Restrict Level 0 : Used for major bot commands.
-	roleRestrict_level_0 = ["CO"]
 
-	# Role Restrict Level 1 : Used for most Operations related commands.
-	roleRestrict_level_1 = ["Captain", "Lieutenant"]
-
-	# Role restrict Level 2: Used for commands that should be limited to mid-tier roles.
-	roleRestrict_level_2 = ["Sergeant", "Corporal", "Lance-Corporal"]
-
-	# Role Restrict Level 3: Used for commands that should be usable by base roled members.
-	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
-
-	# USED PRIMARILY BY NEW USER
+# `NEW USER`
 	# New User Admin Chanel: the channel (ID) new user join requests are sent to.
 	newUser_adminChannel = 1049424595750506527
 
@@ -62,11 +72,6 @@ class BotSettings():
 	# The Jump URL "rules" leads to (ensure this leads to the rules post!)
 	newUser_rulesURL = "https://discord.com/channels/321688140802949120/1049523449867022348/1049523492166565939"
 
-	# Enable Ops Tracking: if true, an ops commander also tracks the live operation.
-	bEnableLiveOpsTracking = True
-
-	# ID of a channel which users are moved to when their current one is removed.
-	fallbackVoiceChat = 326783867036106752
 
 	# Collapse for ease of reading.
 	def __repr__(self) -> str:
@@ -97,9 +102,9 @@ class BotSettings():
 class CommandRestrictionLevels(Enum):
 	"""
 	# COMMAND RESTRICTION LEVELS
-	Convenience Enum for setting levels.
+	Convenience Enum for setting levels, or to get a list of roles.
 
-	Should be used instead of raw roleRestrict_level_n
+	Should almost always be used instead of raw roleRestrict_level_n
 	"""
 	level0 = BotSettings.roleRestrict_level_0
 	level1 = level0 + BotSettings.roleRestrict_level_1
@@ -116,7 +121,7 @@ class Directories:
 	If changing the values, make sure slashes are present when needed.
 	"""
 
-	# File directory to preceed all directories.
+	# File directory to preceed all directories.  This is not hard-coded, if you so wish, each directory can be anywhere.
 	prefixDir = f"{BotSettings.botDir}/SavedData/"
 
 	# File directory for live Ops.
