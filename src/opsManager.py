@@ -257,6 +257,26 @@ class OperationManager():
 				BUPrint.LogErrorExc("No message found.", error)
 				return False
 
+			# Remove OpData from LiveOps list
+			BUPrint.Info("	-> Removing OpData from LiveOps...")
+			try:
+				self.vLiveOps.remove(p_opData)
+			except ValueError:
+				BUPrint.Debug("	-> Couldn't remove OpData from LiveList.  Trying manual recursive find...")
+				findData:OpData.OperationData
+				for findData in self.vLiveOps:
+					if findData.name == p_opData.name:
+						if findData.date == p_opData.date:
+							try:
+								self.vLiveOps.remove(findData)
+							except ValueError:
+								BUPrint.Info("	-> Unable to remove OpData from Live list!")
+
+			# Remove channel if empty
+			chanMessages = [message async for message in vChannel.history()]
+			if ( len(chanMessages) == 0 ):
+				await vChannel.delete(reason="Auto removal of empty signup channel")
+
 	# Remove File
 		BUPrint.Info("	-> Removing FILE...")
 		try:
@@ -267,13 +287,6 @@ class OperationManager():
 			BUPrint.Info("Unable to remove file!")
 			return False
 
-	# Remove from OpList
-		if not bIsDefault:
-			BUPrint.Info("	-> Removing OpData from LiveOps...")
-			try:
-				self.vLiveOps.remove(p_opData)
-			except ValueError:
-				BUPrint.Debug("	-> Couldn't remove OpData from LiveList.  Bad reference?")
 
 		BUPrint.Info("	-> OPERATION REMOVED!")
 		return True
@@ -607,7 +620,7 @@ class OperationManager():
 
 		## RETURN: None
 		"""
-		BUPrint.Debug("	-> Updating Op Message")
+		BUPrint.Debug("Updating Op Message")
 		try:
 			vChannel: discord.TextChannel = await self.AddNewLive_GetTargetChannel(p_opsData=p_opData)
 		except Exception as error:
@@ -809,13 +822,14 @@ class OpsEditor(discord.ui.View):
 	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		self.vOpsData.GenerateFileName()
 		vOpManager = OperationManager()
-		if self.vOpsData.messageID != "":
+		if self.vOpsData.messageID == "":
 			BUPrint.Info("Adding new Live Op...")
 			bSucsessfulOp = await vOpManager.AddNewLiveOp(self.vOpsData)
 			
 			if bSucsessfulOp:
 				await pInteraction.response.send_message("***SUCCESS!***\nYou can now dismiss the editor if you're done.", ephemeral=True)
 				OperationManager.SaveToFile(self.vOpsData)
+				BUPrint.Debug(f"	-> Message ID of Ops Editor opdata after send: {self.vOpsData.messageID}")
 			else:
 				await pInteraction.response.send_message("An error occured when posting the message.  Check console for more information.\n\nTry again, or dismiss the editor.", ephemeral=True)
 		else:
