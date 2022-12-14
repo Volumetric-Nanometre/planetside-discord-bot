@@ -16,6 +16,10 @@ import botData.operations
 from botData.operations import OperationData as OpsData
 from opsManager import OperationManager as OpsMan
 import OpCommander.status
+from OpCommander.commander import Commander as OperationCommander
+
+
+import time
 
 class AutoCommander(commands.Cog):
 	"""
@@ -61,7 +65,12 @@ class CommanderCommands(commands.Cog):
 				vOpData = opData
 
 		BUPrint.Debug(f"Start commander for {vOpData}!")
-		await p_interaction.response.send_message(f"Starting commander for {opData.name}!")
+		await p_interaction.response.send_message(f"Starting commander for {opData.name}!", ephemeral=True)
+		vNewCommander = OperationCommander(vOpData)
+		await vNewCommander.CommanderSetup()
+		await vNewCommander.GenerateCommander()
+		time.sleep(5)
+		await vNewCommander.RemoveChannels()
 
 	@manualcommander.autocomplete("p_opFile")
 	async def autocompleteOpFile(self, p_interaction: discord.Interaction, p_typedStr: str):

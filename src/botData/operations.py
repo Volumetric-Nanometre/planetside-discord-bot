@@ -102,3 +102,10 @@ class OperationData:
 		return vOutputStr
 
 
+@dataclass(frozen=True)
+class DefaultChannels:
+	textChannels = []
+	# Persistent Voice channels are channels that are ALWAYS created for every operation
+	persistentVoice = ["Standby"]
+	# If voice channels are not specified in the ops data, these are used instead
+	voiceChannels = ["Squad-Alpha", "Squad-Beta", "Squad-Charlie", "Squad-Delta"]

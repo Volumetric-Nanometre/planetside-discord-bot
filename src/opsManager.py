@@ -809,7 +809,7 @@ class OpsEditor(discord.ui.View):
 	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		self.vOpsData.GenerateFileName()
 		vOpManager = OperationManager()
-		if self.vOpsData.fileName == None:
+		if self.vOpsData.messageID != "":
 			BUPrint.Info("Adding new Live Op...")
 			bSucsessfulOp = await vOpManager.AddNewLiveOp(self.vOpsData)
 			

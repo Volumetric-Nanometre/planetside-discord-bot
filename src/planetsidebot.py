@@ -29,6 +29,7 @@ class Bot(commands.Bot):
 		# Objects with BOT refs
         self.vOpsManager = opsManager.OperationManager()
         opsManager.OperationManager.SetBotRef(self)
+        OpCommander.OperationCommander.vBotRef = self
 
 		# Objects with CHANNEL refs
         # self.vNewUserReq = newUser.NewUserRequest(None)
@@ -42,7 +43,7 @@ class Bot(commands.Bot):
         await self.add_cog(roleManager.UserRoles(p_bot=self))
         await self.add_cog(opsManager.Operations(p_bot=self))
         await self.add_cog(OpCommander.AutoCommander(p_bot=self))
-        await self.add_check(OpCommander.CommanderCommands(p_bot=self))
+        await self.add_cog(OpCommander.CommanderCommands(p_bot=self))
         # await self.add_cog(chatlinker.ChatLinker(self))
 
         self.tree.copy_global_to(guild=self.vGuildObj)

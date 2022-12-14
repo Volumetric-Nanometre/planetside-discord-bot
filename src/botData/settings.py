@@ -22,7 +22,7 @@ class BotSettings():
 	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
 
-	# Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below; users unable to call commands setup within the client are still unable to call commands regardless of this setting.  As such, this is merely a redundancy.
+	# Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below; users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.  As such, this is merely a redundancy if security concerned.
 	bForceRoleRestrictions = True
 
 	# Force Role Restrictions, use ID: set to TRUE if Role IDs are used instead of role names.
@@ -38,9 +38,9 @@ class BotSettings():
 	roleRestrict_level_2 = ["Sergeant", "Corporal", "Lance-Corporal"]
 
 	# Role Restrict Level 3: Used for commands that should be usable by base roled members.
-	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses"]
+	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
 
-# USED PRIMARILY BY NEW USER
+	# USED PRIMARILY BY NEW USER
 	# New User Admin Chanel: the channel (ID) new user join requests are sent to.
 	newUser_adminChannel = 1049424595750506527
 
@@ -61,6 +61,12 @@ class BotSettings():
 
 	# The Jump URL "rules" leads to (ensure this leads to the rules post!)
 	newUser_rulesURL = "https://discord.com/channels/321688140802949120/1049523449867022348/1049523492166565939"
+
+	# Enable Ops Tracking: if true, an ops commander also tracks the live operation.
+	bEnableLiveOpsTracking = True
+
+	# ID of a channel which users are moved to when their current one is removed.
+	fallbackVoiceChat = 326783867036106752
 
 	# Collapse for ease of reading.
 	def __repr__(self) -> str:
@@ -84,6 +90,8 @@ class BotSettings():
 		vString += f"	> New user Gate channel : {self.newUser_gateChannelID}\n"
 		vString += f"	> New user Rules URL: {self.newUser_rulesURL}\n"
 		vString += f"	> New user | Read timer:{self.newUser_readTimer} | AccountWarn: {self.newUser_newAccntWarn} | OutfitRank Warn: {self.newUser_outfitRankWarn}\n"
+		vString += f"	> Ops Live Tracking enabled: {self.bEnableLiveOpsTracking}\n"
+		vString += f"	> Fallback Voice Chat: {self.fallbackVoiceChat}\n"
 		return vString
 
 class CommandRestrictionLevels(Enum):
@@ -180,10 +188,10 @@ class Messages:
 	# Displayed in the embed for new users in their gate message.
 	newUserInfo = "Use the buttons below to provide your Planetside 2 character name and read the rules.\nThen you can request access, and wait for one of our admins to get you set up!"
 
-	# Displayed in the embed for new users in their gate message, under RULES.
+	# Displayed in the embed for new users in their gate message, under ACCEPTANCE OF RULES.
 	newUserRuleDeclaration = "By pressing 'REQUEST ACCESS', you are confirming **you have read**, **understand**, and **agree to adhere** by the rules."
 
-	# Displayed after the mention line when a new user joins.
+	# Displayed after the "Welcome @mention" line when a new user is accepted.
 	newUserWelcome = "Make sure to use `/roles` to assign both PS2 and other game related roles (and access related channels)!"
 
 	# Displayed when a user is choosing roles to ADD.
