@@ -51,6 +51,7 @@ class Bot(commands.Bot):
     async def on_ready(self):
         BUPrint.Info(f'Logged in as {self.user.name} ({self.user.id}) on Guild {self.vGuildObj.name}\n')
         await self.vOpsManager.RefreshOps()
+        await botUtils.ChannelPermOverwrites.Setup(p_botRef=self)
 
 
 bot = Bot()

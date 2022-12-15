@@ -65,12 +65,8 @@ class CommanderCommands(commands.Cog):
 				vOpData = opData
 
 		BUPrint.Debug(f"Start commander for {vOpData}!")
-		await p_interaction.response.send_message(f"Starting commander for {opData.name}!", ephemeral=True)
-		vNewCommander = OperationCommander(vOpData)
-		await vNewCommander.CommanderSetup()
-		await vNewCommander.GenerateCommander()
-		time.sleep(5)
-		await vNewCommander.RemoveChannels()
+		await p_interaction.response.send_message(f"Starting commander for {vOpData.name}!", ephemeral=True)
+		await self.StartCommander(vOpData)
 
 	@manualcommander.autocomplete("p_opFile")
 	async def autocompleteOpFile(self, p_interaction: discord.Interaction, p_typedStr: str):
@@ -82,3 +78,17 @@ class CommanderCommands(commands.Cog):
 			if (p_typedStr.lower() in option.fileName.lower()):
 				choices.append(discord.app_commands.Choice(name=option.fileName.replace(".bin", ""), value=option.fileName))
 		return choices
+
+
+	async def StartCommander(self, p_opData: botData.operations.OperationData):
+		"""
+		# START COMMANDER
+		Self explanitory, calling this will start the commander for the given ops file.
+		
+		Starting a commander does NOT start an Ops.  That is a different event, handled by the commander itself (if bAutoStart is enabled in both op settings and botsettings).
+		"""
+		BUPrint.Debug(f"Start commander for {p_opData.fileName}!")
+
+		vNewCommander = OperationCommander(p_opData)
+		await vNewCommander.CommanderSetup()
+		await vNewCommander.GenerateCommander()

@@ -33,7 +33,6 @@ class Operations(commands.GroupCog):
 							pYear="Optional.\nThe Year the ops should run.",
 							pArguments="Optional.\nAdditional arguments to control the op behaviour.")
 	@app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute", pYear="year", pArguments="arguments")
-	@app_commands.checks.has_any_role('CO','Captain','Lieutenant','Sergeant')
 	async def addopsevent (self, pInteraction: discord.Interaction, 
 		optype: str,
 		edit: bool, 

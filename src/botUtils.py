@@ -323,3 +323,78 @@ async def UserHasCommandPerms(p_callingUser:discord.Member, p_requiredLevel:Comm
 
 	else:
 		return True
+
+	
+class ChannelPermOverwrites():
+	"""
+	# CHANNEL PERM OVERWRITES
+	A class containing overwrite variables relating to the 4 restrictLevels, one `invisible` variable for hiding channels and a single function to set them (ideally on startup!).
+	"""
+	level0 = {}
+	level1 = {}
+	level2 = {}
+	level3 = {}
+	level3_readOnly = {}
+	invisible = {}
+	def __init__(self) -> None:
+		pass
+	
+	async def Setup(p_botRef:commands.Bot):
+		guild = await p_botRef.fetch_guild(BotSettings.discordGuild)
+		roles = await guild.fetch_roles()
+		# Defaults:
+		ChannelPermOverwrites.level3[guild.default_role] = discord.PermissionOverwrite(read_messages=False)
+
+		ChannelPermOverwrites.level2[guild.default_role] = discord.PermissionOverwrite(read_messages=False)
+
+		ChannelPermOverwrites.level1[guild.default_role] = discord.PermissionOverwrite(read_messages=False)
+
+		ChannelPermOverwrites.level0[guild.default_role] = discord.PermissionOverwrite(read_messages=False)
+
+		role : discord.Role
+		for role in roles:
+			# SETUP LEVEL 3
+			if role.name in CommandRestrictionLevels.level3.value or role.id in CommandRestrictionLevels.level3.value:
+				ChannelPermOverwrites.level3[role] = discord.PermissionOverwrite(
+					read_messages=True,
+					send_messages=True,
+					connect=True
+				)
+
+				ChannelPermOverwrites.invisible[role] = discord.PermissionOverwrite(
+					read_messages=False
+				)
+
+				ChannelPermOverwrites.level3_readOnly[role] = discord.PermissionOverwrite(
+					read_messages=True,
+					send_messages=False
+				)
+
+
+			# SEUP LEVEL 2
+			if role.name in CommandRestrictionLevels.level2.value or role.id in CommandRestrictionLevels.level2.value:
+				ChannelPermOverwrites.level2[role] = discord.PermissionOverwrite(
+					read_messages=True,
+					send_messages=True,
+					connect=True
+				)
+
+
+			# SEUP LEVEL 1
+			if role.name in CommandRestrictionLevels.level1.value or role.id in CommandRestrictionLevels.level1.value:
+				ChannelPermOverwrites.level1[role] = discord.PermissionOverwrite(
+					read_messages=True,
+					send_messages=True,
+					connect=True
+				)
+
+
+			# SEUP LEVEL 0
+			if role.name in CommandRestrictionLevels.level0.value or role.id in CommandRestrictionLevels.level0.value:
+				ChannelPermOverwrites.level0[role] = discord.PermissionOverwrite(
+					read_messages=True,
+					send_messages=True,
+					connect=True
+				)
+
+		BotPrinter.Info("ChannelPermOverwrites have been configured!")

@@ -104,8 +104,13 @@ class OperationData:
 
 @dataclass(frozen=True)
 class DefaultChannels:
+	# Text chanels created for every Op
 	textChannels = []
+	# Notification Channel: Name of channel used to send op auto alerts and interactive debrief messages.
+	notifChannel = "Notifications"
+	# Standby channel- the channel(name) users are moved into if they are connected during Ops soft start
+	standByChannel = "Standby"
 	# Persistent Voice channels are channels that are ALWAYS created for every operation
-	persistentVoice = ["Standby"]
+	persistentVoice = []
 	# If voice channels are not specified in the ops data, these are used instead
 	voiceChannels = ["Squad-Alpha", "Squad-Beta", "Squad-Charlie", "Squad-Delta"]
