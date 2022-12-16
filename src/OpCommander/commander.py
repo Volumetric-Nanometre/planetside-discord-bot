@@ -20,6 +20,7 @@ import botUtils
 from botUtils import BotPrinter as BUPrint
 from botUtils import ChannelPermOverwrites as ChanPermOverWrite
 from botData.settings import BotSettings as botSettings
+from botData.settings import Commander as commanderSettings
 import botData.operations
 from botData.operations import OperationData as OpsData
 from OpCommander.status import CommanderStatus
@@ -128,13 +129,13 @@ class Commander():
 			#Post standby commander, to set commander messageID.
 			BUPrint.Debug("	-> Posting Commander")
 			vCommanderMsg = f"**COMMANDER ON STANDBY**\n"
-			if botSettings.bAutoStartCommander:
-				vCommanderMsg += "Auto-Start is enabled.  This Commander will automatically start the operation "
+			if commanderSettings.bAutoStartEnabled:
+				vCommanderMsg += "Auto-Start is enabled.  \n*This Commander will automatically start the operation*"
 			self.commanderMsg =  await self.commanderChannel.send(vCommanderMsg)
 
 
 
-# UNCOMMENT WHEN DONE; don't this all works anyway.
+# UNCOMMENT WHEN DONE;  this all works anyway.
 			# # Create standby channel:
 			# BUPrint.Debug("	-> Creating standby Channel")
 			# self.standbyChn = await self.vCategory.create_voice_channel(name=botData.operations.DefaultChannels.standByChannel)
@@ -164,11 +165,11 @@ class Commander():
 			# Setup Alerts
 			# Always post first alert on commander creation:
 			self.lastStartAlert = await self.notifChn.send( self.GenerateAlertMessage() )
-			if botSettings.bEnableCommanderAutoAlerts:
+			if commanderSettings.bAutoAlertsEnabled:
 				pass
 
 			# Setup AutoStart
-			if self.vOpData.options.bAutoStart and botSettings.bAutoStartCommander:
+			if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
 				pass
 
 

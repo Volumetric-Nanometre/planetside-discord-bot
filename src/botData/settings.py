@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 @dataclass(frozen=True)
-class BotSettings():
+class BotSettings:
 	# TOKENS LOADED FROM .ENV FILE
 	discordToken = Env.DISCORD_TOKEN
 	discordGuild = Env.DISCORD_GUILD
@@ -24,22 +24,6 @@ class BotSettings():
 
 	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
-
-	# Enable Ops Tracking: if true, an ops commander tracks the live operation.
-	bEnableLiveOpsTracking = True
-
-	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
-	bAutoStartCommander = True
-
-	# Enable Commander Auto Alerts: If true, Op Commanders will periodically alert users a set amount of times 
-	bEnableCommanderAutoAlerts = True
-
-	# Commander Auto Alerts: The number of automatic alerts a commander will send
-	# NOTE: The commander will always send an alert on creation, so +1 the number below for the total alerts sent.
-	commanderAutoAlerts = 2
-
-	# Commander- Auto Move Voice Channel: If enabled, participating users are moved to the standby channel on Ops start.
-	bCommanderAutoMoveVC = True
 
 	# ID of a channel which users are moved to when their current one is removed.
 	fallbackVoiceChat = 326783867036106752
@@ -54,7 +38,8 @@ class BotSettings():
 	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
 
 	# Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below.
-	# users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.  As such, this is merely a redundancy if security concerned.
+	# users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.
+	# As such, this is merely a redundancy if security concerned.
 	bForceRoleRestrictions = True
 
 
@@ -102,10 +87,39 @@ class BotSettings():
 		vString += f"	> New user Gate channel : {self.newUser_gateChannelID}\n"
 		vString += f"	> New user Rules URL: {self.newUser_rulesURL}\n"
 		vString += f"	> New user | Read timer:{self.newUser_readTimer} | AccountWarn: {self.newUser_newAccntWarn} | OutfitRank Warn: {self.newUser_outfitRankWarn}\n"
-		vString += f"	> Ops Live Tracking enabled: {self.bEnableLiveOpsTracking}\n"
 		vString += f"	> Fallback Voice Chat: {self.fallbackVoiceChat}\n"
-		vString += f"	> Commander- AutoStart: {self.bAutoStartCommander} | Auto Alerts: {self.bEnableCommanderAutoAlerts}, Auto Alert Count: {self.commanderAutoAlerts} | Auto Move VC: {self.bCommanderAutoMoveVC}"
 		return vString
+
+@dataclass(frozen=True)
+class Commander:
+	"""
+	# COMMANDER
+	Settings used by Op Commanders.
+	"""
+	# Enable Ops Tracking: if true, an ops commander tracks the live operation.
+	bEnableLiveTracking = True
+
+	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
+	bAutoStartEnabled = True
+
+	# Enable Commander Auto Alerts: If true, Op Commanders will periodically alert users a set amount of times 
+	bAutoAlertsEnabled = True
+
+	# Commander Auto Alerts: The number of automatic alerts a commander will send
+	# NOTE: The commander will always send an alert on creation, so +1 the number below for the total alerts sent.
+	autoAlertCount = 2
+
+	# Commander- Auto Move Voice Channel: If enabled, participating users are moved to the standby channel on Ops start if they're in a voice channel.
+	bAutoMoveVCEnabled = True
+
+	def __repr__(self) -> str:
+		vString = "\n	OP COMMANDER SETTINGS\n"
+		vString += f"	> Auto Start: {self.bAutoStartEnabled}"
+		vString += f"	> Live Tracking: {self.bEnableLiveTracking}\n"
+		vString += f"	> Auto Alerts: {self.bAutoAlertsEnabled}"
+		vString += f"	> Auto Alert count: {self.autoAlertCount}"
+		vString += f"	> Auto Move VC: {self.bAutoMoveVCEnabled}"
+		return vString		
 
 
 @dataclass(frozen=True)
