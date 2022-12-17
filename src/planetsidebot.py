@@ -16,7 +16,8 @@ import opsManager
 import OpCommander.autoCommander as OpCommander
 
 # import chatlinker
-BUPrint.Info(f"Starting bot with settings:\n{settings.BotSettings()}\n{settings.Directories()}\n{settings.SignUps()}")
+
+BUPrint.Info(f"Starting bot with settings:\n{settings.BotSettings()}\n{settings.Directories()}\n{settings.SignUps()}\n{settings.NewUsers()}\n{settings.Commander()}")
 
 botUtils.FilesAndFolders.SetupFolders()
 
@@ -52,6 +53,7 @@ class Bot(commands.Bot):
         BUPrint.Info(f'Logged in as {self.user.name} ({self.user.id}) on Guild {self.vGuildObj.name}\n')
         await self.vOpsManager.RefreshOps()
         await botUtils.ChannelPermOverwrites.Setup(p_botRef=self)
+        await botUtils.RoleDebug(self.vGuildObj)
 
 
 bot = Bot()

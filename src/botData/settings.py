@@ -43,52 +43,71 @@ class BotSettings:
 	bForceRoleRestrictions = True
 
 
-# `NEW USER`
-	# New User Admin Chanel: the channel (ID) new user join requests are sent to.
-	newUser_adminChannel = 1049424595750506527
-
-	# Gate Channel: Channel (ID) where new user join forms are sent to.
-	newUser_gateChannelID = 1041860598822096950
-
-	#General Channel: ID of the general channel.
-	generalChanelID = 358702477962379274
-
-	# Minimum Read time: The number of minutes a user has to wait (to read the rules) before they are able to request access.
-	newUser_readTimer = 1
-
-	# Warn if a user claims a ps2 character name with a rank equal or higher than this (numerical, lower = higher rank.)
-	newUser_outfitRankWarn = 4
-
-	# New User Date Warning, discord account is less than x months old.
-	newUser_newAccntWarn = 3
-
-	# The Jump URL "rules" leads to (ensure this leads to the rules post!)
-	newUser_rulesURL = "https://discord.com/channels/321688140802949120/1049523449867022348/1049523492166565939"
-
-
 	# Collapse for ease of reading.
 	def __repr__(self) -> str:
 		vString = "\n	GENERAL BOT SETTINGS\n"
 		vString += f"	> DebugEnabled: {self.bDebugEnabled}\n"
 		if (self.bDebugEnabled):
-			vString += f"	> DiscordToken: {self.discordToken}\n"
+			vString += f"	> DiscordToken:	{self.discordToken}\n"
 		else:
 			token = self.discordToken.partition(".")[0]
-			vString += f"	> DiscordToken: {token}...\n"
-		vString += f"	> DiscordGuild: {self.discordGuild}\n"
-		vString += f"	> PS2ServiceID: {self.ps2ServiceID}\n"
-		vString += f"	> BotDirectory: {self.botDir}\n"
+			vString += f"	> DiscordToken:	{token}...\n"
+		vString += f"	> DiscordGuild:	{self.discordGuild}\n"
+		vString += f"	> PS2ServiceID:	{self.ps2ServiceID}\n"
+		vString += f"	> BotDirectory:	{self.botDir}\n"
 		vString += f"	> Force Role Restrictions: {self.bForceRoleRestrictions}\n"
-		vString += f"	> Level 0: {self.roleRestrict_level_0}\n"
-		vString += f"	> Level 1: {self.roleRestrict_level_1}\n"
-		vString += f"	> Level 2: {self.roleRestrict_level_2}\n"
-		vString += f"	> Level 3: {self.roleRestrict_level_3}\n"
-		vString += f"	> New user Admin Channel: {self.newUser_adminChannel}\n"
-		vString += f"	> New user Gate channel : {self.newUser_gateChannelID}\n"
-		vString += f"	> New user Rules URL: {self.newUser_rulesURL}\n"
-		vString += f"	> New user | Read timer:{self.newUser_readTimer} | AccountWarn: {self.newUser_newAccntWarn} | OutfitRank Warn: {self.newUser_outfitRankWarn}\n"
-		vString += f"	> Fallback Voice Chat: {self.fallbackVoiceChat}\n"
+		vString += f"	> Level 0:	{self.roleRestrict_level_0}\n"
+		vString += f"	> Level 1:	{self.roleRestrict_level_1}\n"
+		vString += f"	> Level 2:	{self.roleRestrict_level_2}\n"
+		vString += f"	> Level 3:	{self.roleRestrict_level_3}\n"
+		vString += f"	> Fallback VC:	{self.fallbackVoiceChat}\n"
 		return vString
+
+
+@dataclass(frozen=True)
+class NewUsers:
+	"""
+	# NEW USERS
+	Settings pertaining to the bot behaviour for `NewUser` cog.
+	"""
+	# New User Admin Chanel: the channel (ID) new user join requests are sent to.
+	adminChannel = 1049424595750506527
+
+	# Gate Channel: Channel (ID) where new user join forms are sent to.
+	gateChannelID = 1041860598822096950
+
+	#General Channel: ID of the general channel. (accepted user welcome messages are sent here)
+	generalChanelID = 358702477962379274
+
+	# Warn if a user claims a ps2 character name with a rank equal or higher than this (numerical, lower = higher rank.)
+	outfitRankWarn = 4
+
+	# New User Date Warning, discord account is less than x months old.
+	newAccntWarn = 3
+
+	# The Jump URL "rules" leads to (ensure this leads to the rules post!)
+	rulesURL = "https://discord.com/channels/321688140802949120/1049523449867022348/1049523492166565939"
+
+
+
+	# Rule Message ID: The id of a message which contains the server rules (if not in an embed, falls back to message content)
+	ruleMsgID = 1049631022192537610 # DEV SERVER VAL: 1049631022192537610 | LIVE : 977888774530932767
+	# Rule Channel ID: The ID of the channel which the Rules message is in.
+	ruleChnID = 1049523449867022348 # DEV SERVER VAL: 1049523449867022348 | LIVE : 913086821263626360
+
+
+	def __repr__(self) -> str:
+		vString = "\n	NEW USER SETTINGS\n"
+		vString += f"	> Admin Channel:	{self.adminChannel}\n"
+		vString += f"	> Gate channel :	{self.gateChannelID}\n"
+		vString += f"	> Rules URL:		{self.rulesURL}\n"
+		vString += f"	> ReactRule Message:	{self.ruleMsgID}\n"
+		vString += f"	> ReactRule Channel:	{self.ruleChnID}\n"
+		vString += f"\n	> Warnings: Discord Account age: {self.newAccntWarn} months\n"
+		vString += f"	> Warnings: Outfit Rank (Ord): {self.outfitRankWarn}\n"
+		return vString
+
+
 
 @dataclass(frozen=True)
 class Commander:
@@ -117,12 +136,12 @@ class Commander:
 
 	def __repr__(self) -> str:
 		vString = "\n	OP COMMANDER SETTINGS\n"
-		vString += f"	> Auto prestart: {self.autoPrestart} minutes"
-		vString += f"	> Auto Start: {self.bAutoStartEnabled}"
-		vString += f"	> Live Tracking: {self.bEnableLiveTracking}\n"
-		vString += f"	> Auto Alerts: {self.bAutoAlertsEnabled}"
-		vString += f"	> Auto Alert count: {self.autoAlertCount}"
-		vString += f"	> Auto Move VC: {self.bAutoMoveVCEnabled}"
+		vString += f"	> Auto prestart:	{self.autoPrestart} minutes\n"
+		vString += f"	> Auto Start:		{self.bAutoStartEnabled}\n"
+		vString += f"	> Live Tracking:	{self.bEnableLiveTracking}\n"
+		vString += f"	> Auto Alerts:		{self.bAutoAlertsEnabled}\n"
+		vString += f"	> Auto Alert count:	{self.autoAlertCount}\n"
+		vString += f"	> Auto Move VC:		{self.bAutoMoveVCEnabled}\n"
 		return vString		
 
 
@@ -157,11 +176,11 @@ class Directories:
 	# Collapse for ease of reading.
 	def __repr__(self) -> str:
 		vString = "	BOT DIRECTORY SETTINGS\n"
-		vString += f"	> Prefix Dir : {self.prefixDir}\n"
-		vString += f"	> LiveOps Dir: {self.liveOpsDir}\n" 
-		vString += f"	> DefaultsDir: {self.savedDefaultsDir}\n" 
-		vString += f"	> UserLib Dir: {self.userLibrary}\n\n" 
-		vString += f"	> LockFile Affix: {self.lockFileAffix} | Retries: {self.lockFileRetry}\n" 
+		vString += f"	> Prefix Dir :	{self.prefixDir}\n"
+		vString += f"	> LiveOps Dir:	{self.liveOpsDir}\n" 
+		vString += f"	> DefaultsDir:	{self.savedDefaultsDir}\n" 
+		vString += f"	> UserLib Dir:	{self.userLibrary}\n" 
+		vString += f"	> LockFile Affix:	{self.lockFileAffix} | Retries: {self.lockFileRetry}\n" 
 		return vString
 
 
@@ -206,10 +225,13 @@ class Messages:
 	gateChannelDefaultMsg = "Welcome to TDKD.\nIf a join request has not been created for you, or you have already sent one and it's no longer here, please re-join the server. \nOur bot has been restarted."
 
 	# Displayed in the embed for new users in their gate message.
-	newUserInfo = "Use the buttons below to provide your Planetside 2 character name and read the rules.\nThen you can request access, and wait for one of our admins to get you set up!"
+	newUserInfo = "Use the buttons below to provide your Planetside 2 character name (if you have one) and accept the rules.\nThen you can request access, and wait for one of our admins to get you set up!"
 
 	# Displayed in the embed for new users in their gate message, under ACCEPTANCE OF RULES.
-	newUserRuleDeclaration = "By pressing 'REQUEST ACCESS', you are confirming **you have read**, **understand**, and **agree to adhere** by the rules."
+	newUserRuleDeclaration = "By pressing 'ACCEPT', you are confirming **you have read**, **understand**, and **agree to adhere** by the rules."
+
+	# Confirmation message sent to users who have accepted the rules
+	newUserAcceptedRules = "Thank you for accepting the rules.  You may now request access!"
 
 	# Displayed after the "Welcome @mention" line when a new user is accepted.
 	newUserWelcome = "Make sure to use `/roles` to assign both PS2 and other game related roles (and access related channels)!"
@@ -234,7 +256,7 @@ class Messages:
 
 
 @dataclass(frozen=True)
-class Roles():
+class Roles:
 	"""
 	# ROLES
 	For convenience sake, all roles used within selectors are stored here
@@ -313,4 +335,4 @@ class CommandRestrictionLevels(Enum):
 	level0 = BotSettings.roleRestrict_level_0
 	level1 = level0 + BotSettings.roleRestrict_level_1
 	level2 = level1 + BotSettings.roleRestrict_level_2
-	level3 =level2 + BotSettings.roleRestrict_level_3
+	level3 = level2 + BotSettings.roleRestrict_level_3

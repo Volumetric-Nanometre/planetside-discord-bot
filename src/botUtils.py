@@ -4,6 +4,7 @@ import time
 from botData.settings import BotSettings
 from botData.settings import CommandRestrictionLevels
 from botData.settings import Directories
+from botData.settings import Roles
 import traceback
 import enum
 import discord
@@ -327,6 +328,56 @@ async def UserHasCommandPerms(p_callingUser:discord.Member, p_requiredLevel:Comm
 		return True
 
 	
+async def RoleDebug(p_guild:discord.Guild):
+	"""
+	# ROLE DEBUG
+	Goes through all editable roles.
+	If any are not matching, they're listed.
+
+	Exits out if Debug is not enabled.
+	"""
+	if not BotSettings.bDebugEnabled:
+		return
+
+	guildRoles = await p_guild.fetch_roles()
+	guildRoleNames = []
+	guildRoleIDs = []
+	vMessageStr = "ROLE DEBUG:\n"
+
+	role: discord.Role
+	for role in guildRoles:
+		guildRoleNames.append(role.name)
+		guildRoleIDs.append(role.id)
+
+
+	vMessageStr += "		ROLE LEVELS\n"
+	for roleNID in CommandRestrictionLevels.level3.value:
+		if roleNID not in guildRoleNames or roleNID not in guildRoleIDs:
+			vMessageStr += f"\nCommand Restriction Level - Invalid Value: {roleNID}"
+
+
+	vMessageStr += "\n\n		TDKD ROLE SELECTOR\n"
+	option:discord.SelectOption
+	for option in Roles.addRoles_TDKD:
+		if option.value not in guildRoleNames or option.value not in guildRoleIDs:
+			vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
+
+
+	vMessageStr += "\n\n		GAME 1 ROLE SELECTOR\n"
+	for option in Roles.addRoles_games1:
+		if option.value not in guildRoleNames or option.value not in guildRoleIDs:
+			vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
+
+
+	vMessageStr += "\n\n		GAME 2 ROLE SELECTOR\n"
+	for option in Roles.addRoles_games2:
+		if option.value not in guildRoleNames or option.value not in guildRoleIDs:
+			vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
+
+	vMessageStr += "\n\n"
+	BotPrinter.Debug(vMessageStr)
+
+
 class ChannelPermOverwrites():
 	"""
 	# CHANNEL PERM OVERWRITES

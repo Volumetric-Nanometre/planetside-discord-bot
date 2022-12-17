@@ -8,6 +8,7 @@ import asyncio
 import datetime, dateutil.relativedelta
 
 import botData.settings
+from botData.settings import NewUsers as NewUserSettings
 from botUtils import BotPrinter
 import botUtils
 from botData.settings import CommandRestrictionLevels
@@ -57,10 +58,10 @@ class NewUser(commands.Cog):
 		Given the low likelyhood of a user being affected by down-time, post a message afterwards instructing them to leave and re-join.
 		"""
 		BotPrinter.Info("Purging Join Posts and sent Requests...")
-		gateChannel = self.botRef.get_channel(botData.settings.BotSettings.newUser_gateChannelID)
+		gateChannel = self.botRef.get_channel(NewUserSettings.gateChannelID)
 		await gateChannel.purge(reason="Start-up/Shutdown Purge.")
 		BotPrinter.Debug("	-> Gate channel Purged.")
-		adminRequestChannel = self.botRef.get_channel(botData.settings.BotSettings.newUser_adminChannel)
+		adminRequestChannel = self.botRef.get_channel(NewUserSettings.adminChannel)
 		await adminRequestChannel.purge(reason="Startup/Shutdown Purge")
 		BotPrinter.Debug("	-> Request Channel Purged.")
 		await gateChannel.send(botData.settings.Messages.gateChannelDefaultMsg)
@@ -68,7 +69,7 @@ class NewUser(commands.Cog):
 	@commands.Cog.listener("on_member_join")
 	async def promptUser(self, p_member: discord.Member):
 		if NewUserRequest.vRequestChannel == None:
-			NewUserRequest.vRequestChannel = await self.botRef.fetch_channel(botData.settings.BotSettings.newUser_adminChannel)
+			NewUserRequest.vRequestChannel = await self.botRef.fetch_channel(NewUserSettings.adminChannel)
 			if(NewUserRequest.vRequestChannel == None):
 				BotPrinter.Info("NEW USER REQUEST CHANNEL NOT FOUND!")
 				return
@@ -89,39 +90,17 @@ class NewUser(commands.Cog):
 			vEmbed.add_field(name="ACCEPTANCE OF RULES", value=botData.settings.Messages.newUserRuleDeclaration, inline=True)
 
 			vView = self.GenerateView(p_member.id)
-			gateChannel = self.botRef.get_channel(botData.settings.BotSettings.newUser_gateChannelID)
+			gateChannel = self.botRef.get_channel(NewUserSettings.gateChannelID)
 			userData.joinMessage:discord.Message = await gateChannel.send(f"{p_member.mention}",  view=vView, embed=vEmbed)
 			# BotPrinter.Debug(f"Join Message: {userData.joinMessage}")
-
-			await self.enableRequestBtn.start(p_member.id)
 		
 		else:
 			BotPrinter.Info("User already has an entry!")
-	
-	# Count must be set to 2.  1st loop is initial call, then 2nd loop is after timer.
-	@tasks.loop(minutes=botData.settings.BotSettings.newUser_readTimer, count=2)
-	async def enableRequestBtn(self, p_userID):
-		BotPrinter.Debug(f"Enabling Join Request Button for user with ID {p_userID}")
-		
-		if (len(self.userDatas) == 0):
-			BotPrinter.LogError("No user Data's in array!", 0)
-			return
 
-		vNewUserData : NewUserData = self.GetUserData(p_userID)
-		if vNewUserData == None:
-			BotPrinter.LogError("New User Data not found!")
-			return
 
-		if vNewUserData.bIsFirstLoop:
-			BotPrinter.Debug("First iteration of loop.  Set bool to false, and not continuing!")
-			vNewUserData.bIsFirstLoop = False
-			return
-		
-		newView = self.GenerateView(p_userID, True)
-		await vNewUserData.joinMessage.edit(view=newView)
 
 	def GenerateView(self, p_memberID, bCanRequest: bool = False,):
-		vView = discord.ui.View(timeout=300)
+		vView = discord.ui.View(timeout=None)
 		btnName = NewUser_btnPs2Name(p_memberID, self)
 		btnRules = NewUser_btnReadRules(self)
 		btnRequest = NewUser_btnRequest(p_memberID)
@@ -156,7 +135,15 @@ class NewUser_btnPs2Name(discord.ui.Button):
 class NewUser_btnReadRules(discord.ui.Button):
 	def __init__(self, p_newUserRef: NewUser):
 		self.newUserRef = p_newUserRef
-		super().__init__(label="Rules", url=botData.settings.BotSettings.newUser_rulesURL )
+		# super().__init__(label="Rules", url=NewUserSettings.rulesURL )
+		super().__init__(label="Rules")
+
+	async def callback(self, p_interaction:discord.Interaction):
+		miniRules = NewUser_MiniRules(p_userID=p_interaction.user.id, p_guild=p_interaction.guild)
+		await miniRules.Setup()
+
+		userData = NewUser.GetUserData(None, p_interaction.user.id)
+		await p_interaction.response.send_message(view=miniRules.view, embed=miniRules.rulesEmbed, ephemeral=True)
 
 
 class NewUser_btnRequest(discord.ui.Button):
@@ -167,9 +154,8 @@ class NewUser_btnRequest(discord.ui.Button):
 	async def callback(self, pInteraction: discord.Interaction):
 		vUserData = NewUser.GetUserData(None, pInteraction.user.id)
 		if pInteraction.user.id == self.userID:
-			# Generate any other potential warnings, print info to console, then create a new entry for admins!	
+
 			BotPrinter.Info(f"New user {vUserData.userObj.display_name}|{self.userID}, with ps2 character name {vUserData.ps2CharName} is requesting access!")
-			# NEW ADMIN ENTRY HERE
 			vRequest = NewUserRequest(vUserData)
 			await vRequest.SendRequest()
 			await pInteraction.response.send_message("**Your request has been sent!**\n\nPlease wait, you will be notified if it has been accepted!", ephemeral=True)
@@ -183,6 +169,66 @@ class NewUser_btnRequest(discord.ui.Button):
 			vView.add_item(jumpBtn)
 
 			await pInteraction.response.send_message("This is not your entry!", view=vView, ephemeral=True)
+
+
+class NewUser_MiniRules():
+	"""
+	# NEW USER: MINI RULES
+	Class containing a view for accepting & declining rules, and an embed that copies the rules post.
+	"""
+	def __init__(self, p_userID, p_guild:discord.Guild):
+		BotPrinter.Debug(f"Showing mini rules for user with ID: {p_userID}")
+		self.userID = p_userID
+		self.guild = p_guild
+
+		self.view = discord.ui.View(timeout=None)
+		self.view.add_item(NewUser_MiniRules_btnAccept(self.userID))
+		self.view.add_item(NewUser_MiniRules_btnDecline(self.userID))
+
+		self.rulesMessage:discord.Message = None
+		self.rulesEmbed = None
+
+	async def Setup(self):
+		"""
+		# SETUP
+		Grabs the rules message and sets the embed.
+		"""
+		ruleChannel:discord.TextChannel = self.guild.get_channel(NewUserSettings.ruleChnID)
+
+		self.rulesMessage = await ruleChannel.fetch_message(NewUserSettings.ruleMsgID)
+		try:
+			self.rulesEmbed = self.rulesMessage.embeds[0]
+		except IndexError:
+			BotPrinter.Info("NO RULES EMBED FOUND!  Falling back to message content")
+			self.rulesEmbed = discord.Embed(title="RULES")
+			self.rulesEmbed.add_field(
+				name="----------------",
+				value=self.rulesMessage.content
+			)
+
+class NewUser_MiniRules_btnAccept(discord.ui.Button):
+	def __init__(self, p_userID):
+		self.userID = p_userID
+		super().__init__(label="ACCEPT", style=discord.ButtonStyle.green)
+
+	async def callback(self, p_interaction:discord.Interaction):
+		newUsrObj = NewUser.GetUserData(None, self.userID)
+		await newUsrObj.joinMessage.edit(view=NewUser.GenerateView(None, self.userID, True))
+		await p_interaction.response.send_message(botData.settings.Messages.newUserAcceptedRules, ephemeral=True)
+		blankView = discord.ui.View()
+		await p_interaction.edit_original_response(view=blankView)
+
+
+class NewUser_MiniRules_btnDecline(discord.ui.Button):
+	def __init__(self, p_userID):
+		self.userID = p_userID
+		super().__init__(label="DECLINE", style=discord.ButtonStyle.red)
+
+	async def callback(self, p_interaction:discord.Interaction):
+		dataToRemove = NewUser.GetUserData(None, self.userID)
+		NewUser.userDatas.remove(dataToRemove)
+		await p_interaction.user.kick(reason="User declined to accept rules.")
+
 
 
 class PS2NameModal(discord.ui.Modal, title="Enter your PS2 Character name"):
@@ -305,28 +351,34 @@ class NewUserRequest():
 		if self.userData.userObj.created_at < vWarnDate:
 			# embed_warnings.add_field(name="⚠️ DISCORD ACCOUNT AGE", value=f"This discord account was created within the last {botData.settings.BotSettings.newUser_newAccntWarn} months", inline=False)
 			embed_warnings._colour = botUtils.Colours.userWarning.value
-			strWarnings += f"DISCORD ACCOUNT AGE:\n> Account was created within the last {botData.settings.BotSettings.newUser_newAccntWarn} months!\n"
+			strWarnings += f"DISCORD ACCOUNT AGE:\n> Account was created within the last {NewUserSettings.newAccntWarn} months!\n\n"
 		else:
 			# embed_warnings.add_field(name="✅ DISCORD ACCOUNT AGE", value=f"This discord account is older than {botData.settings.BotSettings.newUser_newAccntWarn} months", inline=False)
-			strOkay += f"> Discord Account is over {botData.settings.BotSettings.newUser_newAccntWarn} months old.\n"
+			strOkay += f"> Discord Account is over {NewUserSettings.newAccntWarn} months old.\n\n"
 
 		# PS2 Invalid Char Name
 		if self.userData.ps2CharObj == None:
 			# embed_warnings.add_field(name="⚠️ PS2 CHARACTER", value="No valid PS2 Character name was provided.", inline=False)
 			embed_warnings._colour = botUtils.Colours.userWarning.value
-			strWarnings += "NO VALID PS2 CHARACTER:\n> User has not provided a valid ps2 character\n"
+			strWarnings += "NO VALID PS2 CHARACTER:\n> User has not provided a valid ps2 character\n\n"
 		else:
 			# embed_warnings.add_field(name="✅ PS2 CHARACTER", value="User has provided a valid PS2 Character name.", inline=False)
-			strOkay += "- Valid PS2 character provided\n"
+			strOkay += "- Valid PS2 character provided\n\n"
 
 		# IMPERSONATION WARNING
-		if self.userData.ps2OutfitCharObj != None and self.userData.ps2OutfitCharObj.rank_ordinal < botData.settings.BotSettings.newUser_outfitRankWarn:
+		if self.userData.ps2OutfitCharObj != None and self.userData.ps2OutfitCharObj.rank_ordinal < NewUserSettings.outfitRankWarn:
 			# embed_warnings.add_field(name="⚠️ IMPERSONATION CHECK", value=f"This user is claiming to be a character with a high **({self.userData.ps2OutfitCharObj.rank_ordinal})** Outfit **({self.userData.ps2OutfitName})** Rank **({self.userData.ps2OutfitCharObj.rank})!**", inline=False)
 			embed_warnings._colour = botUtils.Colours.userWarning.value
 			strWarnings += f"HIGH RANK USER:\n> Claiming a character with a high *({self.userData.ps2OutfitCharObj.rank_ordinal})* Outfit *({self.userData.ps2OutfitName})* Rank *({self.userData.ps2OutfitCharObj.rank})!*"
-		else:
+		elif self.userData.ps2CharObj != None:
 			# embed_warnings.add_field(name="✅ IMPERSONATION CHECK", value=f"This users claimed character is not a high ranking outfit member.", inline=False)
 			strOkay += "- Users claimed character is not a high ranking outfit member.\n"
+
+
+		if strOkay == "":
+			strOkay = "*None*"
+		if strWarnings == "":
+			strWarnings = "*None*"
 
 		embed_warnings.add_field(name="⚠️ WARNINGS", value=strWarnings, inline=True)
 		embed_warnings.add_field(name="✅ CHECKS", value=strOkay, inline=True)
