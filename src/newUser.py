@@ -380,8 +380,8 @@ class NewUserRequest():
 		if strWarnings == "":
 			strWarnings = "*None*"
 
-		embed_warnings.add_field(name="⚠️ WARNINGS", value=strWarnings, inline=True)
-		embed_warnings.add_field(name="✅ CHECKS", value=strOkay, inline=True)
+		embed_warnings.add_field(name="⚠️ WARNINGS", value=strWarnings, inline=False)
+		embed_warnings.add_field(name="✅ CHECKS", value=strOkay, inline=False)
 
 		# RECRUIT SUGGESTION
 		if self.userData.ps2OutfitCharObj != None and self.userData.ps2OutfitAlias == "TDKD" and self.userData.ps2OutfitCharObj.rank == "Recruit":

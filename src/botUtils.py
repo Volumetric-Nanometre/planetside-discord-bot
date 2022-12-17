@@ -352,7 +352,7 @@ async def RoleDebug(p_guild:discord.Guild):
 
 	vMessageStr += "		ROLE LEVELS\n"
 	for roleNID in CommandRestrictionLevels.level3.value:
-		if roleNID not in guildRoleNames or roleNID not in guildRoleIDs:
+		if roleNID not in guildRoleNames and roleNID not in guildRoleIDs:
 			vMessageStr += f"\nCommand Restriction Level - Invalid Value: {roleNID}"
 
 
