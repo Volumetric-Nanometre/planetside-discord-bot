@@ -104,8 +104,14 @@ class OperationData:
 
 @dataclass(frozen=True)
 class DefaultChannels:
+	"""
+	# DEFAULT CHANNELS
+	Name of channels used during Operations.
+	"""
 	# Text chanels created for every Op
 	textChannels = []
+	# Op Commander Channel: Name of the channel used for the Ops Commander
+	opCommander = "Commander"
 	# Notification Channel: Name of channel used to send op auto alerts and interactive debrief messages.
 	notifChannel = "Notifications"
 	# Standby channel- the channel(name) users are moved into if they are connected during Ops soft start

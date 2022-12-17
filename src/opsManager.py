@@ -9,6 +9,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
+from botData.settings import Messages as botMessages
 from botData import settings as botSettings
 import botData.operations as OpData
 import botUtils
@@ -345,14 +346,14 @@ class OperationManager():
 			vFilePath += f"{botSettings.Directories.liveOpsDir}{p_opsData.fileName}.bin"
 		BUPrint.Debug(f"Saving file: {vFilePath}")
 		try:
-			botUtils.FilesAndFolders.GetLock(botUtils.FilesAndFolders.GetLockFilePath(p_opsData.fileName))
+			botUtils.FilesAndFolders.GetLock(f"{vFilePath}.{botSettings.Directories.lockFileAffix}")
 			with open(vFilePath, "wb") as vFile:
 				pickle.dump(p_opsData, vFile)
 				BUPrint.Info("File saved sucessfully!")
-				botUtils.FilesAndFolders.ReleaseLock(botUtils.FilesAndFolders.GetLockFilePath(p_opsData.fileName))
+				botUtils.FilesAndFolders.ReleaseLock(f"{vFilePath}.{botSettings.Directories.lockFileAffix}")
 		except:
 			BUPrint.LogError("Failed to save Ops Data to file!")
-			botUtils.FilesAndFolders.ReleaseLock(botUtils.FilesAndFolders.GetLockFilePath(p_opsData.fileName))
+			botUtils.FilesAndFolders.ReleaseLock(f"{vFilePath}.{botSettings.Directories.lockFileAffix}")
 			return False
 		
 		# Save successful, return True.
@@ -535,6 +536,19 @@ class OperationManager():
 							)
 
 
+		if p_opsData.status == OpData.OperationData.status.prestart:
+			vEmbed.title += f"\n\n**{botMessages.OpsStartSoon}**"
+			vEmbed.colour = botUtils.Colours.opsStarting.value
+
+		if p_opsData.status == OpData.OperationData.status.started:
+			vEmbed.title += f"\n\n**{botMessages.OpsStarted}\n\n.**"
+			vEmbed.colour = botUtils.Colours.opsStarted.value
+
+		if p_opsData.status == OpData.OperationData.status.editing:
+			vEmbed.title += f"\n\n**{botMessages.OpsBeingEdited}\n\n.**"
+			vEmbed.colour = botUtils.Colours.editing.value
+
+
 		vEmbed.add_field(inline=False,
 			name=f"About {p_opsData.name}",
 			value=p_opsData.description
@@ -605,8 +619,15 @@ class OperationManager():
 		vRoleSelector = OpsRoleSelector(p_opsData)
 		vRoleSelector.UpdateOptions()
 
+		btnReserve = OpsRoleReserve(p_opsData)
+
 		vView.add_item( vRoleSelector )
-		vView.add_item(OpsRoleReserve(p_opsData))
+		vView.add_item( btnReserve )
+		
+		if p_opsData.status == OpData.OperationData.status.started:
+			vRoleSelector.disabled = True
+			btnReserve.disabled = True
+
 		return vView
 
 
@@ -718,6 +739,7 @@ class OpsRoleSelector(discord.ui.Select):
 
 		# Always add a default used to resign players.
 		self.add_option(label="Resign", value="Resign", emoji=botSettings.SignUps.resignIcon)
+		
 
 		for role in self.vOpsData.roles:
 			if( len(role.players) < int(role.maxPositions) or int(role.maxPositions) <= 0 ):

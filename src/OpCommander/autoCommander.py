@@ -91,4 +91,4 @@ class CommanderCommands(commands.Cog):
 
 		vNewCommander = OperationCommander(p_opData)
 		await vNewCommander.CommanderSetup()
-		await vNewCommander.GenerateCommander()
+		# await vNewCommander.GenerateCommander() # Don't call here! CommanderSetup sends an initial commander message.

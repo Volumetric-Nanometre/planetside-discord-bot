@@ -44,6 +44,7 @@ class EmojiLibrary(enum.Enum):
 				BotPrinter.Debug(f"Emoji {p_str} found in library!")
 				return emote.value
 		BotPrinter.Debug(f"Name {p_str} does not match a emoji library entry.")
+		return "-" # Return the default "blank" so nothing breaks!
 
 
 
@@ -123,6 +124,7 @@ class DateFormat(enum.Enum):
 
 class Colours(enum.Enum):
 	openSignup = discord.Colour.from_rgb(0,244,0)
+	opsStarting = discord.Colour.from_rgb(150, 0, 0)
 	opsStarted = discord.Colour.from_rgb(255,0,0)
 	editing = discord.Colour.from_rgb(204, 102, 0)
 	commander = discord.Colour.from_rgb(0, 255, 360)

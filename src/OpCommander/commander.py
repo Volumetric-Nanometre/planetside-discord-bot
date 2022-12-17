@@ -6,6 +6,13 @@
 #			 Users are offered the ability to provide anonymised feedback via the bot regarding the event.  This is fed to the command channel.
 # End Ops -> Removes the signup.
 
+
+# EMBEDS:
+# 1. OpInfo Embed: show if any options applied, signed up users
+# 2. Connection Embed: Show status of signed up users (discord online|discord comms|Online Ingame)
+# 3. SessionStats Embed: Start time, end time, user stats, link to Honu.
+# 4. SessionFeedback: Place to store player feedback.
+
 import discord
 import discord.ext
 from discord.ext import tasks, commands
@@ -14,13 +21,16 @@ from  OpCommander.events import OpsEventTracker
 
 import enum
 import sched
-import datetime, dateutil
+import datetime, dateutil.relativedelta
 
 import botUtils
 from botUtils import BotPrinter as BUPrint
 from botUtils import ChannelPermOverwrites as ChanPermOverWrite
 from botData.settings import BotSettings as botSettings
 from botData.settings import Commander as commanderSettings
+from botData.settings import Messages as botMessages
+
+from opsManager import OperationManager as OpManager
 import botData.operations
 from botData.operations import OperationData as OpsData
 from OpCommander.status import CommanderStatus
@@ -45,6 +55,7 @@ class Commander():
 		self.vAutoAlerts = sched.scheduler()
 
 		#DiscordElements:
+		self.vGuild: discord.Guild = None
 		self.commanderMsg: discord.Message = None # Message object used to edit the commander. Set during first post.
 		self.commanderChannel: discord.TextChannel = None # Channel for the Commander to be posted in.
 		self.notifChn: discord.TextChannel = None # Channel used to display notifications
@@ -71,7 +82,11 @@ class Commander():
 		if self.vCommanderStatus.value < CommanderStatus.Started.value:
 			pass
 		else: # Started display:
-			vEmbeds.append( self.GenerateEmbed_Connections(), self.GenerateEmbed_Session())
+			vEmbeds.append( self.GenerateEmbed_Connections())
+			if commanderSettings.bEnableLiveTracking:
+				vEmbeds.append( self.GenerateEmbed_Session() )
+
+		await self.commanderMsg.edit(content=f"**OP COMMANDER** *Last update: {datetime.datetime.now()}*", view=vMessageView, embeds=vEmbeds)
 
 
 	async def CommanderSetup(self):
@@ -82,42 +97,23 @@ class Commander():
 		if(self.vCommanderStatus == CommanderStatus.Init):
 			BUPrint.Info("Operation Commander first run setup...")
 			# Perform first run actions.
+			
+			# Get & set guild ref.
+			self.vGuild = await self.vBotRef.fetch_guild(botSettings.discordGuild)
 
-			vGuild = await self.vBotRef.fetch_guild(botSettings.discordGuild)
+			# Create category and channels.
+			await self.CreateCategory()
+			await self.CreateTextChannels()
+			await self.CreateVoiceChannels()
 
-			if self.vCategory == None:
-				BUPrint.Debug("	-> Create category.")
-				try:
-					self.vCategory = await vGuild.create_category(
-						name=f"{self.vOpData.name}",
-						reason=f"Creating category for {self.vOpData.fileName}",
-						overwrites=ChanPermOverWrite.level3
-					)
-				except discord.Forbidden as error:
-					BUPrint.LogErrorExc("	-> Unable to create category; invalid permissions!", error)
-					return
-				except discord.HTTPException as error:
-					BUPrint.LogErrorExc("	-> Invalid form", error)
-					return
-				except TypeError as error:
-					BUPrint.LogErrorExc("	-> Invalid permission overwrites", error)
-					return
+
 
 			# Add Commander text channel and post Op Info embed (the one that isn't repeatedly updated)
 			BUPrint.Debug("	-> Posting Ops Info")
 
-			self.commanderChannel = await self.vCategory.create_text_channel(
-				name="OPS COMMANDER", 
-				overwrites=ChanPermOverWrite.level1
-			)
-
-			self.notifChn = await self.vCategory.create_text_channel(
-				name=botData.operations.DefaultChannels.notifChannel,
-				overwrites=ChanPermOverWrite.level3_readOnly
-			)
 			
-			opString = f"**OPERATION INFORMATION** for {self.vOpData.name}"
-			managingUser = vGuild.get_member(self.vOpData.managedBy)			
+			opString = f"*OPERATION INFORMATION for {self.vOpData.name}*"
+			managingUser = self.vGuild.get_member(self.vOpData.managedBy)			
 			if managingUser != None:
 				opString = f"{managingUser.mention} {opString}"
 			
@@ -126,45 +122,18 @@ class Commander():
 				embed=self.GenerateEmbed_OpInfo()
 			)
 
-			#Post standby commander, to set commander messageID.
+			#Post standby commander, to set commander messageID; all future calls should use GenerateCommander instead.
 			BUPrint.Debug("	-> Posting Commander")
 			vCommanderMsg = f"**COMMANDER ON STANDBY**\n"
 			if commanderSettings.bAutoStartEnabled:
-				vCommanderMsg += "Auto-Start is enabled.  \n*This Commander will automatically start the operation*"
-			self.commanderMsg =  await self.commanderChannel.send(vCommanderMsg)
-
-
-
-# UNCOMMENT WHEN DONE;  this all works anyway.
-			# # Create standby channel:
-			# BUPrint.Debug("	-> Creating standby Channel")
-			# self.standbyChn = await self.vCategory.create_voice_channel(name=botData.operations.DefaultChannels.standByChannel)
-
-			# # Create always present voice channels:
-			# BUPrint.Debug("	-> Creating default chanels")
-			# if len(botData.operations.DefaultChannels.persistentVoice) != 0:
-			# 	for newChannel in botData.operations.DefaultChannels.persistentVoice:
-			# 		channel:discord.VoiceChannel = await self.vCategory.create_voice_channel(name=newChannel)
-
-
-			# # Create custom voice channels if present
-			# if len(self.vOpData.voiceChannels) != 0 and self.vOpData.voiceChannels[0] != "":
-			# 	BUPrint.Debug("	-> Voice channels specified...")
-			# 	for newChannel in self.vOpData.voiceChannels:
-			# 		BUPrint.Debug(f"	-> Adding channel: {newChannel}")
-			# 		channel = await self.vCategory.create_voice_channel(name=newChannel)
-
-
-			# else: # No custom voice channels given, use default
-			# 	BUPrint.Debug("	-> No voice channels specified, using defaults...")
-			# 	for newChannel in botData.operations.DefaultChannels.voiceChannels:
-			# 		BUPrint.Debug(f"	-> Adding channel: {newChannel}")
-			# 		channel = await self.vCategory.create_voice_channel(name=newChannel)
-
+				vCommanderMsg += "Auto-Start is enabled.  \n> *This Commander will automatically start the operation.*\n> *To start the operation early, press* ***START***."
+			self.commanderMsg =  await self.commanderChannel.send(vCommanderMsg, view=self.GenerateView_Commander())
+			
 			
 			# Setup Alerts
 			# Always post first alert on commander creation:
-			self.lastStartAlert = await self.notifChn.send( self.GenerateAlertMessage() )
+			self.lastStartAlert = await self.notifChn.send( await self.GenerateAlertMessage() )
+			
 			if commanderSettings.bAutoAlertsEnabled:
 				pass
 
@@ -180,6 +149,155 @@ class Commander():
 			BUPrint.Info("Commander has already been set up!")
 
 
+
+	async def CreateCategory(self):
+		"""
+		# CREATE CATEGORY
+		Creates a category to self-contain the Op.
+		If an existing category with the same name exists, that is used instead (and permission overwrites applied.)
+
+		## RETURN: `bool` True if successful.
+		"""
+		for category in self.vBotRef.guilds[0].categories:
+			if category.name.lower() == self.vOpData.name.lower():
+				self.vCategory = category
+				BUPrint.Debug("Existing category with matching name found.  Using it instead.")
+				return True
+
+		# No existing category, create one.
+		if self.vCategory == None:
+			BUPrint.Debug("No existing category with matching name, creating as normal")
+
+			if self.vCategory == None:
+				BUPrint.Debug("	-> Create category.")
+				try:
+					self.vCategory = await self.vGuild.create_category(
+						name=f"{self.vOpData.name}",
+						reason=f"Creating category for {self.vOpData.fileName}",
+						overwrites=ChanPermOverWrite.level3
+					)
+				except discord.Forbidden as error:
+					BUPrint.LogErrorExc("	-> Unable to create category; invalid permissions!", error)
+					return False
+				except discord.HTTPException as error:
+					BUPrint.LogErrorExc("	-> Invalid form", error)
+					return False
+				except TypeError as error:
+					BUPrint.LogErrorExc("	-> Invalid permission overwrites", error)
+					return False
+
+
+	async def CreateTextChannels(self):
+		"""
+		# CREATE TEXT CHANNELS
+		Creates text channels used for the Operation.
+		If existing channels are found, they are used instead.
+		"""
+		# Find existing Commander & Notif channels
+		for txtChannel in self.vCategory.text_channels:
+			if txtChannel.name.lower() == botData.operations.DefaultChannels.opCommander.lower():
+				BUPrint.Debug("Existing op commander channel found in category, using that instead.")
+				self.commanderChannel = txtChannel
+				await self.commanderChannel.purge()
+
+			if txtChannel.name.lower() == botData.operations.DefaultChannels.notifChannel.lower():
+				BUPrint.Debug("Existing notification channel found in category, using that instead.")
+				self.notifChn = txtChannel
+				await self.notifChn.purge()
+
+		# Manually create Commander & Notif channel if not already present
+		if self.commanderChannel == None:
+			self.commanderChannel = await self.vCategory.create_text_channel(
+				name=botData.operations.DefaultChannels.opCommander,
+				overwrites=ChanPermOverWrite.level1
+			)
+
+		if self.notifChn == None:
+			self.notifChn = await self.vCategory.create_text_channel(
+				name=botData.operations.DefaultChannels.notifChannel,
+				overwrites=ChanPermOverWrite.level3_readOnly
+			)
+
+		# Add non-existing channels for custom text channels
+		txtChannelName:str
+		for txtChannelName in botData.operations.DefaultChannels.textChannels:
+			if txtChannelName.lower() not in self.vCategory.text_channels:
+				await self.vCategory.create_text_channel(
+					name=txtChannelName,
+					overwrites=ChanPermOverWrite.level3
+				)
+
+
+	async def CreateVoiceChannels(self):
+		"""
+		# CRETE VOICE CHANNELS
+		Creates voice channels used for the Ops.
+		Voice channels include persistent and custom entries.
+		"""
+		# Create always present voice channels:
+		bAlreadyExists = False
+		for existingChannel in self.vCategory.voice_channels:
+			if existingChannel.name.lower() == botData.operations.DefaultChannels.standByChannel.lower():
+				bAlreadyExists = True
+				BUPrint.Debug("Existing standby channel found.")
+				self.standbyChn = existingChannel
+				break
+
+		if self.standbyChn == None:
+			self.standbyChn = await self.vCategory.create_voice_channel(name=botData.operations.DefaultChannels.standByChannel)
+
+		BUPrint.Debug("	-> Creating default chanels")
+		if len(botData.operations.DefaultChannels.persistentVoice) != 0:
+			for newChannel in botData.operations.DefaultChannels.persistentVoice:
+
+				bAlreadyExists = False
+				for existingChannel in self.vCategory.voice_channels:
+					if existingChannel.name == newChannel:
+						bAlreadyExists = True
+						BUPrint.Debug(f"Existing channel for: {newChannel} found.")
+						break
+
+				if not bAlreadyExists:
+					BUPrint.Debug(f"No existing channel for {newChannel} found.  Creating new voice channel!")
+					channel:discord.VoiceChannel = await self.vCategory.create_voice_channel(name=newChannel)
+
+
+		# Create custom voice channels if present
+		if len(self.vOpData.voiceChannels) != 0 and self.vOpData.voiceChannels[0] != "":
+			BUPrint.Debug("	-> Voice channels specified...")
+			newChannel:str
+			for newChannel in self.vOpData.voiceChannels:
+				BUPrint.Debug(f"	-> Adding channel: {newChannel}")
+
+				bAlreadyExists = False
+				for existingChannel in self.vCategory.voice_channels:
+					if existingChannel.name.lower() == newChannel.lower():
+						bAlreadyExists = True
+						BUPrint.Debug(f"Existing channel for: {newChannel} found.")
+						break
+				if not bAlreadyExists:
+					BUPrint.Debug(f"No existing channel for {newChannel} found.  Creating new voice channel!")
+					channel = await self.vCategory.create_voice_channel(name=newChannel)
+		
+		
+		else: # No custom voice channels given, use default
+		
+			BUPrint.Debug("	-> No voice channels specified, using defaults...")
+			for newChannel in botData.operations.DefaultChannels.voiceChannels:
+				BUPrint.Debug(f"	-> Adding channel: {newChannel}")
+	
+				bAlreadyExists = False
+				for existingChannel in self.vCategory.voice_channels:
+					if existingChannel.name == newChannel:
+						bAlreadyExists = True
+						BUPrint.Debug(f"Existing channel for: {newChannel} found.")
+						break
+
+				if not bAlreadyExists:
+					BUPrint.Debug(f"No existing channel for {newChannel} found.  Creating new voice channel!")
+					channel = await self.vCategory.create_voice_channel(name=newChannel)
+	
+	
 	async def RemoveChannels(self):
 		"""
 		# REMOVE CHANNELS
@@ -218,48 +336,57 @@ class Commander():
 		await self.vAuraxClient.close()
 
 
-	def GenerateAlertMessage(self):
+	async def PreStart(self):
+		"""
+		# PRE START
+
+		"""
+
+
+	async def GenerateAlertMessage(self):
 		"""
 		# GENERATE ALERT MESSAGE
 		Convenience function to generate a pre-formatted message string for pre-start alerts.
 		"""
-		vParticipantStr = self.GetParticipants()
+		vParticipantStr = await self.GetParticipants()
 
-		vMessage = f"**OPS STARTS {botUtils.DateFormatter.GetDiscordTime( self.vOpData.date, botUtils.DateFormat.Dynamic )}**\n"
+		vMessage = f"**REMINDER: {self.vOpData.name} STARTS {botUtils.DateFormatter.GetDiscordTime( self.vOpData.date, botUtils.DateFormat.Dynamic )}**\n"
 		vMessage += vParticipantStr
-		if botSettings.bCommanderAutoMoveVC:
-			vMessage += "*\n\nIf you are already in a voice channel, you will be moved when the ops starts!*"
+		if commanderSettings.bAutoMoveVCEnabled:
+			vMessage += f"\n\n*{botMessages.OpsAutoMoveWarn}*"
 
 		return vMessage
 
 
-	def GetParticipants(self):
+	async def GetParticipants(self):
 		"""
 		# GET PARTICIPANTS
-		Sets the self.participants + participantUserData on first use.
+		Sets the self.participants + participantUserData.
 		## RETURN: `str` of `member.mention` for each user.
+
+		### TODO: Get UserData objects for user library.
 		"""
-		if len(self.participants) == 0:
-			vParticipantStr = ""
-			role: botData.operations.OpRoleData
-			member:discord.User = None
-
-			for role in self.vOpData.roles:
-				for user in role.players:
-					member = self.vBotRef.get_user(user)
-					vParticipantStr += f" {member.mention} "
-					self.participants.append(user)
-
-			if self.vOpData.options.bUseReserve:
-				for user in self.vOpData.reserves:
-					member = self.vBotRef.get_user(user)
-					vParticipantStr += f" {member.mention} "
-					self.participants.append(member)
-		
-	
-		else:
-			for member in self.participants:
+		vParticipantStr = ""
+		role: botData.operations.OpRoleData
+		member:discord.Member = None
+		BUPrint.Debug("Getting roled participants...")
+		for role in self.vOpData.roles:
+			for user in role.players:
+				member = self.vGuild.get_member(user)
+				if member == None:
+					member = await self.vGuild.fetch_member(user)
 				vParticipantStr += f" {member.mention} "
+				self.participants.append(member)
+
+		BUPrint.Debug("Getting reserved participants...")
+		if self.vOpData.options.bUseReserve:
+			for user in self.vOpData.reserves:
+				member = self.vGuild.get_member(user)
+				if member == None:
+					member = await self.vGuild.fetch_member(user)
+				vParticipantStr += f" {member.mention} "
+				self.participants.append(member)
+		
 
 	
 		return vParticipantStr
@@ -283,12 +410,13 @@ class Commander():
 		# DISPLAY OPTIONS & DATA
 		vEmbed.add_field(
 			name="Auto Start", 
-			value=f"{botSettings.bAutoStartCommander}"
+			value=f"{commanderSettings.bAutoStartEnabled}"
 		)
 		
+		alertInterval = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
 		vEmbed.add_field(
 			name="Alerts", 
-			value=f"Enabled: *{botSettings.bEnableCommanderAutoAlerts}*\nSending: *{botSettings.commanderAutoAlerts}*"
+			value=f"Enabled: *{commanderSettings.bAutoAlertsEnabled}*\nSending: *{commanderSettings.autoAlertCount}(+1)*\nInterval: {alertInterval} mins"
 		)
 		
 		vSignedUpCount = 0
@@ -338,13 +466,18 @@ class Commander():
 
 		return vEmbed
 
+
 	def GenerateEmbed_Connections(self):
 		"""
 		# GENERATE EMBED : OpInfo
 
 		Creates an Embed for player connections.
 		"""
-		pass
+		vEmbed = discord.Embed(colour=discord.Colour.from_rgb(200, 200, 255), title="CONNECTIONS", description="Discord and PS2 connection information for participants.")
+
+		vEmbed.add_field(name="Empty field", value="empty field")
+
+		return vEmbed
 
 	def GenerateEmbed_Session(self):
 		"""
@@ -352,7 +485,11 @@ class Commander():
 
 		Creates an Embed for displaying session stats.
 		"""
-		pass
+		vEmbed = discord.Embed(colour=discord.Colour.from_rgb(200, 200, 255), title="SESSION", description="Displays session stats.")
+
+		vEmbed.add_field(name="Empty field", value="empty field")
+
+		return vEmbed
 
 
 	def GenerateEmbed_Feedback(self):
@@ -362,6 +499,7 @@ class Commander():
 		Creates an Embed for displaying player provided feedback, offering anonymity.
 		"""
 		pass
+
 
 	def GenerateView_UserFeedback(self):
 		"""
@@ -382,6 +520,73 @@ class Commander():
 
 		"""
 		newView = discord.ui.View(timeout=None)
+		# Button Objects
+		btnStart = Commander_btnStart(p_commanderParent=self)
+		btnEnd = Commander_btnEnd(p_commanderParent=self)
+		btnDebrief = Commander_btnDebrief(p_commanderParent=self)
+
+		# Configure button disabled.
+		# Before op Started:
+		if self.vCommanderStatus.value < CommanderStatus.Started.value:
+			btnEnd.disabled = True
+			btnDebrief.disabled = True
+
+		
+		# Ops Started:
+		if self.vCommanderStatus.value == CommanderStatus.Started.value:
+			btnStart.disabled = True
+			btnDebrief.disabled = False
+			btnEnd.disabled = False
+
+		newView.add_item(btnStart)
+		newView.add_item(btnDebrief)
+		newView.add_item(btnEnd)
+
+		return newView
+
+
+	async def StartOperation(self):
+		"""
+		# START OPERATION
+		Modifies and updates op signup post.
+		Modifies commander status, then updates commander.
+		Starts tracking, if enabled.
+		"""
+		self.vOpData.status = OpsData.status.started
+		vOpMan = OpManager()
+		await vOpMan.UpdateMessage(self.vOpData)
+		self.vCommanderStatus = CommanderStatus.Started
+		await self.GetParticipants()
+		await self.GenerateCommander()
+
+		if commanderSettings.bAutoStartEnabled:
+			# TODO: start tracking here.
+			pass
+
+		if commanderSettings.bAutoMoveVCEnabled:
+			BUPrint.Debug("Moving VC connected participants")
+			await self.MoveUsers(p_moveToStandby=True)
+
+
+	async def EndOperation(self):
+		"""
+		# END OPERATION
+		Removes the live Op from the Operations manager, 
+		then cleans up the Op Commander.
+		"""
+		self.vCommanderStatus = CommanderStatus.Ended
+
+		await self.vAuraxClient.close()
+
+		# Removes the operation posting.
+		vOpMan = OpManager()
+		await vOpMan.RemoveOperation(self.vOpData)
+
+		# Move users before removing channels.
+		await self.MoveUsers(p_moveToStandby=False)
+		
+		# Yeetus deleetus the category; as if it never happened!
+		await self.RemoveChannels()
 
 
 	def GetRoleName(self, p_role:botData.operations.OpRoleData):
@@ -402,26 +607,65 @@ class Commander():
 
 		return vRoleName
 
-# EMBEDS:
-# 1. OpInfo Embed: show if any options applied, signed up users
-# 2. Connection Embed: Show status of signed up users (discord online|discord comms|Online Ingame)
-# 3. SessionStats Embed: Start time, end time, user stats, link to Honu.
-# 4. SessionFeedback: Place to store player feedback.
+	async def MoveUsers(self, p_moveToStandby:bool = True):
+		"""
+		# MOVE USERS
+		Moves currently connected users to the standby channel.
+		`p_moveToStandby` : If false, users are instead moved to the fallback channel.
+		"""
+		participant: discord.Member
+		fallbackChannel = self.vGuild.get_channel(botSettings.fallbackVoiceChat)
+		# connectedUserIDs = {}
+		vConnectedUsers = []
+
+		if p_moveToStandby and commanderSettings.bAutoMoveVCEnabled: # Moving signed up users to standby
+			for voiceChannel in self.vGuild.voice_channels:
+				for user in voiceChannel.members:
+					if user in self.participants:
+						vConnectedUsers.append(user)
+
+				# connectedUserIDs = {**connectedUserIDs, **voiceChannel.voice_states}
+		else:
+			for voiceChannel in self.vCategory.voice_channels:
+				vConnectedUsers += voiceChannel.members
+				# connectedUserIDs = {**connectedUserIDs, **voiceChannel.voice_states.keys()}
+
+		# vcConnectedUsers = []
+
+		# for userID in connectedUserIDs.keys():
+		# 	user = self.vGuild.get_member(userID)
+		# 	if user == None:
+		# 		user = await self.vGuild.fetch_member(userID)
+		# 	vcConnectedUsers.append(user)
+
+		BUPrint.Debug(f"Connected user Dict:\nConnectedUser List: {vConnectedUsers}")
+		user: discord.Member
+		for user in vConnectedUsers:
+			try:
+				if p_moveToStandby:
+					BUPrint.Debug(f"Moving {[user.display_name]} to standby channel ({self.standbyChn.name})")
+					await user.move_to(channel=self.standbyChn)
+				else:
+					BUPrint.Debug(f"Moving {[user.display_name]} to fallback channel ({fallbackChannel.name})")
+					await user.move_to(channel=fallbackChannel)
+			except Exception as vError:
+				BUPrint.LogErrorExc(f"Unable to move member {user.display_name} to Channel (Standby Chn: {p_moveToStandby}).", vError)
 
 class Commander_btnStart(discord.ui.Button):
 	def __init__(self, p_commanderParent:Commander):
 		self.vCommander:Commander = p_commanderParent
 		super().__init__(label="START", emoji="🔘", row=0, style=discord.ButtonStyle.green)
 
-	def callback(self, p_interaction:discord.Interaction):
-		pass
+	async def callback(self, p_interaction:discord.Interaction):
+		await self.vCommander.StartOperation()
+		await p_interaction.response.send_message("Ops started", ephemeral=True)
 
 class Commander_btnDebrief(discord.ui.Button):
 	def __init__(self, p_commanderParent:Commander):
 		self.vCommander:Commander = p_commanderParent
 		super().__init__(label="DEBRIEF", emoji="🗳️", row=0)
 
-	def callback(self, p_interaction:discord.Interaction):
+	async def callback(self, p_interaction:discord.Interaction):
 		pass
 
 class Commander_btnEnd(discord.ui.Button):
@@ -429,7 +673,6 @@ class Commander_btnEnd(discord.ui.Button):
 		self.vCommander:Commander = p_commanderParent
 		super().__init__(label="END", emoji="🛑", row=0)
 
-	def callback(self, p_interaction:discord.Interaction):
-		pass
-
-	
+	async def callback(self, p_interaction:discord.Interaction):
+		# End the Ops:
+		await self.vCommander.EndOperation()

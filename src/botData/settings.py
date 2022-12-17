@@ -112,8 +112,12 @@ class Commander:
 	# Commander- Auto Move Voice Channel: If enabled, participating users are moved to the standby channel on Ops start if they're in a voice channel.
 	bAutoMoveVCEnabled = True
 
+	# Number of minutes before an ops scheduled start the bot starts AutoStart enabled Ops (Non AutoStart enabled Ops require a user to use `/ops-commander` command)
+	autoPrestart = 30
+
 	def __repr__(self) -> str:
 		vString = "\n	OP COMMANDER SETTINGS\n"
+		vString += f"	> Auto prestart: {self.autoPrestart} minutes"
 		vString += f"	> Auto Start: {self.bAutoStartEnabled}"
 		vString += f"	> Live Tracking: {self.bEnableLiveTracking}\n"
 		vString += f"	> Auto Alerts: {self.bAutoAlertsEnabled}"
@@ -184,15 +188,11 @@ class SignUps:
 	# This is a global overwrite. Individual ops have an option to disable this.
 	bAutoPrestartEnabled = True
 
-	# Number of minutes before an ops scheduled start the bot starts AutoStart enabled Ops (Non AutoStart enabled Ops require a user to use `/ops-commander` command)
-	autoPrestart = 30
-
 	def __repr__(self) -> str:
 		vString = "	SIGN UP SETTINGS\n"
 		vString += f"	> Signup Cat  : {self.signupCategory}\n"
 		vString += f"	> Resign Icon : {self.resignIcon}\n" 
-		vString += f"	> Reserve Icon: {self.reserveIcon}\n" 
-		vString += f"	> AutoPrestart: {self.autoPrestart} minutes\n" 
+		vString += f"	> Reserve Icon: {self.reserveIcon}\n"
 		return vString
 
 @dataclass(frozen=True)
@@ -220,6 +220,18 @@ class Messages:
 	# Displayed when a user is choosing roles to REMOVE.
 	userRemovingRoles = "Select the roles you wish to **REMOVE** using the dropdowns, then click Update."
 
+	# Operations Auto Move warning: Shown on Ops Notifications.
+	OpsAutoMoveWarn = "If you are already in a voice channel, you will be moved when the ops starts!"
+
+	# Ops Starting Soon: Message appended to Ops messages when the status is PRESTART.
+	OpsStartSoon = "This Operation is starting soon!  Sign up now to be considered a participant!"
+
+	# Ops Started: Message appended to Ops signup messages when the status is STARTED
+	OpsStarted = "This operation has already started!"
+
+	# Op Being Edited: Message appended to ops signup messages when being edited.
+	OpsBeingEdited = "This Op is currently being edited, please wait to sign up."
+
 
 @dataclass(frozen=True)
 class Roles():
@@ -234,7 +246,6 @@ class Roles():
 
 	# Provides a dropdown containing these roles for giving to new users.
 	newUser_roles = [ 
-		SelectOption(label="Guest", value="roleIDHere_123"), # Couldn't find someone with this role to copy the ID from.
 		SelectOption(label="Recruit", value="780253442605842472"),
 		SelectOption(label="TDKD", value="710472193045299260"), # 1050286811940921344 <- Dev server RoleID | 710472193045299260 <- Live server RoleID
 		SelectOption(label="The Washed Masses", value="710502581893595166"),
