@@ -3,6 +3,7 @@ import botData.operations as OpData
 from botUtils import BotPrinter as BUPrint
 import botModals.opsManagerModals.baseModal as baseModal
 import botUtils
+from botData.settings import Messages as botMessages
 
 class EditRoles(baseModal.BaseModal):
 	txtEmoji = discord.ui.TextInput(
@@ -31,7 +32,7 @@ class EditRoles(baseModal.BaseModal):
 	)
 	def __init__(self, p_opData: OpData.OperationData):
 		super().__init__(p_opData, p_title="Edit Roles")
-	# def __init__(self, *, title: str = "Edit Roles", pOpData: OpData.OperationData):
+		self.reservedUsers = [] # Get users who were moved to reserve as a result of this change.
 
 	async def on_submit(self, pInteraction: discord.Interaction):
 		BUPrint.Debug("Edit Roles Modal submitted...")
@@ -46,6 +47,8 @@ class EditRoles(baseModal.BaseModal):
 
 		vIndex = 0
 		vArraySize = len(vRoleNames)
+		madeReserve = 0
+
 		botUtils.BotPrinter.Debug(f"Size of array: {len(vRoleNames)}")
 		while vIndex < vArraySize:
 
@@ -64,6 +67,15 @@ class EditRoles(baseModal.BaseModal):
 						self.vOpData.roles[vIndex].roleIcon = botUtils.EmojiLibrary.ParseStringToEmoji(vCurrentRole.roleIcon)
 					else:
 						self.vOpData.roles[vIndex].roleIcon = vCurrentRole.roleIcon
+
+				# Handle overflow (lowering a max limit to a lower number than there are participants).
+				if len(self.vOpData.roles[vIndex].players) > self.vOpData.roles[vIndex].maxPositions:
+					while (len(self.vOpData.roles[vIndex].players) > self.vOpData.roles[vIndex].maxPositions):
+						madeReserve += 1
+						lastUserID = self.vOpData.roles[vIndex].players.pop()
+						affectedUser = pInteraction.guild.get_member(lastUserID)
+						self.reservedUsers.append(affectedUser.mention)
+						self.vOpData.reserves.insert(0, lastUserID)
 			else:
 				# Index is a new role, append!
 				self.vOpData.roles.append(vCurrentRole)
@@ -71,7 +83,10 @@ class EditRoles(baseModal.BaseModal):
 			vIndex += 1
 		# End of while loop.
 		BUPrint.Debug("Roles updated!")
-		await pInteraction.response.defer()
+		if madeReserve != 0:
+			await pInteraction.response.send_message(f"ATTENTION: {madeReserve} user(s) will be moved to reserve as a result of this edit if you Apply:\n{self.reservedUsers}", ephemeral=True)
+		else:
+			await pInteraction.response.defer()
 
 
 	# Prefill fields:

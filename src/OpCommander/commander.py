@@ -209,7 +209,7 @@ class Commander():
 		if self.commanderChannel == None:
 			self.commanderChannel = await self.vCategory.create_text_channel(
 				name=botData.operations.DefaultChannels.opCommander,
-				overwrites=ChanPermOverWrite.level1
+				overwrites=ChanPermOverWrite.level2
 			)
 
 		if self.notifChn == None:
