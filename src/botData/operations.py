@@ -39,7 +39,7 @@ class OperationOptions:
 	"""
 	bUseReserve : bool = True # Only enable built in RESERVE if true.
 	bUseCompact : bool = False # Not yet used, argument: -COMPACT; does not show a member list for each role.
-	bAutoStart : bool = True # If false, someone must use editOps to start the commander.
+	bAutoStart : bool = True # If false, someone must use `/op-commander [OpData]` to start the commander.
 
 
 @dataclass
@@ -86,6 +86,33 @@ class OperationData:
 			if role.roleName == p_roleName:
 				return role
 
+	def ParseArguments(self):
+		"""
+		# PARSE ARGUMENTS
+		Parses the arguments given and sets their respective options.
+		"""
+		BUPrint.Debug("Parsing opdata arguments")
+		argument:str
+		for argument in self.arguments:
+			argInLower = argument.lower()
+			# TOGGLE VIEW TYPE
+			if argInLower.__contains__("compact"):
+				self.options.bUseCompact = True
+			elif argInLower.__contains__("fullview"):
+				self.options.bUseCompact = False
+
+			# TOGGLE RESERVE
+			if argInLower.__contains__("noreserve"):
+				self.options.bUseReserve = False
+			elif argInLower.__contains__("reserveson"):
+				self.options.bUseReserve = True
+			
+			# TOGGLE AUTO START
+			if argInLower.__contains__("noauto"):
+				self.options.bAutoStart = False
+			elif argInLower.__contains__("autostart"):
+				self.options.bAutoStart = True
+
 	def __repr__(self) -> str:
 		vOutputStr = "	OPERATION DATA\n"
 		vOutputStr += f"	-> Name|FileName: {self.name} | {self.fileName}\n"
@@ -120,3 +147,5 @@ class DefaultChannels:
 	persistentVoice = []
 	# If voice channels are not specified in the ops data, these are used instead
 	voiceChannels = ["Squad-Alpha", "Squad-Beta", "Squad-Charlie", "Squad-Delta"]
+	# Debrief: If not specified in Ops data, this is used instead
+	debriefChannel = "debrief"

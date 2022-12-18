@@ -568,39 +568,48 @@ class OperationManager():
 		# Generate lists for roles:
 		role: OpData.OpRoleData
 		for role in p_opsData.roles:
-			vSignedUpUsers: str = ""
-			if len(role.players) == 0:
-				vSignedUpUsers = "-"
-			for user in role.players:
-				# Convert IDs to names for display
-				vUser:discord.User = self.vBotRef.get_user(int(user))
-				if vUser is not None:
-					vSignedUpUsers += f"{vUser.mention}\n"
-				else: # If not found, fetch non-cached.
-					vUser = await self.vBotRef.fetch_user(int(user))
-					if vUser is not None:
-						vSignedUpUsers += f"{vUser.mention}\n"
-					else: # User doesn't exist?
-						botUtils.BotPrinter.LogError(f"User ID {user} is not found! Removing from data")
-						role.players.remove(user)
-			
-			# Prepend role icon if not None:
-			vRoleName = ""
-			if role.roleIcon != "-" :
-				BUPrint.Debug(f"Role icon for EMBED specified: {role.roleIcon}")
-				vRoleName += f"{role.roleIcon} "
 
-			vRoleName += role.roleName 
-			# Append current/max or just current depending on role settings.
-			if( int(role.maxPositions) > 0 ): 
-				vRoleName += f" ({len(role.players)}/{role.maxPositions})"
-			else:
-				vRoleName += f" ({len(role.players)})"
-				
-			vEmbed.add_field(inline=True,
-			name=vRoleName,
-			value=vSignedUpUsers)
-		# END of FOR loop.
+			# Only display role if max position is not 0.
+			if role.maxPositions != 0:
+
+				vSignedUpUsers: str = ""
+				if len(role.players) == 0:
+					vSignedUpUsers = "-"
+
+				# Compact View:
+				if p_opsData.options.bUseCompact:
+					vSignedUpUsers = f"Players: {len(role.players)}"
+
+				else: # Normal View:
+					for user in role.players:
+						# Convert IDs to names for display
+						vUser:discord.User = self.vBotRef.get_user(int(user))
+						if vUser is not None:
+							vSignedUpUsers += f"{vUser.mention}\n"
+						else: # If not found, fetch non-cached.
+							vUser = await self.vBotRef.fetch_user(int(user))
+							if vUser is not None:
+								vSignedUpUsers += f"{vUser.mention}\n"
+							else: # User doesn't exist?
+								botUtils.BotPrinter.LogError(f"User ID {user} is not found! Removing from data")
+								role.players.remove(user)
+
+				# Prepend role icon if not None:
+				vRoleName = ""
+				if role.roleIcon != "-" :
+					vRoleName += f"{role.roleIcon} "
+
+				vRoleName += role.roleName 
+				# Append current/max or just current depending on role settings.
+				if( int(role.maxPositions) > 0 ): 
+					vRoleName += f" ({len(role.players)}/{role.maxPositions})"
+				else:
+					vRoleName += f" ({len(role.players)})"
+
+				vEmbed.add_field(inline=True,
+				name=vRoleName,
+				value=vSignedUpUsers)
+			# END of FOR loop.
 
 		# Add builtin RESERVE
 		if(p_opsData.options.bUseReserve):
@@ -742,7 +751,7 @@ class OpsRoleSelector(discord.ui.Select):
 		
 
 		for role in self.vOpsData.roles:
-			if( len(role.players) < int(role.maxPositions) or int(role.maxPositions) <= 0 ):
+			if( len(role.players) < int(role.maxPositions) and int(role.maxPositions) != 0 ):
 				# To ensure no errors, only use emoji if its specified
 
 				if role.roleIcon == "-":

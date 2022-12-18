@@ -37,6 +37,8 @@ class EditChannels(baseModal.BaseModal):
 		self.vOpData.voiceChannels = self.txtVoiceChannels.value.split("\n")
 		self.vOpData.arguments = self.txtArguments.value.split("\n")
 		self.vOpData.targetChannel = self.txtTargetChanel.value
+
+		self.vOpData.ParseArguments()
 		await pInteraction.response.defer()
 
 	def PresetFields(self):

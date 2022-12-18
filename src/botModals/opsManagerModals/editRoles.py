@@ -45,8 +45,9 @@ class EditRoles(baseModal.BaseModal):
 			return
 
 		vIndex = 0
+		vArraySize = len(vRoleNames)
 		botUtils.BotPrinter.Debug(f"Size of array: {len(vRoleNames)}")
-		while vIndex < len(vRoleNames):
+		while vIndex < vArraySize:
 
 			vCurrentRole = OpData.OpRoleData(roleName=vRoleNames[vIndex], roleIcon=vRoleEmoji[vIndex], maxPositions=int(vRoleMax[vIndex]))
 			if vIndex < len(self.vOpData.roles) :

@@ -246,13 +246,13 @@ class Messages:
 	OpsAutoMoveWarn = "If you are already in a voice channel, you will be moved when the ops starts!"
 
 	# Ops Starting Soon: Message appended to Ops messages when the status is PRESTART.
-	OpsStartSoon = "This Operation is starting soon!  Sign up now to be considered a participant!"
+	OpsStartSoon = "This event is starting soon!  Sign up now to be considered a participant!"
 
 	# Ops Started: Message appended to Ops signup messages when the status is STARTED
-	OpsStarted = "This operation has already started!"
+	OpsStarted = "Sorry, this event has already started and is no longer taking applicants!"
 
 	# Op Being Edited: Message appended to ops signup messages when being edited.
-	OpsBeingEdited = "This Op is currently being edited, please wait to sign up."
+	OpsBeingEdited = "This operation is currently being edited, please wait to sign up!"
 
 
 @dataclass(frozen=True)
