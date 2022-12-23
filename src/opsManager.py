@@ -130,8 +130,18 @@ class Operations(commands.GroupCog):
 		vLiveOpData:OpData.OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
 
 		if vLiveOpData != None:
+
+			# Prevent editing of an operation that's in progress.
+			if vLiveOpData.status == OpData.OpsStatus.prestart or vLiveOpData.status == OpData.OpsStatus.started:
+				pInteraction.response.send_message("You cannot edit an operation that is in progress!", ephemeral=True)
+				return
+
 			vEditor = OpsEditor(pBot=self.bot, pOpsData=vLiveOpData)
+			vOpMan = OperationManager()
+			vLiveOpData.status = OpData.OpsStatus.editing
+			await vOpMan.UpdateMessage(vLiveOpData)
 			await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
+
 		else:
 			botUtils.FilesAndFolders.DeleteCorruptFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit) )
 			await pInteraction.response.send_message("The operation you wished to edit was corrupt and has been removed.", ephemeral=True)
@@ -276,6 +286,15 @@ class OperationManager():
 			chanMessages = [message async for message in vChannel.history()]
 			if ( len(chanMessages) == 0 ):
 				await vChannel.delete(reason="Auto removal of empty signup channel")
+			else:
+				# Check to see if other messages are from the bot, if not, remove the channel.
+				message:discord.Message
+				bBotPostFound = False
+				for message in chanMessages:
+					if message.author == self.vBotRef.user:
+						bBotPostFound = True
+				if not bBotPostFound:
+					await vChannel.delete(reason="Auto removal of empty signup channel")
 
 	# Remove File
 		BUPrint.Info("	-> Removing FILE...")
@@ -525,7 +544,7 @@ class OperationManager():
 		Can also be used to regenerate an embed with updated information.
 
 		## RETURNS 
-		discord.Embed with information from p_opsData.
+		`discord.Embed` with information from `p_opsData`.
 		"""
 		BUPrint.Debug("	-> Generating Embed...")
 		vTitleStr = f"{p_opsData.name.upper()} | {botUtils.DateFormatter.GetDiscordTime(p_opsData.date, botUtils.DateFormat.DateTimeLong)}"
@@ -624,6 +643,11 @@ class OperationManager():
 
 
 	async def AddNewLive_GenerateView(self, p_opsData: OpData.OperationData):
+		"""
+		# GENERATE VIEW
+		A subfunction of AddNewLive.
+		Creates a view suitable for the current status of the operation and its settings.
+		"""
 		vView = discord.ui.View(timeout=None)
 		vRoleSelector = OpsRoleSelector(p_opsData)
 		vRoleSelector.UpdateOptions()
@@ -631,9 +655,10 @@ class OperationManager():
 		btnReserve = OpsRoleReserve(p_opsData)
 
 		vView.add_item( vRoleSelector )
-		vView.add_item( btnReserve )
+		if p_opsData.options.bUseReserve:
+			vView.add_item( btnReserve )
 		
-		if p_opsData.status == OpData.OperationData.status.started:
+		if p_opsData.status == OpData.OperationData.status.started or p_opsData.status == OpData.OperationData.status.editing:
 			vRoleSelector.disabled = True
 			btnReserve.disabled = True
 
@@ -642,12 +667,11 @@ class OperationManager():
 
 	async def UpdateMessage(self, p_opData: OpData.OperationData):
 		"""
-		# UPDATE MESSAGE
+		# UPDATE MESSAGE:
+		The main function to call to post and update a message.
 		
 		## PARAMETERS:
-		p_opData: The Opdata to regenerate a message with.
-
-		## RETURN: None
+		`p_opData`: The Opdata to regenerate a message with.
 		"""
 		BUPrint.Debug("Updating Op Message")
 		try:
@@ -668,7 +692,7 @@ class OperationManager():
 				return
 
 		except discord.Forbidden as error:
-			BUPrint.LogErrorExc("Bot does not have correct privilages (post message!", error)
+			BUPrint.LogErrorExc("Bot does not have correct privilages (post message!)", error)
 			return
 		except discord.HTTPException as error:
 			BUPrint.LogErrorExc("Unable to retrieve the message!", error)
@@ -677,6 +701,8 @@ class OperationManager():
 		vNewEmbed = await self.AddNewLive_GenerateEmbed(p_opData)
 		vView = await self.AddNewLive_GenerateView(p_opData)
 		await vMessage.edit(embed=vNewEmbed, view=vView)
+
+
 
 	def GetManagedBy(self, p_opData: OpData.OperationData):
 		"""
@@ -849,7 +875,7 @@ class OpsEditor(discord.ui.View):
 						label="Apply/Send",
 						custom_id="EditorApply",
 						emoji="📨",
-						row=4)
+						row=3)
 	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		self.vOpsData.GenerateFileName()
 		vOpManager = OperationManager()
@@ -862,12 +888,17 @@ class OpsEditor(discord.ui.View):
 				OperationManager.SaveToFile(self.vOpsData)
 				BUPrint.Debug(f"	-> Message ID of Ops Editor opdata after send: {self.vOpsData.messageID}")
 			else:
-				await pInteraction.response.send_message("An error occured when posting the message.  Check console for more information.\n\nTry again, or dismiss the editor.", ephemeral=True)
+				await pInteraction.response.send_message("An error occured when posting the message.  Check console for more information.\n\nTry again, or close the editor.", ephemeral=True)
+
 		else:
 			BUPrint.Info(f"Saving updated data for {self.vOpsData.name}")
+
+			self.vOpsData.status = OpData.OperationData.status.open
 			OperationManager.SaveToFile(self.vOpsData)
-			await pInteraction.response.send_message(f"Operation data for {self.vOpsData.name} saved! Updating signup message...\n You can now dismiss the editor if you're done.", ephemeral=True)
+			await pInteraction.response.send_message(f"Operation data for {self.vOpsData.name} saved! Updating signup message...\n You can now close the editor if you're done.", ephemeral=True)
+
 			vOpMan = OperationManager()
+			self.vOpsData.status = OpData.OperationData.status.editing
 			await vOpMan.UpdateMessage(self.vOpsData)
 
 	@discord.ui.button( 
@@ -875,7 +906,7 @@ class OpsEditor(discord.ui.View):
 						label="New Default",
 						custom_id="EditorNewDefault",
 						emoji="💾",
-						row=4)
+						row=3)
 	async def btnNewDefault(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		BUPrint.Info(f"Saving a new default! {self.vOpsData.name}")
 		# Set status of Ops back to OPEN.
@@ -897,13 +928,29 @@ class OpsEditor(discord.ui.View):
 						label="Delete",
 						custom_id="EditorDelete",
 						emoji="⚠️",
-						row=4)
+						row=3)
 	async def btnDelete(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):
 		BUPrint.Info("Deleting Operation!")
 		vOpMan = OperationManager()
 		await vOpMan.RemoveOperation(self.vOpsData)
 		await pInteraction.response.send_message("Operation was removed!", ephemeral=True)
 
+
+# # # # # # CLOSE BUTTON
+	@discord.ui.button(
+						label="Close",
+						style=discord.ButtonStyle.success,
+						emoji="🔓",
+						row=4)
+	async def btnCancel(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):
+		if self.vOpsData.messageID != "":
+			vOpMan = OperationManager()
+			self.vOpsData.status = OpData.OperationData.status.open
+			await vOpMan.UpdateMessage(self.vOpsData)
+		await pInteraction.delete_original_response()
+
+
+# # # # # # HELP BUTTON
 class btnHelp(discord.ui.Button):
 	def __init__(self):
 		super().__init__(
@@ -911,5 +958,7 @@ class btnHelp(discord.ui.Button):
 			style=discord.ButtonStyle.link,
 			url="https://github.com/LCWilliams/planetside-discord-bot/wiki/Ops-Editor",
 			emoji="❓",
-			row=4
+			row=3
 		)
+
+

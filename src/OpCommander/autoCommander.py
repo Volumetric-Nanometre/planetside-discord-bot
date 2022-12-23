@@ -1,6 +1,6 @@
 """
-AUTO COMMANDER COG
-Cog that deals with 
+AUTO COMMANDER
+Classes related to the starting of an Operation Commander, whether via commands or automatically.
 """
 
 import discord
@@ -15,8 +15,8 @@ import botData.settings as BotSettings
 import botData.operations
 from botData.operations import OperationData as OpsData
 from opsManager import OperationManager as OpsMan
-import OpCommander.status
-from OpCommander.commander import Commander as OperationCommander
+import OpCommander.dataObjects
+from OpCommander.commander import Commander
 
 
 import time
@@ -63,8 +63,9 @@ class CommanderCommands(commands.Cog):
 		for opData in OpsMan.vLiveOps:
 			if opData.fileName == p_opFile:
 				vOpData = opData
+				break
 
-		BUPrint.Debug(f"Start commander for {vOpData}!")
+		BUPrint.Info(f"Starting commander for {vOpData.name}!")
 		await p_interaction.response.send_message(f"Starting commander for {vOpData.name}!", ephemeral=True)
 		await self.StartCommander(vOpData)
 
@@ -87,8 +88,8 @@ class CommanderCommands(commands.Cog):
 		
 		Starting a commander does NOT start an Ops.  That is a different event, handled by the commander itself (if bAutoStart is enabled in both op settings and botsettings).
 		"""
-		BUPrint.Debug(f"Start commander for {p_opData.fileName}!")
+		BUPrint.Debug(f"Started commander for {p_opData.fileName}!")
 
-		vNewCommander = OperationCommander(p_opData)
+		vNewCommander = Commander(p_opData)
 		await vNewCommander.CommanderSetup()
-		# await vNewCommander.GenerateCommander() # Don't call here! CommanderSetup sends an initial commander message.
+		# Don't call `commander.GenerateCommander()` here! CommanderSetup handles this.

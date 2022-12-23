@@ -33,7 +33,7 @@ from botData.settings import Messages as botMessages
 from opsManager import OperationManager as OpManager
 import botData.operations
 from botData.operations import OperationData as OpsData
-from OpCommander.status import CommanderStatus
+from OpCommander.dataObjects import CommanderStatus
 
 
 class Commander():
@@ -275,6 +275,7 @@ class Commander():
 						bAlreadyExists = True
 						BUPrint.Debug(f"Existing channel for: {newChannel} found.")
 						break
+
 				if not bAlreadyExists:
 					BUPrint.Debug(f"No existing channel for {newChannel} found.  Creating new voice channel!")
 					channel = await self.vCategory.create_voice_channel(name=newChannel)
@@ -352,6 +353,7 @@ class Commander():
 
 		vMessage = f"**REMINDER: {self.vOpData.name} STARTS {botUtils.DateFormatter.GetDiscordTime( self.vOpData.date, botUtils.DateFormat.Dynamic )}**\n"
 		vMessage += vParticipantStr
+
 		if commanderSettings.bAutoMoveVCEnabled:
 			vMessage += f"\n\n*{botMessages.OpsAutoMoveWarn}*"
 
@@ -607,14 +609,25 @@ class Commander():
 
 		return vRoleName
 
+
 	async def MoveUsers(self, p_moveToStandby:bool = True):
 		"""
 		# MOVE USERS
 		Moves currently connected users to the standby channel.
 		`p_moveToStandby` : If false, users are instead moved to the fallback channel.
 		"""
-		participant: discord.Member
-		fallbackChannel = self.vGuild.get_channel(botSettings.fallbackVoiceChat)
+		# participant: discord.Member
+		fallbackChannel = self.vGuild.get_channel(commanderSettings.autoMoveBackChannelID)
+
+		if fallbackChannel == None:
+			fallbackChannel = await self.vGuild.fetch_channel(commanderSettings.autoMoveBackChannelID)
+			if fallbackChannel == None:
+				BUPrint.Info("ATTENTION!  Invalid Auto Move-back Channel ID provided!")
+				fallbackChannel = await self.vGuild.fetch_channel(botSettings.fallbackVoiceChat)
+				if fallbackChannel == None:
+					BUPrint.Info("ATTENTION! Invalid fallback channel ID provided!  Unable to automatically move users.")
+					return
+
 		# connectedUserIDs = {}
 		vConnectedUsers = []
 
@@ -625,7 +638,8 @@ class Commander():
 						vConnectedUsers.append(user)
 
 				# connectedUserIDs = {**connectedUserIDs, **voiceChannel.voice_states}
-		else:
+
+		else: # Moving users in event channels to fallback.
 			for voiceChannel in self.vCategory.voice_channels:
 				vConnectedUsers += voiceChannel.members
 				# connectedUserIDs = {**connectedUserIDs, **voiceChannel.voice_states.keys()}

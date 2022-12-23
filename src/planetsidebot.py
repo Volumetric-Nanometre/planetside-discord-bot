@@ -13,7 +13,9 @@ import newUser
 from botData import settings
 import roleManager
 import opsManager
-import OpCommander.autoCommander as OpCommander
+from OpCommander.autoCommander import AutoCommander, CommanderCommands
+from OpCommander.commander import Commander
+
 
 # import chatlinker
 
@@ -30,7 +32,7 @@ class Bot(commands.Bot):
 		# Objects with BOT refs
         self.vOpsManager = opsManager.OperationManager()
         opsManager.OperationManager.SetBotRef(self)
-        OpCommander.OperationCommander.vBotRef = self
+        Commander.vBotRef = self
 
 
     async def setup_hook(self):
@@ -41,8 +43,8 @@ class Bot(commands.Bot):
         await self.add_cog(newUser.NewUser(pBot=self))
         await self.add_cog(roleManager.UserRoles(p_bot=self))
         await self.add_cog(opsManager.Operations(p_bot=self))
-        await self.add_cog(OpCommander.AutoCommander(p_bot=self))
-        await self.add_cog(OpCommander.CommanderCommands(p_bot=self))
+        await self.add_cog(AutoCommander(p_bot=self))
+        await self.add_cog(CommanderCommands(p_bot=self))
         # await self.add_cog(chatlinker.ChatLinker(self))
 
         self.tree.copy_global_to(guild=self.vGuildObj)

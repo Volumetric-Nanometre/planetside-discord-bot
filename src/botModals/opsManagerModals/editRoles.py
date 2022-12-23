@@ -75,16 +75,22 @@ class EditRoles(baseModal.BaseModal):
 						lastUserID = self.vOpData.roles[vIndex].players.pop()
 						affectedUser = pInteraction.guild.get_member(lastUserID)
 						self.reservedUsers.append(affectedUser.mention)
-						self.vOpData.reserves.insert(0, lastUserID)
+						if self.vOpData.options.bUseReserve:
+							self.vOpData.reserves.insert(0, lastUserID)
 			else:
 				# Index is a new role, append!
 				self.vOpData.roles.append(vCurrentRole)
 
 			vIndex += 1
 		# End of while loop.
+
 		BUPrint.Debug("Roles updated!")
-		if madeReserve != 0:
+		if madeReserve != 0 and self.vOpData.options.bUseReserve:
 			await pInteraction.response.send_message(f"ATTENTION: {madeReserve} user(s) will be moved to reserve as a result of this edit if you Apply:\n{self.reservedUsers}", ephemeral=True)
+
+		elif madeReserve != 0 and not self.vOpData.options.bUseReserve:
+			await pInteraction.response.send_message(f"ATTENTION: {madeReserve} user(s) will be removed from this event as a result of this edit if you Apply:\n{self.reservedUsers}", ephemeral=True)
+
 		else:
 			await pInteraction.response.defer()
 

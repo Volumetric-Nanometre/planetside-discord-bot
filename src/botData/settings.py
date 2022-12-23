@@ -37,9 +37,10 @@ class BotSettings:
 
 	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
 
-	# Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below.
-	# users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.
-	# As such, this is merely a redundancy if security concerned.
+	"""
+	Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below.
+	users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.
+	As such, this is merely a redundancy if security concerned."""
 	bForceRoleRestrictions = True
 
 
@@ -85,22 +86,19 @@ class NewUsers:
 	# New User Date Warning, discord account is less than x months old.
 	newAccntWarn = 3
 
-	# The Jump URL "rules" leads to (ensure this leads to the rules post!)
-	rulesURL = "https://discord.com/channels/321688140802949120/1049523449867022348/1049523492166565939"
-
-
-
 	# Rule Message ID: The id of a message which contains the server rules (if not in an embed, falls back to message content)
-	ruleMsgID = 1049631022192537610 # DEV SERVER VAL: 1049631022192537610 | LIVE : 977888774530932767
-	# Rule Channel ID: The ID of the channel which the Rules message is in.
-	ruleChnID = 1049523449867022348 # DEV SERVER VAL: 1049523449867022348 | LIVE : 913086821263626360
+	ruleMsgID = 1049631022192537610 # DEV SERVER
+	# ruleMsgID = 977888774530932767 # LIVE SERVER
 
+
+	# Rule Channel ID: The ID of the channel which the Rules message is in.
+	ruleChnID = 1049523449867022348 # DEV SERVER 
+	# ruleChnID = 913086821263626360 # LIVE SERVER 
 
 	def __repr__(self) -> str:
 		vString = "\n	NEW USER SETTINGS\n"
 		vString += f"	> Admin Channel:	{self.adminChannel}\n"
 		vString += f"	> Gate channel :	{self.gateChannelID}\n"
-		vString += f"	> Rules URL:		{self.rulesURL}\n"
 		vString += f"	> ReactRule Message:	{self.ruleMsgID}\n"
 		vString += f"	> ReactRule Channel:	{self.ruleChnID}\n"
 		vString += f"\n	> Warnings: Discord Account age: {self.newAccntWarn} months\n"
@@ -130,6 +128,10 @@ class Commander:
 
 	# Commander- Auto Move Voice Channel: If enabled, participating users are moved to the standby channel on Ops start if they're in a voice channel.
 	bAutoMoveVCEnabled = True
+
+	# Auto MoveBack Channel ID:  Channel ID for the channel users are moved back into (if autoMoveVC is enabled) after an ops is closed.
+	# Usage is similar to `botSettings.fallbackChannelID`
+	autoMoveBackChannelID = 123
 
 	# Number of minutes before an ops scheduled start the bot starts AutoStart enabled Ops (Non AutoStart enabled Ops require a user to use `/ops-commander` command)
 	autoPrestart = 30
