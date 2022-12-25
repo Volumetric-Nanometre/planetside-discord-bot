@@ -26,7 +26,7 @@ class BotSettings:
 	bDebugEnabled = True
 
 	# ID of a channel which users are moved to when their current one is removed.
-	fallbackVoiceChat = 326783867036106752
+	fallbackVoiceChat = 326783867036106752 # Dev value!
 
 	# ROLE RESTRICTION LEVELS:
 	roleRestrict_level_0 = ["CO"]
@@ -129,12 +129,16 @@ class Commander:
 	# Commander- Auto Move Voice Channel: If enabled, participating users are moved to the standby channel on Ops start if they're in a voice channel.
 	bAutoMoveVCEnabled = True
 
-	# Auto MoveBack Channel ID:  Channel ID for the channel users are moved back into (if autoMoveVC is enabled) after an ops is closed.
-	# Usage is similar to `botSettings.fallbackChannelID`
-	autoMoveBackChannelID = 123
+	"""Auto MoveBack Channel ID:  Channel ID for the channel users are moved back into (if autoMoveVC is enabled) after an ops is closed.
+	Usage is similar to `botSettings.fallbackChannelID`"""
+	autoMoveBackChannelID = 326783867036106752 # DEV SERVER VALUE (General)
+	# autoMoveBackChannelID = 1023703124839518338 # LIVE SERVER VALUE (Planetside2)
 
 	# Number of minutes before an ops scheduled start the bot starts AutoStart enabled Ops (Non AutoStart enabled Ops require a user to use `/ops-commander` command)
 	autoPrestart = 30
+
+	# Sober Feedback ID: The ID of the forum to post a new SoberDogs Debrief message into.
+	soberFeedbackID = 1042463290472800317
 
 	def __repr__(self) -> str:
 		vString = "\n	OP COMMANDER SETTINGS\n"

@@ -40,30 +40,35 @@ class OperationOptions:
 	bUseReserve : bool = True # Only enable built in RESERVE if true.
 	bUseCompact : bool = False # Not yet used, argument: -COMPACT; does not show a member list for each role.
 	bAutoStart : bool = True # If false, someone must use `/op-commander [OpData]` to start the commander.
-
+	bUseSoberdogsFeedback : bool = False # If true, debriefing opens a new forum thread and send the feedback message there.
 
 @dataclass
 class OperationData:
 	"""
-	Data pertaining to an Operation.
-	Includes a list of OpRoleData objects.
+	# OPERATION DATA
+	Data pertaining to an Operation/Event.
+	Includes a list of OpRoleData objects, which hold information specific to individual roles.
 	"""
-	# List of OpRoleData objects
-	roles : list = field(default_factory=list)
-	reserves : list = field(default_factory=list) # Since there's no need for special data for reserves, they just have a simple UserID list.
+
 	# Op Details:
+	roles : list = field(default_factory=list) # List of OpRoleData objects
+	reserves : list = field(default_factory=list) # Since there's no need for special data for reserves, they just have a simple UserID list.
 	name : str = ""
 	fileName: str = ""
 	date : datetime.datetime = datetime.datetime.now()
 	description : str = ""
 	customMessage : str = ""
 	managedBy:str = ""
-	messageID : str = "" # Stored to make accessing and editing quicker/avoid having to find it.
+
+	# Backend variables
+	messageID : str = "" 
 	status : OpsStatus = OpsStatus.open
 	targetChannel: str = ""
+	options: OperationOptions = OperationOptions()
+
+	# Factory fields
 	voiceChannels: list = field(default_factory=list)
 	arguments: list = field(default_factory=list)
-	options: OperationOptions = OperationOptions()
 
 
 	def GenerateFileName(self):
@@ -71,8 +76,10 @@ class OperationData:
 		
 		BUPrint.Debug(f"Filename for Op {self.name} generated: {self.fileName}")
 
+
 	def GetFullFilePath(self):
 		return f"{botData.settings.Directories.liveOpsDir}{self.fileName}.bin"
+
 
 	def GetRoleByName(self, p_roleName):
 		"""
@@ -86,6 +93,7 @@ class OperationData:
 			if role.roleName == p_roleName:
 				return role
 
+
 	def ParseArguments(self):
 		"""
 		# PARSE ARGUMENTS
@@ -98,20 +106,42 @@ class OperationData:
 			# TOGGLE VIEW TYPE
 			if argInLower.__contains__("compact"):
 				self.options.bUseCompact = True
+				BUPrint.Debug(f"Using viewmode: Compact for {self.name}")
+
 			elif argInLower.__contains__("fullview"):
 				self.options.bUseCompact = False
+				BUPrint.Debug(f"Using viewmode: Full for {self.name}")
+
 
 			# TOGGLE RESERVE
 			if argInLower.__contains__("noreserve"):
 				self.options.bUseReserve = False
+				BUPrint.Debug(f"Setting Reserves: ON for {self.name}")
+
 			elif argInLower.__contains__("reserveson"):
 				self.options.bUseReserve = True
-			
+				BUPrint.Debug(f"Setting Reserves: OFF for {self.name}")
+
+
 			# TOGGLE AUTO START
 			if argInLower.__contains__("noauto"):
 				self.options.bAutoStart = False
+				BUPrint.Debug(f"Setting Automatic Start: OFF for {self.name}")
+
 			elif argInLower.__contains__("autostart"):
 				self.options.bAutoStart = True
+				BUPrint.Debug(f"Setting Automatic Start: ON for {self.name}")
+
+
+			# TOGGLE SOBERDOGS FEEDBACK
+			if argInLower.__contains__("nofeedback"):
+				self.options.bUseSoberdogsFeedback = False
+				BUPrint.Debug(f"Setting Soberdogs Feedback: OFF for {self.name}")
+
+			elif argInLower.__contains__("soberfeedback"):
+				self.options.bUseSoberdogsFeedback = True
+				BUPrint.Debug(f"Setting Soberdogs Feedback: ON for {self.name}")
+
 
 	def __repr__(self) -> str:
 		vOutputStr = "	OPERATION DATA\n"

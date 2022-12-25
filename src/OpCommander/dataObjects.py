@@ -27,6 +27,8 @@ class OpFeedback:
 	"""
 	generic:list = field(default_factory=list)
 	forSquadmates:list = field(default_factory=list)
+	forSquadLead:list = field(default_factory=list)
+	forPlatLead:list = field(default_factory=list)
 	
 
 

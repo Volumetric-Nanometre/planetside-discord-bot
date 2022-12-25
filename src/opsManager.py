@@ -817,7 +817,7 @@ class OpsEditor(discord.ui.View):
 	def __init__(self, pBot: commands.Bot, pOpsData: OpData.OperationData):
 		self.vBot = pBot
 		self.vOpsData = pOpsData # Original data, not edited.
-		# self.EditedData = pOpsData # Edited data, applied and saved.
+
 		BUPrint.Info("Ops Editor Instantiated")
 		super().__init__(timeout=None)
 		helpBtn = btnHelp()
@@ -947,8 +947,12 @@ class OpsEditor(discord.ui.View):
 			vOpMan = OperationManager()
 			self.vOpsData.status = OpData.OperationData.status.open
 			await vOpMan.UpdateMessage(self.vOpsData)
-		await pInteraction.delete_original_response()
-
+		
+		item: discord.ui.Button
+		for item in self.children:
+			item.disabled = True
+		self.stop()
+		await pInteraction.response.send_message("You may now dismiss the editor.", ephemeral=True)
 
 # # # # # # HELP BUTTON
 class btnHelp(discord.ui.Button):
