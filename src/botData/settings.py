@@ -48,11 +48,8 @@ class BotSettings:
 	def __repr__(self) -> str:
 		vString = "\n	GENERAL BOT SETTINGS\n"
 		vString += f"	> DebugEnabled: {self.bDebugEnabled}\n"
-		if (self.bDebugEnabled):
-			vString += f"	> DiscordToken:	{self.discordToken}\n"
-		else:
-			token = self.discordToken.partition(".")[0]
-			vString += f"	> DiscordToken:	{token}...\n"
+		token = self.discordToken.partition(".")[0] # Always hide most of the token.
+		vString += f"	> DiscordToken:	{token}...\n"
 		vString += f"	> DiscordGuild:	{self.discordGuild}\n"
 		vString += f"	> PS2ServiceID:	{self.ps2ServiceID}\n"
 		vString += f"	> BotDirectory:	{self.botDir}\n"
@@ -98,9 +95,10 @@ class NewUsers:
 	def __repr__(self) -> str:
 		vString = "\n	NEW USER SETTINGS\n"
 		vString += f"	> Admin Channel:	{self.adminChannel}\n"
-		vString += f"	> Gate channel :	{self.gateChannelID}\n"
-		vString += f"	> ReactRule Message:	{self.ruleMsgID}\n"
-		vString += f"	> ReactRule Channel:	{self.ruleChnID}\n"
+		vString += f"	> Gate channel:	{self.gateChannelID}\n"
+		vString += f"	> General Channel:	{self.generalChanelID}\n"
+		vString += f"	> Rule Channel:	{self.ruleChnID}\n"
+		vString += f"	> Rule Message:	{self.ruleMsgID}\n"
 		vString += f"\n	> Warnings: Discord Account age: {self.newAccntWarn} months\n"
 		vString += f"	> Warnings: Outfit Rank (Ord): {self.outfitRankWarn}\n"
 		return vString
@@ -129,8 +127,8 @@ class Commander:
 	# Commander- Auto Move Voice Channel: If enabled, participating users are moved to the standby channel on Ops start if they're in a voice channel.
 	bAutoMoveVCEnabled = True
 
-	"""Auto MoveBack Channel ID:  Channel ID for the channel users are moved back into (if autoMoveVC is enabled) after an ops is closed.
-	Usage is similar to `botSettings.fallbackChannelID`"""
+	#Auto MoveBack Channel ID:  Channel ID for the channel users are moved back into (if autoMoveVC is enabled) after an ops is closed.
+	#Usage is similar to `botSettings.fallbackChannelID`
 	autoMoveBackChannelID = 326783867036106752 # DEV SERVER VALUE (General)
 	# autoMoveBackChannelID = 1023703124839518338 # LIVE SERVER VALUE (Planetside2)
 
@@ -148,6 +146,8 @@ class Commander:
 		vString += f"	> Auto Alerts:		{self.bAutoAlertsEnabled}\n"
 		vString += f"	> Auto Alert count:	{self.autoAlertCount}\n"
 		vString += f"	> Auto Move VC:		{self.bAutoMoveVCEnabled}\n"
+		vString += f"	> Automove VC ID:		{self.autoMoveBackChannelID}\n"
+		vString += f"	> Soberdogs Feedback:		{self.soberFeedbackID}\n"
 		return vString		
 
 
@@ -218,7 +218,10 @@ class SignUps:
 		vString += f"	> Signup Cat  : {self.signupCategory}\n"
 		vString += f"	> Resign Icon : {self.resignIcon}\n" 
 		vString += f"	> Reserve Icon: {self.reserveIcon}\n"
+		vString += f"	> Auto Prestart:	{self.bAutoPrestartEnabled}\n"
 		return vString
+
+
 
 @dataclass(frozen=True)
 class Messages:
