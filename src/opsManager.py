@@ -90,7 +90,7 @@ class Operations(commands.GroupCog):
 			if(edit):
 				vEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
 				await pInteraction.response.send_message(f"**Editing OpData for** *{optype}*", view=vEditor, ephemeral=True)
-				# vEditor.vMessage = await pInteraction.original_response()
+
 
 			else:
 				if await vOpManager.AddNewLiveOp(p_opData=newOpsData):
@@ -140,10 +140,14 @@ class Operations(commands.GroupCog):
 			vOpMan = OperationManager()
 			vLiveOpData.status = OpData.OpsStatus.editing
 			await vOpMan.UpdateMessage(vLiveOpData)
+
+			# Remove Ops from LiveOps during editing
+			OperationManager.vLiveOps.remove(vLiveOpData)
 			await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
 
 		else:
 			botUtils.FilesAndFolders.DeleteCorruptFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit) )
+			OperationManager.vLiveOps.remove(vLiveOpData)
 			await pInteraction.response.send_message("The operation you wished to edit was corrupt and has been removed.", ephemeral=True)
 			return
 
@@ -901,6 +905,7 @@ class OpsEditor(discord.ui.View):
 			self.vOpsData.status = OpData.OperationData.status.editing
 			await vOpMan.UpdateMessage(self.vOpsData)
 
+
 	@discord.ui.button( 
 						style=discord.ButtonStyle.primary, 
 						label="New Default",
@@ -938,7 +943,7 @@ class OpsEditor(discord.ui.View):
 
 # # # # # # CLOSE BUTTON
 	@discord.ui.button(
-						label="Close",
+						label="Finish",
 						style=discord.ButtonStyle.success,
 						emoji="🔓",
 						row=4)
@@ -948,6 +953,10 @@ class OpsEditor(discord.ui.View):
 			self.vOpsData.status = OpData.OperationData.status.open
 			await vOpMan.UpdateMessage(self.vOpsData)
 		
+		# Re-Add OpData if it was a live Op:
+		if self.vOpsData.messageID != "":
+			OperationManager.vLiveOps.append(self.vOpsData)
+
 		item: discord.ui.Button
 		for item in self.children:
 			item.disabled = True

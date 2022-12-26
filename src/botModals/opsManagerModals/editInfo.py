@@ -3,6 +3,8 @@ import botData.operations as OpData
 from botUtils import BotPrinter as BUPrint
 import botModals.opsManagerModals.baseModal as baseModal
 import botUtils
+import os
+from botData.settings import Directories
 
 class EditInfo(baseModal.BaseModal):
 	txtName = discord.ui.TextInput(
@@ -40,14 +42,20 @@ class EditInfo(baseModal.BaseModal):
 	# Where the fun happens!
 	async def on_submit(self, pInteraction: discord.Interaction):
 		botUtils.BotPrinter.Debug("Edit Info Modal submitted...")
+		vOldName = self.vOpData.fileName
 
 		self.vOpData.name = self.txtName.value
 		self.vOpData.description = self.txtDescription.value
 		self.vOpData.customMessage = self.txtMessage.value
 		self.vOpData.managedBy = self.txtRunner.value
-		# self.txtVoiceChannels.value.split("\n")
-		# self.vOpData.voiceChannels = self.txtVoiceChannels.value.split("\n")
-		# self.vOpData.arguments = self.txtArguments.value.split("\n")
+
+		if self.vOpData.fileName != "":
+			BUPrint.Debug("Renaming existing file to match new Ops Name.")
+			self.vOpData.GenerateFileName()
+			try:
+				os.rename( f"{Directories.liveOpsDir}{vOldName}.bin", f"{Directories.liveOpsDir}{self.vOpData.fileName}.bin" )
+			except OSError as vError:
+				BUPrint.LogErrorExc("Unable to rename file.", vError)
 
 		await pInteraction.response.defer()
 
@@ -57,13 +65,3 @@ class EditInfo(baseModal.BaseModal):
 		self.txtMessage.default = self.vOpData.customMessage
 		self.txtDescription.default = self.vOpData.description
 		self.txtRunner.default = self.vOpData.managedBy
-		# vTempStr: str = ""
-		# for channel in self.vOpData.voiceChannels:
-		# 	vTempStr += f"{channel}\n"		
-		# self.txtVoiceChannels.default = vTempStr.strip()
-		
-		# vTempStr = ""
-		# for argument in self.vOpData.arguments:
-		# 	BUPrint.Debug(f"Adding Arg {argument} to modal.")
-		# 	vTempStr += f"{argument}\n"
-		# self.txtArguments.default = vTempStr.strip()

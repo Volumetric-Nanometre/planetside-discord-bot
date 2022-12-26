@@ -95,10 +95,10 @@ class NewUsers:
 	def __repr__(self) -> str:
 		vString = "\n	NEW USER SETTINGS\n"
 		vString += f"	> Admin Channel:	{self.adminChannel}\n"
-		vString += f"	> Gate channel:	{self.gateChannelID}\n"
+		vString += f"	> Gate channel:		{self.gateChannelID}\n"
 		vString += f"	> General Channel:	{self.generalChanelID}\n"
-		vString += f"	> Rule Channel:	{self.ruleChnID}\n"
-		vString += f"	> Rule Message:	{self.ruleMsgID}\n"
+		vString += f"	> Rule Channel:		{self.ruleChnID}\n"
+		vString += f"	> Rule Message:		{self.ruleMsgID}\n"
 		vString += f"\n	> Warnings: Discord Account age: {self.newAccntWarn} months\n"
 		vString += f"	> Warnings: Outfit Rank (Ord): {self.outfitRankWarn}\n"
 		return vString
@@ -146,8 +146,8 @@ class Commander:
 		vString += f"	> Auto Alerts:		{self.bAutoAlertsEnabled}\n"
 		vString += f"	> Auto Alert count:	{self.autoAlertCount}\n"
 		vString += f"	> Auto Move VC:		{self.bAutoMoveVCEnabled}\n"
-		vString += f"	> Automove VC ID:		{self.autoMoveBackChannelID}\n"
-		vString += f"	> Soberdogs Feedback:		{self.soberFeedbackID}\n"
+		vString += f"	> Automove VC ID:	{self.autoMoveBackChannelID}\n"
+		vString += f"	> Soberdogs Feedback:{self.soberFeedbackID}\n"
 		return vString		
 
 
@@ -218,7 +218,7 @@ class SignUps:
 		vString += f"	> Signup Cat  : {self.signupCategory}\n"
 		vString += f"	> Resign Icon : {self.resignIcon}\n" 
 		vString += f"	> Reserve Icon: {self.reserveIcon}\n"
-		vString += f"	> Auto Prestart:	{self.bAutoPrestartEnabled}\n"
+		vString += f"	> Auto Prestart:{self.bAutoPrestartEnabled}\n"
 		return vString
 
 
@@ -273,28 +273,26 @@ class Roles:
 	NOTE: Selectors have a MAXIMUM limit of 25 items;
 			This is a discord imposed limit.
 	"""
-	# SelectOption(label="", value="", description="", emoji=""),
-
 	# Provides a dropdown containing these roles for giving to new users.
 	newUser_roles = [ 
 		SelectOption(label="Recruit", value="780253442605842472"),
-		SelectOption(label="TDKD", value="710472193045299260"), # 1050286811940921344 <- Dev server RoleID | 710472193045299260 <- Live server RoleID
+		# SelectOption(label="TDKD", value="1050286811940921344"), # Dev server RoleID
+		SelectOption(label="TDKD", value="710472193045299260"), # Live server RoleID
 		SelectOption(label="The Washed Masses", value="710502581893595166"),
 		SelectOption(label="The Unwashed Masses", value="719219680434192405")
 	]
 
 	# ADD ROLES - TDKD:  Roles used in the /roles command, "tdkd" role selector 
 	addRoles_TDKD = [
-		#SelectOption(label="Planetside", value="TDKD", description="The main role for TDKD planetside.", emoji=''),
 		SelectOption(label="Planetside Pings", value="977873609815105596", description="Non-major PS2 events/fellow\n drunken doggos looking for company"),
-		SelectOption(label="Sober Dogs", value="745004244171620533", description="More serious, coordinated infantry events"), # Dev value: 1040751250163122176 | Live value 745004244171620533
+		# SelectOption(label="Sober Dogs", value="1040751250163122176", description="DEV VALUE"), # Dev value!
+		SelectOption(label="Sober Dogs", value="745004244171620533", description="More serious, coordinated infantry events"), # Live value!
 		SelectOption(label="Base Busters", value="811363100787736627", description="Base building and busting events"),
 		SelectOption(label="Armour Dogs", value="781309511532544001", description="Ground vehicle related events"),
 		SelectOption(label="Dog Fighters", value="788390750982766612", description="Small aerial vehicle related events"),
 		SelectOption(label="Royal Air Woofs", value="848612413943054376", description="Heavy aerial vehicle related events"),
 		SelectOption(label="PS2 Twitter", value="832241383326744586", description="Planetside 2 Twitter posts"),
 		SelectOption(label="Jaeger", value="1024713062776844318", description="Jeager events")
-		# discord.SelectOption(label="", value="", description="", emoji='')
 	]
 
 	# ADD ROLES - GAMES : Role selectors used in the /roles command.

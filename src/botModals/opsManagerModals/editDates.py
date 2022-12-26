@@ -1,9 +1,11 @@
 import discord
 import botData.operations as OpData
+from botData.settings import Directories
 from botUtils import BotPrinter as BUPrint
 import botModals.opsManagerModals.baseModal as baseModal
 import botUtils
 import datetime
+import os
 
 class EditDates(baseModal.BaseModal):
 	txtYear = discord.ui.TextInput(
@@ -53,8 +55,18 @@ class EditDates(baseModal.BaseModal):
 		)
 
 		self.vOpData.date = newDateTime
+		oldFileName = self.vOpData.fileName
 
+		if self.vOpData.fileName != "":
+			self.vOpData.GenerateFileName()
+			BUPrint.Debug("Renaming filename to match new datetime.")
+			try:
+				os.rename(f"{Directories.liveOpsDir}{oldFileName}.bin", f"{Directories.liveOpsDir}{self.vOpData.fileName}.bin" )
+			except OSError as vError:
+				BUPrint.LogErrorExc("Unable to rename file.", vError)
 		await pInteraction.response.defer()
+
+
 
 	def PresetFields(self):
 		botUtils.BotPrinter.Debug(f"Auto-filling modal (DATE) with existing data: {self.vOpData.date}")
