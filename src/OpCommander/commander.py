@@ -22,7 +22,7 @@ from OpCommander.events import OpsEventTracker
 from OpCommander.dataObjects import CommanderStatus
 import OpCommander.dataObjects
 
-import enum
+import threading
 import sched
 import datetime, dateutil.relativedelta
 
@@ -56,7 +56,8 @@ class Commander():
 		self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
 
 		# Alert & Autostart Scheduler
-		self.vAutoAlerts = sched.scheduler()
+		self.vScheduler = sched.scheduler()
+		self.vSchedThread: threading.Thread = None
 
 		#DiscordElements:
 		self.vGuild: discord.Guild = None
@@ -74,6 +75,8 @@ class Commander():
 		self.soberdogFeedbackForum: discord.ForumChannel = None # Forum for soberdogs Debriefs.
 		self.soberdogFeedbackThread : discord.Thread = None # Thread holding the feedback message. Also used to get a jump-link for the notif channel button.
 		self.soberdogFeedbackMsg: discord.Message = None # Message for the soberdogs Feedback.
+
+
 
 	async def GenerateCommander(self):
 		"""
@@ -147,22 +150,46 @@ class Commander():
 			
 			# Setup Alerts
 			# Always post first alert on commander creation:
-			self.lastStartAlert = await self.notifChn.send( await self.GenerateAlertMessage() )
-			
-			if commanderSettings.bAutoAlertsEnabled:
-				pass
+			# self.lastStartAlert = await self.notifChn.send( await self.GenerateAlertMessage() )
 
-			# Setup AutoStart
-			if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
-				pass
 
 
 			# Set to standby and return.
 			self.vCommanderStatus = CommanderStatus.Standby
-			return
+			
+			self.vSchedThread = threading.Thread(target=self.ThreadTask_Scheduler, name="OpCommanderSchedThread")
+			self.vSchedThread.start()
 		else:
 			BUPrint.Info("Commander has already been set up!")
 
+
+	def ThreadTask_Scheduler(self):
+		"""
+		# THREADTASK : SCHEDULER
+		Function to house the setup and running of the scheduler, to be executed in a thread.
+		"""
+		BUPrint.Debug("Configuring Scheduler...")
+
+		if commanderSettings.bAutoAlertsEnabled:
+			intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
+			setIntervals = 0
+			lastInterval = self.vOpData.date
+		
+			while setIntervals < commanderSettings.autoAlertCount:
+				lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
+				BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
+				self.vScheduler.enterabs(time=lastInterval.timestamp(), action=self.GenerateAlertMessage(), priority=5)
+				setIntervals += 1
+		
+		
+		# Setup AutoStart
+		if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
+			BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
+			self.vScheduler.enterabs(time=self.vOpData.date.timestamp(), action=self.StartOperation(), priority=1)
+
+		
+		self.vScheduler.run(blocking=True)
+https://apscheduler.readthedocs.io/en/3.x/userguide.html
 
 
 	async def CreateCategory(self):
@@ -208,17 +235,25 @@ class Commander():
 		Creates text channels used for the Operation.
 		If existing channels are found, they are used instead.
 		"""
+		bFoundCommander = False
+		bFoundNotif = False
 		# Find existing Commander & Notif channels
 		for txtChannel in self.vCategory.text_channels:
 			if txtChannel.name.lower() == botData.operations.DefaultChannels.opCommander.lower():
 				BUPrint.Debug("Existing op commander channel found in category, using that instead.")
 				self.commanderChannel = txtChannel
 				await self.commanderChannel.purge()
+				bFoundCommander = True
 
 			if txtChannel.name.lower() == botData.operations.DefaultChannels.notifChannel.lower():
 				BUPrint.Debug("Existing notification channel found in category, using that instead.")
 				self.notifChn = txtChannel
 				await self.notifChn.purge()
+				bFoundNotif = True
+
+			if bFoundNotif and bFoundCommander:
+				BUPrint.Debug("Found Commander and Notification channels. Exiting loop.")
+				break
 
 		# Manually create Commander & Notif channel if not already present
 		if self.commanderChannel == None:
@@ -362,8 +397,10 @@ class Commander():
 	async def GenerateAlertMessage(self):
 		"""
 		# GENERATE ALERT MESSAGE
-		Convenience function to generate a pre-formatted message string for pre-start alerts.
+		Convenience function to generate and send a pre-formatted message string for pre-start alerts.
 		"""
+		BUPrint.Info(f"Sending Alert message for {self.vOpData.name}")
+
 		vParticipantStr = await self.GetParticipants()
 
 		vMessage = f"**REMINDER: {self.vOpData.name} STARTS {botUtils.DateFormatter.GetDiscordTime( self.vOpData.date, botUtils.DateFormat.Dynamic )}**\n"
