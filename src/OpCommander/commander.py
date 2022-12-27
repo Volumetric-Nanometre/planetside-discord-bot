@@ -23,7 +23,7 @@ from OpCommander.dataObjects import CommanderStatus
 import OpCommander.dataObjects
 
 import threading
-import sched
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime, dateutil.relativedelta
 
 import botUtils
@@ -56,7 +56,7 @@ class Commander():
 		self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
 
 		# Alert & Autostart Scheduler
-		self.vScheduler = sched.scheduler()
+		self.scheduler = AsyncIOScheduler()
 		self.vSchedThread: threading.Thread = None
 
 		#DiscordElements:
@@ -151,14 +151,34 @@ class Commander():
 			# Setup Alerts
 			# Always post first alert on commander creation:
 			# self.lastStartAlert = await self.notifChn.send( await self.GenerateAlertMessage() )
-
+			BUPrint.Debug("Configuring Scheduler...")
+	
+			if commanderSettings.bAutoAlertsEnabled:
+				intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
+				setIntervals = 0
+				lastInterval = self.vOpData.date
+			
+				while setIntervals < commanderSettings.autoAlertCount:
+					lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
+					BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
+					# self.vScheduler.enterabs(time=lastInterval.timestamp(), action=self.GenerateAlertMessage(), priority=5)
+					self.scheduler.add_job( Commander.GenerateAlertMessage, 'date', run_date=lastInterval, args=[self] )
+					setIntervals += 1
+			
+			
+			# Setup AutoStart
+			if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
+				BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
+				# self.vScheduler.enterabs(time=self.vOpData.date.timestamp(), action=self.StartOperation(), priority=1)
+				self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self])
+	
+			
+			# self.vScheduler.run(blocking=True)
+			self.scheduler.start()
 
 
 			# Set to standby and return.
 			self.vCommanderStatus = CommanderStatus.Standby
-			
-			self.vSchedThread = threading.Thread(target=self.ThreadTask_Scheduler, name="OpCommanderSchedThread")
-			self.vSchedThread.start()
 		else:
 			BUPrint.Info("Commander has already been set up!")
 
@@ -178,18 +198,21 @@ class Commander():
 			while setIntervals < commanderSettings.autoAlertCount:
 				lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
 				BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
-				self.vScheduler.enterabs(time=lastInterval.timestamp(), action=self.GenerateAlertMessage(), priority=5)
+				# self.vScheduler.enterabs(time=lastInterval.timestamp(), action=self.GenerateAlertMessage(), priority=5)
+				self.scheduler.add_job( Commander.GenerateAlertMessage, 'date', run_date=lastInterval, args=[self] )
 				setIntervals += 1
 		
 		
 		# Setup AutoStart
 		if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
 			BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
-			self.vScheduler.enterabs(time=self.vOpData.date.timestamp(), action=self.StartOperation(), priority=1)
+			# self.vScheduler.enterabs(time=self.vOpData.date.timestamp(), action=self.StartOperation(), priority=1)
+			self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self])
 
 		
-		self.vScheduler.run(blocking=True)
-https://apscheduler.readthedocs.io/en/3.x/userguide.html
+		# self.vScheduler.run(blocking=True)
+		self.scheduler.start()
+# https://apscheduler.readthedocs.io/en/3.x/userguide.html
 
 
 	async def CreateCategory(self):
