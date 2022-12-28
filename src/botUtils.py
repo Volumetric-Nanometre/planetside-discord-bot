@@ -156,10 +156,14 @@ class FilesAndFolders():
 		"""
 		FilesAndFolders.GenerateDefaultOpsFolder()
 		FilesAndFolders.GenerateLiveOpsFolder()
+		FilesAndFolders.GenerateUserLibraryFolder()
+		FilesAndFolders.GenerateTempFolder()
+
 
 	def DeleteCorruptFile(pDir: str):
 		BotPrinter.Info(f"Corrupt file being removed: {pDir}")
 		os.remove(pDir)
+
 
 	def GetFiles(pDir: str, pEndsWith: str = ""):
 		vDataFiles: list = []
@@ -169,6 +173,7 @@ class FilesAndFolders():
 		BotPrinter.Debug(f"Files ending with: {pEndsWith} In: {pDir} found:\n{vDataFiles}")
 		return vDataFiles
 
+
 	def GenerateDefaultOpsFolder():
 		BotPrinter.Debug("Creating default ops folder (if non existant)")
 		if (not os.path.exists( Directories.savedDefaultsDir ) ):
@@ -177,13 +182,32 @@ class FilesAndFolders():
 			except:
 				BotPrinter.LogError("Failed to create folder for default Ops data!")
 
+
 	def GenerateLiveOpsFolder():
 		BotPrinter.Debug("Creating live ops folder (if non existant)")
 		if (not os.path.exists( Directories.liveOpsDir ) ):
 			try:
 				os.makedirs(f"{ Directories.liveOpsDir }")
 			except:
-				BotPrinter.LogError("Failed to create folder for default Ops data!")
+				BotPrinter.LogError("Failed to create folder for Live Op data!")
+
+	def GenerateUserLibraryFolder():
+		BotPrinter.Debug("Creating User Library folder (if non existant)")
+		if (not os.path.exists( Directories.userLibrary ) ):
+			try:
+				os.makedirs(f"{ Directories.userLibrary }")
+			except:
+				BotPrinter.LogError("Failed to create folder for User Library!")
+
+
+	def GenerateTempFolder():
+		BotPrinter.Debug("Creating Temporary folder (if non existant).")
+		if (not os.path.exists( Directories.tempDir ) ):
+			try:
+				os.makedirs(f"{ Directories.tempDir }")
+			except:
+				BotPrinter.LogError("Failed to create temporary folder!")
+
 
 	def GetOpFullPath(p_opFileName):
 		"""
@@ -194,17 +218,27 @@ class FilesAndFolders():
 		"""
 		return f"{Directories.liveOpsDir}{p_opFileName}.bin"
 
+
 	def GetLockFilePath(p_opFileName):
 		"""
 		CONVENIENCE FUNCTION:
-		Returns a compiled string of a full path for opFile lock file.
+		Returns a compiled string (liveOpsDir/p_opFileName.lockFileAffix) of a full path for opFile lock file.
 		"""
 		return f"{Directories.liveOpsDir}{p_opFileName}{Directories.lockFileAffix}"
+
+	
+	def GetLockPathGeneric(p_path):
+		"""
+		# GET LOCK PATH GENERIC
+		Returns a compiled string containing the given path and the lockfile affix. 
+		"""
+		return f"{p_path}{Directories.lockFileAffix}"
+
 
 	def IsLocked(p_opLockFile):
 		"""
 		IS LOCKED:
-		Checks if an Op file has an associated lock file. to prevent concurrent load/saving.
+		Checks if the file path given has an associated lock file. to prevent concurrent load/saving.
 
 		RETURNS: 
 		TRUE if a file is locked.
@@ -259,23 +293,26 @@ class FilesAndFolders():
 			return False
 
 
-	def ReleaseLock(p_opLockFile):
+	def ReleaseLock(p_fileToRelease:str):
 		"""
 		RELEASE LOCK:
 
-		Removes a lock file for the given Ops File.
+		Removes a lock file for the given File.
 		Should be called every time GETLOCK is called.
 		
 		RETURNS
 		True - On success (or file doens't exist)
 		False - On Failure (exception)
 		"""
-		BotPrinter.Debug(f"Releasing lock for {p_opLockFile}")
-		# lockFile = f"{FilesAndFolders.GetOpsFolder()}{p_opFileName}{settings.lockFileAffix}"
+		BotPrinter.Debug(f"Releasing lock for {p_fileToRelease}")
 
-		if(FilesAndFolders.IsLocked(p_opLockFile)):
+		if not p_fileToRelease.__contains__( Directories.lockFileAffix ):
+			BotPrinter.Debug("	-> File specified isn't a lock file!")
+			return False
+
+		if(FilesAndFolders.IsLocked(p_fileToRelease)):
 			try:
-				os.remove(p_opLockFile)
+				os.remove(p_fileToRelease)
 				BotPrinter.Debug(f"	-> Lock file released!")
 				return True
 			except OSError as vError:
@@ -287,19 +324,27 @@ class FilesAndFolders():
 
 async def GetGuild(p_BotRef : commands.Bot):
 	"""
-	GET GUILD:
+	# GET GUILD:
 	
-	p_BotRef: A reference to the bot.
+	`p_BotRef`: A reference to the bot.
 
 	RETURNS: a discord.Guild using the ID from settings.
 
+	Tries get first, then fetch.
 	"""
 	BotPrinter.Debug("Getting Guild from ID.")
 	try:
-		return await p_BotRef.fetch_guild( BotSettings.discordGuild )
+		guild = await p_BotRef.fetch_guild( BotSettings.discordGuild )
+		if guild == None:
+			BotPrinter.Info("Unable to fetch guild!  Ensure you have the right ID.")
+			return None
+
+		return guild
+
 	except discord.Forbidden as vError:
 		BotPrinter.LogErrorExc("Bot has no access to this guild!", p_exception=vError)
 		return None
+
 	except discord.HTTPException:
 		BotPrinter.LogErrorExc("Unable to get guild.", p_exception=vError)
 		return None

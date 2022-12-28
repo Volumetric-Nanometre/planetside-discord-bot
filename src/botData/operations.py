@@ -18,6 +18,19 @@ class OpsStatus(Enum):
 
 
 @dataclass
+class OperationOptions:
+	"""
+	# OPERATION OPTIONS
+
+	Options, typically altered via use of arguments, to determine behaviour of the ops.
+	"""
+	bUseReserve : bool = True # Only enable built in RESERVE if true.
+	bUseCompact : bool = False # Not yet used, argument: -COMPACT; does not show a member list for each role.
+	bAutoStart : bool = True # If false, someone must use `/op-commander [OpData]` to start the commander.
+	bUseSoberdogsFeedback : bool = False # If true, debriefing opens a new forum thread and send the feedback message there.
+
+
+@dataclass
 class OpRoleData:
 	"""
 	# OP ROLE DATA
@@ -30,17 +43,6 @@ class OpRoleData:
 	maxPositions : int = 0
 
 
-@dataclass
-class OperationOptions:
-	"""
-	# OPERATION OPTIONS
-
-	Options, typically altered via use of arguments, to determine behaviour of the ops.
-	"""
-	bUseReserve : bool = True # Only enable built in RESERVE if true.
-	bUseCompact : bool = False # Not yet used, argument: -COMPACT; does not show a member list for each role.
-	bAutoStart : bool = True # If false, someone must use `/op-commander [OpData]` to start the commander.
-	bUseSoberdogsFeedback : bool = False # If true, debriefing opens a new forum thread and send the feedback message there.
 
 @dataclass
 class OperationData:
@@ -179,3 +181,18 @@ class DefaultChannels:
 	voiceChannels = ["Squad-Alpha", "Squad-Beta", "Squad-Charlie", "Squad-Delta"]
 	# Debrief: If not specified in Ops data, this is used instead
 	debriefChannel = "debrief"
+
+
+@dataclass
+class UserSession:
+	"""
+	# USER SESSION
+	Dataclass pertaining to a users session statistics.
+	"""
+	eventName: str = ""
+	eventDate: datetime = None
+	# Stats Tracked
+	kills: int = 0
+	deaths: int = 0
+	assists: int = 0
+	score: int = 0

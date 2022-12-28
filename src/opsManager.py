@@ -11,6 +11,7 @@ from discord import app_commands
 
 from botData.settings import Messages as botMessages
 from botData import settings as botSettings
+import botData.settings
 import botData.operations as OpData
 import botUtils
 from botUtils import BotPrinter as BUPrint
@@ -141,8 +142,6 @@ class Operations(commands.GroupCog):
 			vLiveOpData.status = OpData.OpsStatus.editing
 			await vOpMan.UpdateMessage(vLiveOpData)
 
-			# Remove Ops from LiveOps during editing
-			OperationManager.vLiveOps.remove(vLiveOpData)
 			await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
 
 		else:
@@ -641,7 +640,7 @@ class OperationManager():
 			for reserve in p_opsData.reserves:
 				vUser = self.vBotRef.get_user(int(reserve))
 				vReserves += f"{vUser.mention}\n"
-			vEmbed.add_field(name=f"Reserves ({len(p_opsData.reserves)})", value=vReserves, inline=True )
+			vEmbed.add_field(name=f"{botData.settings.SignUps.reserveIcon} Reserves ({len(p_opsData.reserves)})", value=vReserves, inline=True )
 
 		return vEmbed
 
@@ -662,7 +661,7 @@ class OperationManager():
 		if p_opsData.options.bUseReserve:
 			vView.add_item( btnReserve )
 		
-		if p_opsData.status == OpData.OperationData.status.started or p_opsData.status == OpData.OperationData.status.editing:
+		if p_opsData.status == OpData.OpsStatus.started or p_opsData.status == OpData.OpsStatus.editing:
 			vRoleSelector.disabled = True
 			btnReserve.disabled = True
 

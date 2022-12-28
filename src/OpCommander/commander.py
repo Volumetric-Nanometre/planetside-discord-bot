@@ -20,9 +20,10 @@ import auraxium
 
 from OpCommander.events import OpsEventTracker
 from OpCommander.dataObjects import CommanderStatus
+from OpCommander.dataObjects import Participant
 import OpCommander.dataObjects
 
-import threading
+import re
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime, dateutil.relativedelta
 
@@ -33,8 +34,10 @@ from botUtils import ChannelPermOverwrites as ChanPermOverWrite
 from botData.settings import BotSettings as botSettings
 from botData.settings import Commander as commanderSettings
 from botData.settings import Messages as botMessages
+from botData.settings import Directories
 import botData.operations
 from botData.operations import OperationData as OpsData
+from botData.users import User as UserEntry
 
 from opsManager import OperationManager as OpManager
 
@@ -57,7 +60,7 @@ class Commander():
 
 		# Alert & Autostart Scheduler
 		self.scheduler = AsyncIOScheduler()
-		self.vSchedThread: threading.Thread = None
+		self.alertTimes = [] # Saved to be displayed in Info embed
 
 		#DiscordElements:
 		self.vGuild: discord.Guild = None
@@ -97,7 +100,7 @@ class Commander():
 			pass
 
 		elif self.vCommanderStatus == CommanderStatus.Started:
-			vEmbeds.append( self.GenerateEmbed_Connections())
+			vEmbeds.append( await self.GenerateEmbed_Connections())
 			if commanderSettings.bEnableLiveTracking:
 				vEmbeds.append( self.GenerateEmbed_Session() )
 		
@@ -106,7 +109,7 @@ class Commander():
 			vEmbeds.append(self.GenerateEmbed_Feedback())
 
 
-		await self.commanderMsg.edit(content=f"**OP COMMANDER** *Last update: {datetime.datetime.now()}*", view=vMessageView, embeds=vEmbeds)
+		await self.commanderMsg.edit(content=f"**OP COMMANDER**", view=vMessageView, embeds=vEmbeds)
 
 
 	async def CommanderSetup(self):
@@ -125,11 +128,42 @@ class Commander():
 			await self.CreateCategory()
 			await self.CreateTextChannels()
 			await self.CreateVoiceChannels()
-
-			# Add Commander text channel and post Op Info embed (the one that isn't repeatedly updated)
-			BUPrint.Debug("	-> Posting Ops Info")
-
 			
+			# Setup Alerts
+			# Always post first alert on commander creation:
+			# self.lastStartAlert = await self.notifChn.send( await self.GenerateAlertMessage() )
+			BUPrint.Debug("Configuring Scheduler...")
+
+			if commanderSettings.bAutoAlertsEnabled:
+				intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
+				setIntervals = 0
+				lastInterval = self.vOpData.date
+			
+				while setIntervals < commanderSettings.autoAlertCount:
+					lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
+
+					self.alertTimes.append(lastInterval)
+					BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
+					# self.vScheduler.enterabs(time=lastInterval.timestamp(), action=self.GenerateAlertMessage(), priority=5)
+					self.scheduler.add_job( Commander.SendAlertMessage, 'date', run_date=lastInterval, args=[self] )
+					setIntervals += 1
+			
+			
+			# Setup AutoStart
+			if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
+				BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
+				# self.vScheduler.enterabs(time=self.vOpData.date.timestamp(), action=self.StartOperation(), priority=1)
+				self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self])
+	
+			self.scheduler.start()
+
+
+			# Update Signup Post with new Status.
+			self.vOpData.status = OpsData.status.prestart
+			vOpMan = OpManager()
+			await vOpMan.UpdateMessage(self.vOpData)
+
+			BUPrint.Debug("	-> Posting Ops Info")
 			opString = f"*OPERATION INFORMATION for {self.vOpData.name}*"
 			managingUser = self.vGuild.get_member(self.vOpData.managedBy)			
 			if managingUser != None:
@@ -146,73 +180,11 @@ class Commander():
 			if commanderSettings.bAutoStartEnabled:
 				vCommanderMsg += "Auto-Start is enabled.  \n> *This Commander will automatically start the operation.*\n> *To start the operation early, press* ***START***."
 			self.commanderMsg =  await self.commanderChannel.send(vCommanderMsg, view=self.GenerateView_Commander())
-			
-			
-			# Setup Alerts
-			# Always post first alert on commander creation:
-			# self.lastStartAlert = await self.notifChn.send( await self.GenerateAlertMessage() )
-			BUPrint.Debug("Configuring Scheduler...")
-	
-			if commanderSettings.bAutoAlertsEnabled:
-				intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
-				setIntervals = 0
-				lastInterval = self.vOpData.date
-			
-				while setIntervals < commanderSettings.autoAlertCount:
-					lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
-					BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
-					# self.vScheduler.enterabs(time=lastInterval.timestamp(), action=self.GenerateAlertMessage(), priority=5)
-					self.scheduler.add_job( Commander.GenerateAlertMessage, 'date', run_date=lastInterval, args=[self] )
-					setIntervals += 1
-			
-			
-			# Setup AutoStart
-			if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
-				BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
-				# self.vScheduler.enterabs(time=self.vOpData.date.timestamp(), action=self.StartOperation(), priority=1)
-				self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self])
-	
-			
-			# self.vScheduler.run(blocking=True)
-			self.scheduler.start()
-
 
 			# Set to standby and return.
 			self.vCommanderStatus = CommanderStatus.Standby
 		else:
 			BUPrint.Info("Commander has already been set up!")
-
-
-	def ThreadTask_Scheduler(self):
-		"""
-		# THREADTASK : SCHEDULER
-		Function to house the setup and running of the scheduler, to be executed in a thread.
-		"""
-		BUPrint.Debug("Configuring Scheduler...")
-
-		if commanderSettings.bAutoAlertsEnabled:
-			intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
-			setIntervals = 0
-			lastInterval = self.vOpData.date
-		
-			while setIntervals < commanderSettings.autoAlertCount:
-				lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
-				BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
-				# self.vScheduler.enterabs(time=lastInterval.timestamp(), action=self.GenerateAlertMessage(), priority=5)
-				self.scheduler.add_job( Commander.GenerateAlertMessage, 'date', run_date=lastInterval, args=[self] )
-				setIntervals += 1
-		
-		
-		# Setup AutoStart
-		if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
-			BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
-			# self.vScheduler.enterabs(time=self.vOpData.date.timestamp(), action=self.StartOperation(), priority=1)
-			self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self])
-
-		
-		# self.vScheduler.run(blocking=True)
-		self.scheduler.start()
-# https://apscheduler.readthedocs.io/en/3.x/userguide.html
 
 
 	async def CreateCategory(self):
@@ -410,24 +382,25 @@ class Commander():
 		await self.vAuraxClient.close()
 
 
-	async def PreStart(self):
-		"""
-		# PRE START
-
-		"""
-
 
 	async def GenerateAlertMessage(self):
 		"""
 		# GENERATE ALERT MESSAGE
-		Convenience function to generate and send a pre-formatted message string for pre-start alerts.
+		Convenience function to generate a pre-formatted message string for pre-start alerts.
 		"""
-		BUPrint.Info(f"Sending Alert message for {self.vOpData.name}")
-
 		vParticipantStr = await self.GetParticipants()
 
 		vMessage = f"**REMINDER: {self.vOpData.name} STARTS {botUtils.DateFormatter.GetDiscordTime( self.vOpData.date, botUtils.DateFormat.Dynamic )}**\n"
 		vMessage += vParticipantStr
+
+		notTrackedParticipants = ""
+		participant:Participant
+		for participant in self.participants:
+			if participant.libraryEntry == None or participant.ps2Char == None:
+				notTrackedParticipants += f"{participant.discordUser.mention} "
+
+		if notTrackedParticipants != "":
+			vMessage += f"**ATTENTION**\n{notTrackedParticipants}\n{botMessages.noMatchingPS2Char}\n\n"
 
 		if commanderSettings.bAutoMoveVCEnabled:
 			vMessage += f"\n\n*{botMessages.OpsAutoMoveWarn}*"
@@ -435,14 +408,22 @@ class Commander():
 		return vMessage
 
 
+	async def SendAlertMessage(self):
+		"""
+		# SEND ALERT MESSAGE
+		"""
+		BUPrint.Info(f"Sending Alert message for {self.vOpData.name}")
+		self.lastStartAlert = await self.notifChn.send( await self.GenerateAlertMessage() )
+
+
 	async def GetParticipants(self):
 		"""
 		# GET PARTICIPANTS
 		Sets the self.participants + participantUserData.
 		## RETURN: `str` of `member.mention` for each user.
-
-		### TODO: Get UserData objects for user library.
 		"""
+		self.participants.clear()
+
 		vParticipantStr = ""
 		role: botData.operations.OpRoleData
 		member:discord.Member = None
@@ -453,7 +434,11 @@ class Commander():
 				if member == None:
 					member = await self.vGuild.fetch_member(user)
 				vParticipantStr += f" {member.mention} "
-				self.participants.append(member)
+
+				newParticipant = Participant(member, None)
+				newParticipant.LoadParticipant()
+				self.participants.append(newParticipant)
+
 
 		BUPrint.Debug("Getting reserved participants...")
 		if self.vOpData.options.bUseReserve:
@@ -462,8 +447,54 @@ class Commander():
 				if member == None:
 					member = await self.vGuild.fetch_member(user)
 				vParticipantStr += f" {member.mention} "
-				self.participants.append(member)
+
+				newParticipant = Participant(member, None)
+				newParticipant.LoadParticipant()
+				self.participants.append(newParticipant)
 		
+
+		participant: Participant
+		for participant in self.participants:
+			if participant.libraryEntry == None:
+				charName = re.sub(r'\[\w\w\w\w\]', "", participant.discordUser.display_name )
+				charName = charName.strip()
+
+				BUPrint.Debug(f"Searching for: {charName}")
+
+				playerChar = await self.vAuraxClient.get_by_name(auraxium.ps2.Character, charName)				
+				outfitChar = await playerChar.outfit_member()
+				outfit = None
+				if outfitChar != None:
+					outfit = await outfitChar.outfit()
+
+				if outfitChar != None:
+					newEntry = UserEntry(
+									ps2Name=charName,
+									ps2Outfit= outfit.name,
+									ps2OutfitRank=outfitChar.rank
+									)
+					participant.libraryEntry = newEntry
+					participant.ps2Char = outfitChar
+
+				elif playerChar != None:
+					newEntry = UserEntry( ps2Name=charName )
+					participant.libraryEntry = newEntry
+					participant.ps2Char = playerChar
+
+				else:
+					BUPrint.Debug("Unable to find PS2 Character with matching name.  User must create a library entry manually.")
+
+				if participant.libraryEntry != None and commanderSettings.bAutoCreateUserLibEntry:
+					participant.SaveParticipant()
+				else:
+					BUPrint.Debug(f"User {participant.discordUser.display_name} has no Library Entry and auto-create is disabled.")
+
+			if participant.libraryEntry != None:
+				participant.ps2Char = await self.vAuraxClient.get_by_name(auraxium.ps2.Character, participant.libraryEntry.ps2Name)
+
+				if participant.ps2Char == None:
+					BUPrint.Debug(f"Participant: {participant.discordUser.display_name} has an invalid PS2 Character name.")
+
 
 	
 		return vParticipantStr
@@ -491,9 +522,15 @@ class Commander():
 		)
 		
 		alertInterval = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
+		alertText = f"Enabled: *{commanderSettings.bAutoAlertsEnabled}*\nSending: *{commanderSettings.autoAlertCount}*\n"
+		
+		alertTime: datetime
+		for alertTime in self.alertTimes:
+			alertText += f"{botUtils.DateFormatter.GetDiscordTime(alertTime, botUtils.DateFormat.Dynamic )}\n"
+
 		vEmbed.add_field(
 			name="Alerts", 
-			value=f"Enabled: *{commanderSettings.bAutoAlertsEnabled}*\nSending: *{commanderSettings.autoAlertCount}(+1)*\nInterval: {alertInterval} mins"
+			value=alertText
 		)
 		
 		vSignedUpCount = 0
@@ -537,14 +574,18 @@ class Commander():
 				for user in role.players:
 					vUsersInRole += f"{self.vBotRef.get_user(int(user)).mention}\n"
 				
-				vEmbed.add_field( name=f"{self.GetRoleName(role)}", value=vUsersInRole, inline=bFirstRole)
-				bFirstRole = True
+			vEmbed.add_field( 
+				name=f"{self.GetRoleName(role)}", 
+				value=vUsersInRole, 
+				inline=bFirstRole
+			)
+			bFirstRole = True
 
 
 		return vEmbed
 
 
-	def GenerateEmbed_Connections(self):
+	async def GenerateEmbed_Connections(self):
 		"""
 		# GENERATE EMBED : OpInfo
 
@@ -552,7 +593,39 @@ class Commander():
 		"""
 		vEmbed = discord.Embed(colour=discord.Colour.from_rgb(200, 200, 255), title="CONNECTIONS", description="Discord and PS2 connection information for participants.")
 
-		vEmbed.add_field(name="Empty field", value="empty field")
+		vPlayersStr = "\u200b\n"
+		vStatusStr = f"{commanderSettings.connIcon_discord} | {commanderSettings.connIcon_voice} | {commanderSettings.connIcon_ps2}\n"
+
+		participant: Participant
+		for participant in self.participants:
+			vPlayersStr += f"{participant.discordUser.display_name}\n"
+			
+			if participant.discordUser.status == discord.Status.offline:
+				vStatusStr += f"{commanderSettings.connIcon_discordOffline} | "
+			else:
+				vStatusStr += f"{commanderSettings.connIcon_discordOnline} | "
+
+			if participant.discordUser.voice == None:
+				vStatusStr += f"{commanderSettings.connIcon_voiceDisconnected} | "
+			else:
+				vStatusStr += f"{commanderSettings.connIcon_voiceConnected} | "
+
+
+			if participant.ps2Char != None:
+				isOnline = await participant.ps2Char.is_online()
+				if isOnline:
+					vStatusStr += f"{commanderSettings.connIcon_ps2Online}\n"
+				else:
+					vStatusStr += f"{commanderSettings.connIcon_ps2Offline}\n"
+			else:
+				vStatusStr += f"{commanderSettings.connIcon_ps2Invalid}\n"
+
+
+
+		vEmbed.add_field(name="PLAYERS", value=vPlayersStr)
+		vEmbed.add_field(name=f"STATUS:", value=vStatusStr)
+
+		vEmbed.set_footer(text=f"Last update: {datetime.datetime.now()}")
 
 		return vEmbed
 
@@ -567,6 +640,8 @@ class Commander():
 
 		vEmbed.add_field(name="Empty field", value="empty field")
 
+
+		vEmbed.set_footer(text=f"Last update: {datetime.datetime.now()}")
 		return vEmbed
 
 
@@ -583,6 +658,8 @@ class Commander():
 			if entry != "":
 				tempStr += f"{entry}\n"
 		if tempStr != "":
+			if len(tempStr) > 1024:
+				tempStr[:1024]
 			vEmbed.add_field(name="General", value=tempStr, inline=False)
 
 		
@@ -591,6 +668,8 @@ class Commander():
 			if entry != "":
 				tempStr += f"{entry}\n"
 		if tempStr != "":
+			if len(tempStr) > 1024:
+				tempStr[:1024]
 			vEmbed.add_field(name="To Squad Mates", value=tempStr, inline=False)
 
 
@@ -599,6 +678,8 @@ class Commander():
 			if entry != "":
 				tempStr += f"{entry}\n"
 		if tempStr != "":
+			if len(tempStr) > 1024:
+				tempStr[:1024]
 			vEmbed.add_field(name="To Squad Lead", value=tempStr, inline=False)
 
 
@@ -607,6 +688,8 @@ class Commander():
 			if entry != "":
 				tempStr += f"{entry}\n"
 		if tempStr != "":
+			if len(tempStr) > 1024:
+				tempStr[:1024]
 			vEmbed.add_field(name="To Platoon Lead", value=tempStr, inline=False)
 
 
@@ -721,6 +804,10 @@ class Commander():
 		btnStart = Commander_btnStart(p_commanderParent=self)
 		btnEnd = Commander_btnEnd(p_commanderParent=self)
 		btnDebrief = Commander_btnDebrief(p_commanderParent=self)
+		btnDownloadDebrief = Commander_btnDownloadFeedback(p_commanderParent=self)
+
+		newView.add_item(btnStart)
+		newView.add_item(btnDebrief)
 
 		# Configure button disabled.
 		# Before op Started:
@@ -740,10 +827,9 @@ class Commander():
 			btnStart.disabled = True
 			btnDebrief.disabled = True
 			btnEnd.disabled = False
+			newView.add_item(btnDownloadDebrief)
 
 
-		newView.add_item(btnStart)
-		newView.add_item(btnDebrief)
 		newView.add_item(btnEnd)
 
 		return newView
@@ -771,6 +857,8 @@ class Commander():
 			BUPrint.Debug("Moving VC connected participants")
 			await self.MoveUsers(p_moveToStandby=True)
 
+		await self.SendAlertMessage()
+
 
 	async def EndOperation(self):
 		"""
@@ -791,6 +879,10 @@ class Commander():
 		
 		# Yeetus deleetus the category; as if it never happened!
 		await self.RemoveChannels()
+
+		self.scheduler.shutdown()
+
+		BUPrint.Info(f"Operation {self.vOpData.name} has ended.")
 
 
 	def GetRoleName(self, p_role:botData.operations.OpRoleData):
@@ -877,7 +969,6 @@ class Commander_btnStart(discord.ui.Button):
 
 	async def callback(self, p_interaction:discord.Interaction):
 		await self.vCommander.StartOperation()
-		# await p_interaction.response.send_message("Ops started", ephemeral=True)
 		await p_interaction.response.defer()
 
 class Commander_btnDebrief(discord.ui.Button):
@@ -922,6 +1013,25 @@ class Commander_btnGiveFeedback(discord.ui.Button):
 		await p_interaction.response.send_modal( FeedbackModal(self.vCommander) )
 
 
+class Commander_btnDownloadFeedback(discord.ui.Button):
+	def __init__(self, p_commanderParent:Commander):
+		self.vCommander:Commander = p_commanderParent
+		super().__init__(label="DOWNLOAD FEEDBACK", emoji="💾", row=0)
+
+	async def callback(self, p_interaction:discord.Interaction):
+		# Save feedback to file.
+		filePath = f"{Directories.tempDir}{self.vCommander.vOpData.fileName}_feedback.txt" 
+		with open(filePath, "w") as vFile:
+			vFile.write("GENERAL FEEDBACK\n")
+			vFile.writelines(self.vCommander.vFeedback.generic)
+			vFile.write("\n\nTO SQUADMATES\n")
+			vFile.writelines(self.vCommander.vFeedback.forSquadmates)
+			vFile.write("\n\nTO SQUAD LEAD\n")
+			vFile.writelines(self.vCommander.vFeedback.forSquadLead)
+			vFile.write("\n\nTO PLATOON LEAD\n")
+			vFile.writelines(self.vCommander.vFeedback.forPlatLead)
+
+		await p_interaction.response.send_message("Download feedback here:", file=discord.File(filePath))
 
 
 
@@ -960,10 +1070,10 @@ class FeedbackModal(discord.ui.Modal):
 		super().__init__(title="Feedback", timeout=None)
 
 	async def on_submit(self, pInteraction:discord.Interaction):
-		self.parentCommander.vFeedback.generic.append(self.txt_general.value)
-		self.parentCommander.vFeedback.forSquadmates.append(self.txt_squadMates.value)
-		self.parentCommander.vFeedback.forSquadLead.append(self.txt_squadLead.value)
-		self.parentCommander.vFeedback.forPlatLead.append(self.txt_platLead.value)
+		self.parentCommander.vFeedback.generic.append(f"{self.txt_general.value}\n")
+		self.parentCommander.vFeedback.forSquadmates.append(f"{self.txt_squadMates.value}\n")
+		self.parentCommander.vFeedback.forSquadLead.append(f"{self.txt_squadLead.value}\n")
+		self.parentCommander.vFeedback.forPlatLead.append(f"{self.txt_platLead.value}\n")
 
 		await self.parentCommander.GenerateFeedback()
 		await pInteraction.response.send_message("Thank you, your feedback has been submited!", ephemeral=True)

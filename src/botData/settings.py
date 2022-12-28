@@ -138,6 +138,24 @@ class Commander:
 	# Sober Feedback ID: The ID of the forum to post a new SoberDogs Debrief message into.
 	soberFeedbackID = 1042463290472800317
 
+	# Auto Create UserLibrary Entry:  If true, and a user does not have an existing Library entry, create a new one
+	bAutoCreateUserLibEntry = True
+
+	# Icons for the CONNECTIONS embed.
+		# Discord
+	connIcon_discord = "🖥️"
+	connIcon_discordOnline = "🟢"
+	connIcon_discordOffline = "🔴"
+		# Discord Voice
+	connIcon_voice = "🎧" 
+	connIcon_voiceConnected = "🟢"
+	connIcon_voiceDisconnected = "🔴"
+		# Planetside2
+	connIcon_ps2 = "🎮"
+	connIcon_ps2Online = "🟢"
+	connIcon_ps2Offline = "🔴"
+	connIcon_ps2Invalid = "❌" # Users who have an invalid/non-matching PS2 name
+
 	def __repr__(self) -> str:
 		vString = "\n	OP COMMANDER SETTINGS\n"
 		vString += f"	> Auto prestart:	{self.autoPrestart} minutes\n"
@@ -172,6 +190,9 @@ class Directories:
 
 	# File directory for saved user data.
 	userLibrary = f"{prefixDir}Users/"
+
+	# File directory for temporary files.
+	tempDir = f"{prefixDir}temp/"
 
 	# Name used on lock files as an affix.
 	lockFileAffix = ".LOCK"
@@ -262,6 +283,14 @@ class Messages:
 
 	# Op Being Edited: Message appended to ops signup messages when being edited.
 	OpsBeingEdited = "This operation is currently being edited, please wait to sign up!"
+
+	# No Matching PS2 Character name found, sent as a single message tagging participants, telling them no matching PS2 Char name is present.
+	noMatchingPS2Char = """No matching Planetside 2 Character was found with your current discord name.
+	If you wish for your statistics to be tracked, you can either:
+	 - Rename yourself to your Planetside2 Character.
+	 - Use `!About` and press `Setup`.
+	Make sure you do this BEFORE the event starts, otherwise you will not be tracked!
+	"""
 
 
 @dataclass(frozen=True)

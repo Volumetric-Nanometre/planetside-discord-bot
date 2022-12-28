@@ -79,6 +79,9 @@ class EditRoles(baseModal.BaseModal):
 							self.vOpData.reserves.insert(0, lastUserID)
 			else:
 				# Index is a new role, append!
+				if vCurrentRole.roleIcon.startswith("ICON_"):
+					BUPrint.Debug("Icon library icon specified, parsing for result...")
+					botUtils.EmojiLibrary.ParseStringToEmoji(vCurrentRole.roleIcon)
 				self.vOpData.roles.append(vCurrentRole)
 
 			vIndex += 1
