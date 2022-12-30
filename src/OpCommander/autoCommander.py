@@ -6,20 +6,18 @@ Classes related to the starting of an Operation Commander, whether via commands 
 import discord
 import discord.ext
 from discord.ext import tasks, commands
-import enum
-import sched
 
 import botUtils
 from botUtils import BotPrinter as BUPrint
+
 import botData.settings as BotSettings
 import botData.operations
 from botData.operations import OperationData as OpsData
-from opsManager import OperationManager as OpsMan
-import OpCommander.dataObjects
-from OpCommander.commander import Commander
 
+import opsManager
 
-import time
+import OpCommander.commander
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 class AutoCommander(commands.Cog):
 	"""
@@ -27,19 +25,18 @@ class AutoCommander(commands.Cog):
 
 	A cog that sets up and automatically creates commanders for Operation events, as well as handling commands for manually starting a commander.
 	"""
-	vOpsScheduler = sched.scheduler()
+
 	def __init__(self, p_bot) -> None:
 		super().__init__()
 		self.botRef = p_bot
+		self.scheduler = AsyncIOScheduler()
 		BUPrint.Info("COG: AutoCommander loaded!")
+		self.scheduler.start()
 
-	async def StartAutoCommander(self, p_opData: botData.operations.OperationData):
-		# Use OpsManager to start an ops.
-		# Create a Commander.
-		# Lookit Sched
-		pass
 
-		#datetime - timedelta(minutes=0)
+
+
+
 class AutoCommanderInstance():
 	def __init__(self) -> None:
 		pass
@@ -60,19 +57,19 @@ class CommanderCommands(commands.Cog):
 		vOpData: botData.operations.OperationData
 		
 		opData: botData.operations.OperationData
-		for opData in OpsMan.vLiveOps:
+		for opData in opsManager.OperationManager.vLiveOps:
 			if opData.fileName == p_opFile:
 				vOpData = opData
 				break
 
 		BUPrint.Info(f"Starting commander for {vOpData.name}!")
 		await p_interaction.response.send_message(f"Starting commander for {vOpData.name}!", ephemeral=True)
-		await self.StartCommander(vOpData)
+		await OpCommander.commander.StartCommander(vOpData)
 
 	@manualcommander.autocomplete("p_opFile")
 	async def autocompleteOpFile(self, p_interaction: discord.Interaction, p_typedStr: str):
 		choices: list = []
-		availableOps:list = OpsMan.vLiveOps
+		availableOps:list = opsManager.OperationManager.vLiveOps
 
 		option: botData.operations.OperationData
 		for option in availableOps:
@@ -81,15 +78,4 @@ class CommanderCommands(commands.Cog):
 		return choices
 
 
-	async def StartCommander(self, p_opData: botData.operations.OperationData):
-		"""
-		# START COMMANDER
-		Self explanitory, calling this will start the commander for the given ops file.
-		
-		Starting a commander does NOT start an Ops.  That is a different event, handled by the commander itself (if bAutoStart is enabled in both op settings and botsettings).
-		"""
-		BUPrint.Debug(f"Started commander for {p_opData.fileName}!")
 
-		vNewCommander = Commander(p_opData)
-		await vNewCommander.CommanderSetup()
-		# Don't call `commander.GenerateCommander()` here! CommanderSetup handles this.

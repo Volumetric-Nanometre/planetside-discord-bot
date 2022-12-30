@@ -120,8 +120,7 @@ class Commander:
 	# Enable Commander Auto Alerts: If true, Op Commanders will periodically alert users a set amount of times 
 	bAutoAlertsEnabled = True
 
-	# Commander Auto Alerts: The number of automatic alerts a commander will send
-	# NOTE: The commander will always send an alert on creation, so +1 the number below for the total alerts sent.
+	# Commander Auto Alerts: The number of automatic alerts a commander will send. These are distributed throughout the pre-start time.
 	autoAlertCount = 2
 
 	# Commander- Auto Move Voice Channel: If enabled, participating users are moved to the standby channel on Ops start if they're in a voice channel.
@@ -132,7 +131,8 @@ class Commander:
 	autoMoveBackChannelID = 326783867036106752 # DEV SERVER VALUE (General)
 	# autoMoveBackChannelID = 1023703124839518338 # LIVE SERVER VALUE (Planetside2)
 
-	# Number of minutes before an ops scheduled start the bot starts AutoStart enabled Ops (Non AutoStart enabled Ops require a user to use `/ops-commander` command)
+	# Number of minutes before an ops scheduled start the bot prestarts AutoStart enabled Ops (Non AutoStart enabled Ops require a user to use `/ops-commander` command)
+	# A buffer of 5 minutes is added to this time to ensure sufficient time for alerts.
 	autoPrestart = 30
 
 	# Sober Feedback ID: The ID of the forum to post a new SoberDogs Debrief message into.
@@ -166,6 +166,7 @@ class Commander:
 		vString += f"	> Auto Move VC:		{self.bAutoMoveVCEnabled}\n"
 		vString += f"	> Automove VC ID:	{self.autoMoveBackChannelID}\n"
 		vString += f"	> Soberdogs Feedback:{self.soberFeedbackID}\n"
+		vString += f"	> AutoCreate UserLib:{self.bAutoCreateUserLibEntry}\n"
 		return vString		
 
 
@@ -234,6 +235,10 @@ class SignUps:
 	# This is a global overwrite. Individual ops have an option to disable this.
 	bAutoPrestartEnabled = True
 
+	# Show Options in Footer: When true, the ops settings are shown in the footer, in a condensed format;
+	# "AS:E|UR:E|UC:D|SDF:D" - AutoStart: Enabled, Use Reserve: Enabled, Use Compact: Disabled, Soberdogs Feedback: Disabled 
+	bShowOptsInFooter = True
+
 	def __repr__(self) -> str:
 		vString = "	SIGN UP SETTINGS\n"
 		vString += f"	> Signup Cat  : {self.signupCategory}\n"
@@ -291,6 +296,9 @@ class Messages:
 	 - Use `!About` and press `Setup`.
 	Make sure you do this BEFORE the event starts, otherwise you will not be tracked!
 	"""
+
+	# Feedback Overflow: Shown in feedback embeds if characters exceeds the max of 1024.
+	feedbackOverflow = "\n**UNABLE TO FIT ENTIRE FEEDBACK WITHIN EMBED!\nDownload Feedback to see it all.**"
 
 
 @dataclass(frozen=True)

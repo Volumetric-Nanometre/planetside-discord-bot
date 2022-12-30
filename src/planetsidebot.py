@@ -13,7 +13,8 @@ import newUser
 from botData import settings
 import roleManager
 import opsManager
-from OpCommander.autoCommander import AutoCommander, CommanderCommands
+from OpCommander.autoCommander import AutoCommander
+from OpCommander.autoCommander import CommanderCommands
 from OpCommander.commander import Commander
 
 
@@ -57,6 +58,9 @@ class Bot(commands.Bot):
         await botUtils.ChannelPermOverwrites.Setup(p_botRef=self)
         await botUtils.RoleDebug(self.vGuildObj)
 
+        # Setup existing Ops auto-starts:
+        if settings.Commander.bAutoAlertsEnabled:
+            self.vOpsManager.RefreshAutostarts()
 
 bot = Bot()
 

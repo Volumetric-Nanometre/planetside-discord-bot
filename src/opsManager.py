@@ -2,20 +2,26 @@
 # For live ops being started, see OpsCommander
 
 import os
-import datetime
+import datetime, dateutil.relativedelta
 import pickle
 
 import discord
 from discord.ext import commands
 from discord import app_commands
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import apscheduler.jobstores.base
 
 from botData.settings import Messages as botMessages
 from botData import settings as botSettings
 import botData.settings
 import botData.operations as OpData
+
+import OpCommander.commander
+import OpCommander.autoCommander
+
 import botUtils
 from botUtils import BotPrinter as BUPrint
-# import botData
+
 from botModals.opsManagerModals import *
 
 
@@ -174,13 +180,21 @@ class OperationManager():
 	Should be used to manage Op related messages, including creation, deletion and editing.
 	"""
 	vLiveOps: list = [] # List of Live Ops (botData.OperationData)
-	vBotRef: commands.Bot
+	vBotRef: commands.Bot = None
 	
 	def __init__(self):
 		# Only update lists on first object instantiation (or there's no ops and it occurs each time):
 		if len(self.vLiveOps) == 0:
 			self.LoadOps()
 		BUPrint.Info(f"Operation Manager has been instantited. Live Ops Data: {len(self.vLiveOps)}")
+
+		# if self.vScheduler == None:
+		# 	BUPrint.Debug("Op Man Scheduler is None, creating instance.")
+		# 	self.vScheduler = AsyncIOScheduler()
+		# 	try:
+		# 		self.vScheduler.start()
+		# 	except:
+		# 		BUPrint.Debug("Already running.")
 
 	async def RefreshOps(self):
 		"""
@@ -192,6 +206,7 @@ class OperationManager():
 		for vOpData in self.vLiveOps:
 			await self.UpdateMessage(vOpData)
 			BUPrint.Info(f"Refreshing {vOpData}\n")
+
 
 	def SetBotRef(p_botRef):
 		OperationManager.vBotRef = p_botRef
@@ -310,6 +325,19 @@ class OperationManager():
 			return False
 
 
+	# Remove Autostart entry if op status is not started.
+		if p_opData.status.value < OpData.OpsStatus.started.value:
+			BUPrint.Debug("	-> Removing scheduled AutoStart.")
+			try:
+				autoComCog: OpCommander.autoCommander.AutoCommander = self.vBotRef.get_cog("AutoCommander")
+				if autoComCog == None:
+					BUPrint.Info("Unable to get Auto Commander Cog to remove an auto-start.")
+					pass
+				
+				autoComCog.scheduler.remove_job(p_opData.messageID)
+			except apscheduler.jobstores.base.JobLookupError as vError:
+				BUPrint.LogErrorExc("Unable to remove scheduled job.  No Matching ID found.", vError)
+
 		BUPrint.Info("	-> OPERATION REMOVED!")
 		return True
 
@@ -333,14 +361,6 @@ class OperationManager():
 		vDataFiles += OperationManager.GetDefaults()
 
 		return vDataFiles
-
-
-	def createOpsFolder():
-		if (not os.path.exists( botSettings.Directories.liveOpsDir ) ):
-			try:
-				os.makedirs( botSettings.Directories.liveOpsDir )
-			except:
-				botUtils.BotPrinter.LogError("Failed to create folder for Ops data!")
 
 	
 	def SaveToFile(p_opsData: OpData.OperationData):
@@ -436,7 +456,9 @@ class OperationManager():
 		bCanContinue = OperationManager.SaveToFile( self.vLiveOps[-1] )
 		if not bCanContinue: return False
 
-		# Create notification here...
+		# Add AutoStart		
+		if p_opData.options.bAutoStart and botSettings.Commander.bAutoStartEnabled:
+			self.AddNewAutoStart(p_opData)
 
 		return True
 
@@ -467,7 +489,7 @@ class OperationManager():
 	# Send the Message.
 		try:
 			vMessage:discord.Message = await vChannel.send(view=vView, embed=vEmbed)
-			p_opData.messageID = vMessage.id
+			p_opData.messageID = str(vMessage.id)
 		except discord.HTTPException as vError:
 			BUPrint.LogErrorExc("Message did not send due to HTTP Exception.", vError)
 			return False
@@ -642,6 +664,31 @@ class OperationManager():
 				vReserves += f"{vUser.mention}\n"
 			vEmbed.add_field(name=f"{botData.settings.SignUps.reserveIcon} Reserves ({len(p_opsData.reserves)})", value=vReserves, inline=True )
 
+
+		# Add Options into footer.
+		if botSettings.SignUps.bShowOptsInFooter:
+			vOptsStr = "AS:"
+			if p_opsData.options.bAutoStart:
+				vOptsStr += "E"
+			else: vOptsStr += "D"
+
+			vOptsStr += "|UR:"
+			if p_opsData.options.bUseReserve:
+				vOptsStr += "E"
+			else: vOptsStr += "D"
+
+			vOptsStr += "|UC:"
+			if p_opsData.options.bUseCompact:
+				vOptsStr += "E"
+			else: vOptsStr += "D"
+
+			vOptsStr += "|SDF:"
+			if p_opsData.options.bUseSoberdogsFeedback:
+				vOptsStr += "E"
+			else: vOptsStr += "D"
+
+			vEmbed.set_footer(text=vOptsStr)
+
 		return vEmbed
 
 
@@ -730,6 +777,89 @@ class OperationManager():
 		for role in p_opData.roles:
 			if p_userToRemove in role.players:
 				role.players.remove(p_userToRemove)
+
+# SCHEDULER RELATED FUNCTIONS
+	def RefreshAutostarts(self):
+		"""
+		# REFRESH AUTO-STARTS
+		Clears out the currently scheduled auto-starts, then uses the list of OpData's in the OperationManager to re-create the scheduled starts.
+		"""
+		if not botSettings.Commander.bAutoStartEnabled:
+			BUPrint.Debug("Global Autostart setting is disabled. Not refreshing auto-starts.")
+			return
+
+		autoCommanderCog: OpCommander.autoCommander.AutoCommander = self.vBotRef.get_cog("AutoCommander")
+		if autoCommanderCog == None:
+			BUPrint.Info("Auto Commander Cog not found. Unable to continue.")
+
+		autoCommanderCog.scheduler.remove_all_jobs()
+
+		opData : OpData.OperationData
+		for opData in self.vLiveOps:
+			self.AddNewAutoStart(opData)
+
+
+	def ReconfigureAutoStart(self, p_opData: OpData.OperationData):
+		"""
+		# RECONFIGURE AUTO START
+
+		Used after an event has been edited, re-configures the scheduled job with the updated time.
+		## RETURNS
+		True- Success.
+		False- Failure.
+		"""
+		startTime = p_opData.date - dateutil.relativedelta.relativedelta(minutes=botSettings.Commander.autoPrestart + 5)
+
+		autoCommanderCog: OpCommander.autoCommander.AutoCommander = self.vBotRef.get_cog("AutoCommander")
+		if autoCommanderCog == None:
+			BUPrint.Info("Auto Commander Cog not found. Unable to continue.")
+
+
+		if not p_opData.options.bAutoStart:
+			vJob = autoCommanderCog.scheduler.get_job(p_opData.messageID)
+			if vJob != None:
+				autoCommanderCog.scheduler.remove_job(p_opData.messageID)
+				return
+
+		BUPrint.Info(f"Rescheduling autostart of {p_opData.name} to: {startTime}")
+
+		# self.scheduler.modify_job(p_opData.messageID, "date", run_date=startTime)
+		try:
+			autoCommanderCog.scheduler.reschedule_job(p_opData.messageID, None, "date", run_date=startTime)
+			return True
+
+		except apscheduler.jobstores.base.JobLookupError as vError:
+			BUPrint.LogErrorExc("Unable to remove scheduled job.  No Matching ID found.", vError)
+			return False
+
+
+	def AddNewAutoStart(self, p_opdata: OpData.OperationData):
+		"""
+		# ADD NEW AUTO START
+
+		Adds an Operation to the scheduler to be automatically started.
+		"""
+
+		if not botSettings.Commander.bAutoStartEnabled:
+			BUPrint.Debug("Auto-Start is globally disabled.")
+			return
+
+		if not p_opdata.options.bAutoStart:
+			BUPrint.Debug(f"Operation {p_opdata.fileName} has auto-start disabled. Skipping")
+			return
+
+
+		autoCommanderCog: OpCommander.autoCommander.AutoCommander = self.vBotRef.get_cog("AutoCommander")
+		if autoCommanderCog == None:
+			BUPrint.Info("Auto Commander Cog not found. Unable to continue.")
+
+
+		startTime = p_opdata.date - dateutil.relativedelta.relativedelta(minutes=botSettings.Commander.autoPrestart + 5)
+
+		BUPrint.Info(f"Adding auto-start entry for: {p_opdata.fileName}, using message ID: {p_opdata.messageID} Scheduled for: {startTime}")
+
+		autoCommanderCog.scheduler.add_job( OpCommander.commander.StartCommander, "date", run_date=startTime, args=[p_opdata], id=p_opdata.messageID )
+
 
 
 ##################################################################
@@ -887,7 +1017,7 @@ class OpsEditor(discord.ui.View):
 			bSucsessfulOp = await vOpManager.AddNewLiveOp(self.vOpsData)
 			
 			if bSucsessfulOp:
-				await pInteraction.response.send_message("***SUCCESS!***\nYou can now dismiss the editor if you're done.", ephemeral=True)
+				await pInteraction.response.send_message("***SUCCESS!***\nYou may now dismiss the editor.", ephemeral=True)
 				OperationManager.SaveToFile(self.vOpsData)
 				BUPrint.Debug(f"	-> Message ID of Ops Editor opdata after send: {self.vOpsData.messageID}")
 			else:
@@ -898,7 +1028,7 @@ class OpsEditor(discord.ui.View):
 
 			self.vOpsData.status = OpData.OperationData.status.open
 			OperationManager.SaveToFile(self.vOpsData)
-			await pInteraction.response.send_message(f"Operation data for {self.vOpsData.name} saved! Updating signup message...\n You can now close the editor if you're done.", ephemeral=True)
+			await pInteraction.response.send_message(f"Operation data for {self.vOpsData.name} saved! Updating signup message...\nMake sure to `Finish` before you dismiss the editor!", ephemeral=True)
 
 			vOpMan = OperationManager()
 			self.vOpsData.status = OpData.OperationData.status.editing
@@ -946,21 +1076,19 @@ class OpsEditor(discord.ui.View):
 						style=discord.ButtonStyle.success,
 						emoji="🔓",
 						row=4)
-	async def btnCancel(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):
+	async def btnFinish(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):
 		if self.vOpsData.messageID != "":
 			vOpMan = OperationManager()
 			self.vOpsData.status = OpData.OperationData.status.open
 			await vOpMan.UpdateMessage(self.vOpsData)
-		
-		# Re-Add OpData if it was a live Op:
-		if self.vOpsData.messageID != "":
-			OperationManager.vLiveOps.append(self.vOpsData)
+			vOpMan.ReconfigureAutoStart(self.vOpsData)
 
 		item: discord.ui.Button
 		for item in self.children:
 			item.disabled = True
 		self.stop()
 		await pInteraction.response.send_message("You may now dismiss the editor.", ephemeral=True)
+
 
 # # # # # # HELP BUTTON
 class btnHelp(discord.ui.Button):

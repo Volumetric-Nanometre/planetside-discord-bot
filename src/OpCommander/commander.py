@@ -39,7 +39,25 @@ import botData.operations
 from botData.operations import OperationData as OpsData
 from botData.users import User as UserEntry
 
-from opsManager import OperationManager as OpManager
+# from opsManager import OperationManager as OpManager
+import opsManager
+
+
+async def StartCommander(p_opData: botData.operations.OperationData):
+	"""
+	# START COMMANDER
+	Self explanitory, calling this will start the commander for the given ops file.
+	
+	Starting a commander does NOT start an Ops.  That is a different event, handled by the commander itself (if bAutoStart is enabled in both op settings and botsettings).
+	"""
+	if p_opData == None:
+		BUPrint.Debug("Invalid OpData given.  Not starting commander.")
+		return
+
+	BUPrint.Debug(f"Starting commander for {p_opData.fileName}!")
+	vNewCommander = Commander(p_opData)
+	await vNewCommander.CommanderSetup()
+	# Don't call `commander.GenerateCommander()` here! CommanderSetup handles this.
 
 
 class Commander():
@@ -160,7 +178,7 @@ class Commander():
 
 			# Update Signup Post with new Status.
 			self.vOpData.status = OpsData.status.prestart
-			vOpMan = OpManager()
+			vOpMan = opsManager.OperationManager()
 			await vOpMan.UpdateMessage(self.vOpData)
 
 			BUPrint.Debug("	-> Posting Ops Info")
@@ -408,12 +426,44 @@ class Commander():
 		return vMessage
 
 
-	async def SendAlertMessage(self):
+	async def GenerateStartAlertMessage(self):
+		"""
+		# GENERATE START ALERT MESSAGE
+		Convenience function to generate a pre-formatted message string for ops Started alert.
+		"""
+		vParticipantsStr = await self.GetParticipants()
+
+		vMessage = f"ATTENTION: {vParticipantsStr}\n**{self.vOpData.name} HAS STARTED!**"
+
+		notTrackedParticipants = ""
+		participant:Participant
+		for participant in self.participants:
+			if participant.libraryEntry == None or participant.ps2Char == None:
+				notTrackedParticipants += f"{participant.discordUser.mention} "
+
+		if notTrackedParticipants != "":
+			vMessage += f"\n\n\n**ATTENTION**\n{notTrackedParticipants}\n{botMessages.noMatchingPS2Char}\n\n"
+
+		
+		return vMessage
+
+
+	async def SendAlertMessage(self, p_opStart:bool = False):
 		"""
 		# SEND ALERT MESSAGE
+		Set p_opStart to TRUE to send an Op Started alert instead.
 		"""
+		if self.lastStartAlert != None:
+			BUPrint.Debug("Removing previous alert message.")
+			await self.lastStartAlert.delete()
+
 		BUPrint.Info(f"Sending Alert message for {self.vOpData.name}")
-		self.lastStartAlert = await self.notifChn.send( await self.GenerateAlertMessage() )
+		if p_opStart:
+			self.lastStartAlert = await self.notifChn.send( await self.GenerateStartAlertMessage() )
+		else:
+			self.lastStartAlert = await self.notifChn.send( await self.GenerateAlertMessage() )
+
+
 
 
 	async def GetParticipants(self):
@@ -521,12 +571,16 @@ class Commander():
 			value=f"{commanderSettings.bAutoStartEnabled}"
 		)
 		
-		alertInterval = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
-		alertText = f"Enabled: *{commanderSettings.bAutoAlertsEnabled}*\nSending: *{commanderSettings.autoAlertCount}*\n"
-		
-		alertTime: datetime
-		for alertTime in self.alertTimes:
-			alertText += f"{botUtils.DateFormatter.GetDiscordTime(alertTime, botUtils.DateFormat.Dynamic )}\n"
+		alertText = "Auto Alerts Disabled"
+		if commanderSettings.bAutoAlertsEnabled:
+			alertText = f"Auto Alerts Enabled\nSending: *{commanderSettings.autoAlertCount}*\n"
+
+			self.alertTimes.reverse()
+			alertTime: datetime
+			iteration = 1
+			for alertTime in self.alertTimes:
+				alertText += f"**{iteration}**: {botUtils.DateFormatter.GetDiscordTime(alertTime, botUtils.DateFormat.Dynamic )}\n"
+				iteration += 1
 
 		vEmbed.add_field(
 			name="Alerts", 
@@ -564,7 +618,7 @@ class Commander():
 			)
 
 
-		bFirstRole = False
+		bFirstRole = self.vOpData.options.bUseReserve
 		role: botData.operations.OpRoleData
 		for role in self.vOpData.roles:
 			
@@ -600,10 +654,11 @@ class Commander():
 		for participant in self.participants:
 			vPlayersStr += f"{participant.discordUser.display_name}\n"
 			
-			if participant.discordUser.status == discord.Status.offline:
+			if participant.discordUser.raw_status == discord.Status.offline.value:
 				vStatusStr += f"{commanderSettings.connIcon_discordOffline} | "
 			else:
 				vStatusStr += f"{commanderSettings.connIcon_discordOnline} | "
+
 
 			if participant.discordUser.voice == None:
 				vStatusStr += f"{commanderSettings.connIcon_voiceDisconnected} | "
@@ -653,13 +708,15 @@ class Commander():
 		"""
 		vEmbed = discord.Embed(title="FEEDBACK", description="Player provided feedback")
 
+		bOverflowMessage = False
 		tempStr = ""
 		for entry in self.vFeedback.generic:
 			if entry != "":
 				tempStr += f"{entry}\n"
-		if tempStr != "":
+		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
 				tempStr[:1024]
+				bOverflowMessage = True
 			vEmbed.add_field(name="General", value=tempStr, inline=False)
 
 		
@@ -667,19 +724,21 @@ class Commander():
 		for entry in self.vFeedback.forSquadmates:
 			if entry != "":
 				tempStr += f"{entry}\n"
-		if tempStr != "":
+		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
 				tempStr[:1024]
+				bOverflowMessage = True
 			vEmbed.add_field(name="To Squad Mates", value=tempStr, inline=False)
 
 
 		tempStr = ""
 		for entry in self.vFeedback.forSquadLead:
-			if entry != "":
+			if entry != "" and entry != "\n":
 				tempStr += f"{entry}\n"
-		if tempStr != "":
+		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
 				tempStr[:1024]
+				bOverflowMessage = True
 			vEmbed.add_field(name="To Squad Lead", value=tempStr, inline=False)
 
 
@@ -687,11 +746,14 @@ class Commander():
 		for entry in self.vFeedback.forPlatLead:
 			if entry != "":
 				tempStr += f"{entry}\n"
-		if tempStr != "":
+		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
 				tempStr[:1024]
+				bOverflowMessage = True
 			vEmbed.add_field(name="To Platoon Lead", value=tempStr, inline=False)
 
+		if bOverflowMessage:
+			vEmbed.add_field(name="OVERFLOW WARNING", value=botMessages.feedbackOverflow)
 
 		return vEmbed
 
@@ -842,8 +904,12 @@ class Commander():
 		Modifies commander status, then updates commander.
 		Starts tracking, if enabled.
 		"""
+		if self.vOpData.status.value >= OpsData.status.started.value:
+			BUPrint.Debug("Operation has already been started. Skipping.")
+			return
+
 		self.vOpData.status = OpsData.status.started
-		vOpMan = OpManager()
+		vOpMan = opsManager.OperationManager()
 		await vOpMan.UpdateMessage(self.vOpData)
 		self.vCommanderStatus = CommanderStatus.Started
 		await self.GetParticipants()
@@ -857,7 +923,7 @@ class Commander():
 			BUPrint.Debug("Moving VC connected participants")
 			await self.MoveUsers(p_moveToStandby=True)
 
-		await self.SendAlertMessage()
+		await self.SendAlertMessage(p_opStart=True)
 
 
 	async def EndOperation(self):
@@ -871,7 +937,7 @@ class Commander():
 		await self.vAuraxClient.close()
 
 		# Removes the operation posting.
-		vOpMan = OpManager()
+		vOpMan = opsManager.OperationManager()
 		await vOpMan.RemoveOperation(self.vOpData)
 
 		# Move users before removing channels.
@@ -1017,6 +1083,7 @@ class Commander_btnDownloadFeedback(discord.ui.Button):
 	def __init__(self, p_commanderParent:Commander):
 		self.vCommander:Commander = p_commanderParent
 		super().__init__(label="DOWNLOAD FEEDBACK", emoji="💾", row=0)
+
 
 	async def callback(self, p_interaction:discord.Interaction):
 		# Save feedback to file.
