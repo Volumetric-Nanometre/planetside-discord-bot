@@ -88,6 +88,7 @@ class OpFeedback:
 	# OPS FEEDBACK
 	Class containing variable lists which hold user submitted feedback
 	"""
+	userID:str = "" # Saved to allow users to edit their feedback.
 	generic:list = field(default_factory=list)
 	forSquadmates:list = field(default_factory=list)
 	forSquadLead:list = field(default_factory=list)

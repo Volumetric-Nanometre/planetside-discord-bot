@@ -98,7 +98,7 @@ class EditRoles(baseModal.BaseModal):
 			await pInteraction.response.defer()
 
 
-	# Prefill fields:
+
 	def PresetFields(self):
 		BUPrint.Debug("Auto-filling modal (ROLES) with existing data.")
 		

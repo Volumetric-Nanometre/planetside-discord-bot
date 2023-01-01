@@ -9,6 +9,7 @@ import discord.utils
 import asyncio
 
 import botData.settings 
+import botUtils
 from botUtils import BotPrinter as BUPrint
 from botUtils import UserHasCommandPerms
 from botData.settings import BotSettings
@@ -55,23 +56,27 @@ class RoleManager(discord.ui.View):
 		super().__init__()
 		self.bot: commands.Bot = p_bot
 		self.vUser = p_user
-		self.vGuild = discord.Guild
+		self.vGuild:discord.Guild 
 		self.vInteraction: discord.Interaction
 		self.lock = asyncio.Lock()
 
 		self.vTDKDRoles = TDKDRoles()
-		self.vTDKDRoles.parentView = self
-		self.vGameRoles1 = GameRoles1()
-		self.vGameRoles1.parentView = self
-		self.vGameRoles2 = GameRoles2()
-		self.vGameRoles2.parentView = self
+		self.vGameRoles1 = GameRoles( botData.settings.Roles.addRoles_games1 )
+		self.vGameRoles2 = GameRoles( botData.settings.Roles.addRoles_games2 )
+		self.vGameRoles3 = GameRoles( botData.settings.Roles.addRoles_games3 )
 
 		self.bAddRoles = pIsAdding
 		BUPrint.Debug(f"{p_user.name} is updating roles.  Adding new roles: {self.bAddRoles}")
 		
 		self.add_item(self.vTDKDRoles)
-		self.add_item(self.vGameRoles1)
-		self.add_item(self.vGameRoles2)
+		if len(self.vGameRoles1.options):
+			self.add_item(self.vGameRoles1)
+
+		if len(self.vGameRoles2.options):
+			self.add_item(self.vGameRoles2)
+
+		if len(self.vGameRoles3.options):
+			self.add_item(self.vGameRoles3)
 
 	@discord.ui.button(label="Update", style=discord.ButtonStyle.primary, row=4)
 	async def btnUpdateRoles(self, pInteraction: discord.Interaction, vButton: discord.ui.button):
@@ -84,8 +89,8 @@ class RoleManager(discord.ui.View):
 	async def UpateUserRoles(self):
 		# Create a list of all the roles a user can self-assign.
 		# This will be used later to check and remove unassigned roles.
-		vOptionList = self.vTDKDRoles.options + self.vGameRoles1.options + self.vGameRoles2.options
-		vUserRolesList: list(str) = []  #= 
+		vOptionList = self.vTDKDRoles.options + self.vGameRoles1.options + self.vGameRoles2.options + self.vGameRoles3.options
+		vUserRolesList: list = []
 		role: discord.SelectOption
 		for role in vOptionList:
 			vUserRolesList.append(role.value)
@@ -97,38 +102,43 @@ class RoleManager(discord.ui.View):
 		BUPrint.Debug(f"Selected Roles: {vUserSelectedRoles}")
 
 		# Ensure we're operating on TDKD server.
-		self.vGuild = self.bot.get_guild(botData.settings.BotSettings.discordGuild)
-		if self.vGuild is None:
-			# Try again using non-cache "fetch":
-			self.vGuild = await self.bot.fetch_guild(botData.settings.BotSettings.discordGuild)
-			if self.vGuild is None:
-				BUPrint.LogError("Failed to find guild for updating roles!")
-				return
-		BUPrint.Debug(f"Guild Object: {self.vGuild}")
+		self.vGuild = await botUtils.GetGuild(self.bot)
 
 		# Get all the roles in the server.
 		vServerRoles = await self.vGuild.fetch_roles()
-				
+
+		# Roles To Use: list of role objects corresponding to user choices.
+		vRolesToUse = []
+
 		# Assign new:
 		for serverRoleIndex in vServerRoles:
 			BUPrint.Debug(f"Current Index- ID:Name : {serverRoleIndex.id} : {serverRoleIndex.name}")
 
-		# New loop
 			# Only proceed if role is one a user can add/remove
 			if f"{serverRoleIndex.id}" in vUserRolesList:
-				# Add roles:
-				if self.bAddRoles:
-					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
-						BUPrint.Debug("ADDING ROLE")
-						await self.vUser.add_roles( serverRoleIndex, reason="User self assigned role with /roles command." )
-
-				# Remove roles:
-				else:
-					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
-						BUPrint.Debug("REMOVING ROLE")
-						await self.vUser.remove_roles( serverRoleIndex, reason="User self unassigned role with /roles command" )
+				if f"{serverRoleIndex.id}" in vUserSelectedRoles:
+					vRolesToUse.append(serverRoleIndex)
 			else:
 				BUPrint.Debug("Role is not user-assignable. Skipping...")
+
+
+		if len(vRolesToUse):
+			BUPrint.Debug("Modifying user roles...")
+			try:
+				if self.bAddRoles:
+					await self.vUser.add_roles(*vRolesToUse, reason="User self assigned role with /role command")
+				else:
+					await self.vUser.remove_roles(*vRolesToUse, reason="User self unassigned roles with /role command")
+
+			except discord.Forbidden as vError:
+				BUPrint.LogErrorExc("Invalid permission to modify user roles.", vError)
+			except discord.HTTPException as vError:
+				BUPrint.LogErrorExc("Unable to modify user roles.", vError)
+			
+			BUPrint.Debug("	-> User roles modified!")
+
+		else:
+			BUPrint.Debug("User chose no roles.")
 
 
 
@@ -144,21 +154,11 @@ class RoleSelection(discord.ui.Select):
 
 class TDKDRoles(RoleSelection):
 	def __init__(self):
-		self.parentView: RoleManager
 		vOptions = botData.settings.Roles.addRoles_TDKD
 
 		super().__init__(placeholder="TDKD/PS2 Notification roles", min_values=0, max_values=len(botData.settings.Roles.addRoles_TDKD), options=vOptions)
 
 
-class GameRoles1(RoleSelection):
-	def __init__(self):
-		self.parentView:RoleManager
-		vOptions = botData.settings.Roles.addRoles_games1
-		super().__init__(placeholder="Other Games roles", min_values=0, max_values=len(botData.settings.Roles.addRoles_games1), options=vOptions)
-
-
-class GameRoles2(RoleSelection):
-	def __init__(self):
-		vOptions = botData.settings.Roles.addRoles_games2
-		super().__init__(placeholder="Other Games roles", min_values=0, max_values=len(botData.settings.Roles.addRoles_games2), options=vOptions)
-	#  Make sure "max values" matches the number of roles.  It bugs out if higher than the actual amount of roles available.
+class GameRoles(RoleSelection):
+	def __init__(self, p_options:list):
+		super().__init__(placeholder="Other Games roles", min_values=0, max_values=len(p_options), options=p_options)

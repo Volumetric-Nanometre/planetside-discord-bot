@@ -35,11 +35,24 @@ class EditChannels(baseModal.BaseModal):
 
 		self.txtVoiceChannels.value.split("\n")
 		self.vOpData.voiceChannels = self.txtVoiceChannels.value.split("\n")
-		self.vOpData.arguments = self.txtArguments.value.split("\n")
+		self.vOpData.arguments = self.vOpData.ArgStringToList(self.txtArguments.value, "\n")
 		self.vOpData.targetChannel = self.txtTargetChanel.value
 
-		self.vOpData.ParseArguments()
+
+		# Check if reserves have been removed and inform.
+		if not self.vOpData.options.bUseReserve:
+			if len(self.vOpData.reserves):
+				affectedUsers = ""
+
+				for userID in self.vOpData.reserves:
+					affectedUsers += f"{pInteraction.guild.get_member(userID).mention} "
+
+				await pInteraction.response.send_message(f"**ATTENTION!** Disabling reserve will remove the following users from this event:\n{affectedUsers}\n\nUse `ReserveOn` to revert this change.", ephemeral=True)
+			return
+
 		await pInteraction.response.defer()
+
+
 
 	def PresetFields(self):
 		botUtils.BotPrinter.Debug("Auto-filling modal (CHANNELS) with existing data.")
@@ -49,9 +62,12 @@ class EditChannels(baseModal.BaseModal):
 		self.txtVoiceChannels.default = vTempStr.strip()
 		
 		vTempStr = ""
-		for argument in self.vOpData.arguments:
-			BUPrint.Debug(f"Adding Arg {argument} to modal.")
-			vTempStr += f"{argument}\n"
-		self.txtArguments.default = vTempStr.strip()
+
+		BUPrint.Debug(f"Arguments: {self.vOpData.arguments}")
+		if self.vOpData.arguments != None:
+			for argument in self.vOpData.arguments:
+				BUPrint.Debug(f"Adding Arg {argument} to modal.")
+				vTempStr += f"{argument}\n"
+			self.txtArguments.default = vTempStr.strip()
 
 		self.txtTargetChanel.default = self.vOpData.targetChannel

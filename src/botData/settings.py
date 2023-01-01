@@ -25,8 +25,9 @@ class BotSettings:
 	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
 
-	# ID of a channel which users are moved to when their current one is removed.
+	# ID of a channel which users are moved to when their current one is removed; this value is used when otherwise specified channels are not found.
 	fallbackVoiceChat = 326783867036106752 # Dev value!
+	# fallbackVoiceChat = 710854499782361140 # LIVE value (general)
 
 	# ROLE RESTRICTION LEVELS:
 	roleRestrict_level_0 = ["CO"]
@@ -38,7 +39,7 @@ class BotSettings:
 	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
 
 	"""
-	Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles below.
+	Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles in roleRestrict variables.
 	users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.
 	As such, this is merely a redundancy if security concerned."""
 	bForceRoleRestrictions = True
@@ -87,10 +88,10 @@ class NewUsers:
 	ruleMsgID = 1049631022192537610 # DEV SERVER
 	# ruleMsgID = 977888774530932767 # LIVE SERVER
 
-
 	# Rule Channel ID: The ID of the channel which the Rules message is in.
 	ruleChnID = 1049523449867022348 # DEV SERVER 
 	# ruleChnID = 913086821263626360 # LIVE SERVER 
+
 
 	def __repr__(self) -> str:
 		vString = "\n	NEW USER SETTINGS\n"
@@ -117,17 +118,16 @@ class Commander:
 	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
 	bAutoStartEnabled = True
 
-	# Enable Commander Auto Alerts: If true, Op Commanders will periodically alert users a set amount of times 
+	# Enable Commander Auto Alerts: If true, Op Commanders will periodically alert users a set amount of times (below)
 	bAutoAlertsEnabled = True
 
-	# Commander Auto Alerts: The number of automatic alerts a commander will send. These are distributed throughout the pre-start time.
+	# Commander Auto Alert Count: The number of automatic alerts a commander will send. These are distributed throughout the pre-start time.
 	autoAlertCount = 2
 
 	# Commander- Auto Move Voice Channel: If enabled, participating users are moved to the standby channel on Ops start if they're in a voice channel.
 	bAutoMoveVCEnabled = True
 
 	#Auto MoveBack Channel ID:  Channel ID for the channel users are moved back into (if autoMoveVC is enabled) after an ops is closed.
-	#Usage is similar to `botSettings.fallbackChannelID`
 	autoMoveBackChannelID = 326783867036106752 # DEV SERVER VALUE (General)
 	# autoMoveBackChannelID = 1023703124839518338 # LIVE SERVER VALUE (Planetside2)
 
@@ -222,7 +222,7 @@ class SignUps:
 	NOTE:  These are NOT settings for individual signups! See `botData.operations.operationOptions` for those.
 	"""
 
-	# The category name (if using existing category, must match capitalisation!)
+	# The category name (if using existing category, must match capitalisation! Discord always displays categories in upper case, even if its actual name is not.)
 	signupCategory = "SIGN UP"
 
 	# Icon used for built in RESIGN role.
@@ -239,12 +239,14 @@ class SignUps:
 	# "AS:E|UR:E|UC:D|SDF:D" - AutoStart: Enabled, Use Reserve: Enabled, Use Compact: Disabled, Soberdogs Feedback: Disabled 
 	bShowOptsInFooter = True
 
+
 	def __repr__(self) -> str:
 		vString = "	SIGN UP SETTINGS\n"
 		vString += f"	> Signup Cat  : {self.signupCategory}\n"
 		vString += f"	> Resign Icon : {self.resignIcon}\n" 
 		vString += f"	> Reserve Icon: {self.reserveIcon}\n"
 		vString += f"	> Auto Prestart:{self.bAutoPrestartEnabled}\n"
+		vString += f"	> Show Opts in Footer: {self.bShowOptsInFooter}\n"
 		return vString
 
 
@@ -277,7 +279,7 @@ class Messages:
 	# Displayed when a user is choosing roles to REMOVE.
 	userRemovingRoles = "Select the roles you wish to **REMOVE** using the dropdowns, then click Update."
 
-	# Operations Auto Move warning: Shown on Ops Notifications.
+	# Operations Auto Move warning: Shown on Ops Notifications if autoMoveVC is enabled.
 	OpsAutoMoveWarn = "If you are already in a voice channel, you will be moved when the ops starts!"
 
 	# Ops Starting Soon: Message appended to Ops messages when the status is PRESTART.
@@ -287,7 +289,7 @@ class Messages:
 	OpsStarted = "Sorry, this event has already started and is no longer taking applicants!"
 
 	# Op Being Edited: Message appended to ops signup messages when being edited.
-	OpsBeingEdited = "This operation is currently being edited, please wait to sign up!"
+	OpsBeingEdited = "This event is currently being edited, please wait to sign up!"
 
 	# No Matching PS2 Character name found, sent as a single message tagging participants, telling them no matching PS2 Char name is present.
 	noMatchingPS2Char = """No matching Planetside 2 Character was found with your current discord name.
@@ -300,12 +302,15 @@ class Messages:
 	# Feedback Overflow: Shown in feedback embeds if characters exceeds the max of 1024.
 	feedbackOverflow = "\n**UNABLE TO FIT ENTIRE FEEDBACK WITHIN EMBED!\nDownload Feedback to see it all.**"
 
+	# New Operation- Corrupt Data: Shown when adding a new Op but unable to read the default.
+	newOpCorruptData = "The default you tried to use is corrupt and has been removed.  Please try again using another default, or create a new one."
+
 
 @dataclass(frozen=True)
 class Roles:
 	"""
 	# ROLES
-	For convenience sake, all roles used within selectors are stored here
+	For convenience, all roles used within selectors are stored here
 
 	NOTE: Selectors have a MAXIMUM limit of 25 items;
 			This is a discord imposed limit.
@@ -313,7 +318,7 @@ class Roles:
 	# Provides a dropdown containing these roles for giving to new users.
 	newUser_roles = [ 
 		SelectOption(label="Recruit", value="780253442605842472"),
-		# SelectOption(label="TDKD", value="1050286811940921344"), # Dev server RoleID
+		# SelectOption(label="TDKD", value="1050286811940921344", description="DEV VALUE!"), # Dev server RoleID
 		SelectOption(label="TDKD", value="710472193045299260"), # Live server RoleID
 		SelectOption(label="The Washed Masses", value="710502581893595166"),
 		SelectOption(label="The Unwashed Masses", value="719219680434192405")
@@ -364,7 +369,57 @@ class Roles:
 	addRoles_games2 = [
 		SelectOption(label="Overwatch", value="1029138196518420531"),
 		SelectOption(label="World of Tanks", value="1038125253806788768"),
-		SelectOption(label="Star Citizen", value="1037797784566370318")		
+		SelectOption(label="Star Citizen", value="1037797784566370318"),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value="")
+	]
+
+	addRoles_games3 = [
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value=""),
+		# SelectOption(label="", value="")
 	]
 
 
@@ -375,6 +430,8 @@ class CommandRestrictionLevels(Enum):
 	Convenience Enum for setting levels, or to get a list of roles.
 
 	Should almost always be used instead of raw roleRestrict_level_n
+
+	Use `botUtils.UserHasCommandPerms` to check if a calling user has valid permissions.
 	"""
 	level0 = BotSettings.roleRestrict_level_0
 	level1 = level0 + BotSettings.roleRestrict_level_1

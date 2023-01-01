@@ -81,15 +81,14 @@ class Commander():
 		self.alertTimes = [] # Saved to be displayed in Info embed
 
 		#DiscordElements:
-		self.vGuild: discord.Guild = None
 		self.commanderMsg: discord.Message = None # Message object used to edit the commander. Set during first post.
 		self.commanderChannel: discord.TextChannel = None # Channel for the Commander to be posted in.
 		self.notifChn: discord.TextChannel = None # Channel used to display notifications
-		self.vCategory: discord.CategoryChannel = None # Category object to keep the Ops self contained. All channels are created within here, except non-soberdogs feedback
+		self.vCategory: discord.CategoryChannel = None # Category object to keep the Ops self contained. All channels are created within here, except soberdogs feedback
 		self.standbyChn: discord.VoiceChannel = None # Standby channel voice connected users are moved into during start.
 		self.lastStartAlert: discord.Message = None # Last Start alert sent, used to store + remove a previous alert to not flood the channel.
-		self.participants = [] # List of participating Members
-		self.participantsUserData = [] # Not yet used- will contain UserData for stat tracking.
+		self.participants = [] # List of Participant objects.
+		self.participantDiscordMembers = [] # List of Participants as discordMembers
 		self.notifFeedbackMsg: discord.Message = None # Message for non-soberdogs Feedback.
 		
 		# Soberdogs Discord Elements, saved here to avoid repeated fetching.
@@ -140,7 +139,7 @@ class Commander():
 			# Perform first run actions.
 			
 			# Get & set guild ref.
-			self.vGuild = await self.vBotRef.fetch_guild(botSettings.discordGuild)
+			vGuild = await botUtils.GetGuild(self.vBotRef)
 
 			# Create category and channels.
 			await self.CreateCategory()
@@ -183,7 +182,7 @@ class Commander():
 
 			BUPrint.Debug("	-> Posting Ops Info")
 			opString = f"*OPERATION INFORMATION for {self.vOpData.name}*"
-			managingUser = self.vGuild.get_member(self.vOpData.managedBy)			
+			managingUser = vGuild.get_member(self.vOpData.managedBy)			
 			if managingUser != None:
 				opString = f"{managingUser.mention} {opString}"
 			
@@ -213,7 +212,9 @@ class Commander():
 
 		## RETURN: `bool` True if successful.
 		"""
-		for category in self.vBotRef.guilds[0].categories:
+		vGuild:discord.Guild = await botUtils.GetGuild(self.vBotRef)
+		
+		for category in vGuild.categories:
 			if category.name.lower() == self.vOpData.name.lower():
 				self.vCategory = category
 				BUPrint.Debug("Existing category with matching name found.  Using it instead.")
@@ -226,7 +227,7 @@ class Commander():
 			if self.vCategory == None:
 				BUPrint.Debug("	-> Create category.")
 				try:
-					self.vCategory = await self.vGuild.create_category(
+					self.vCategory = await vGuild.create_category(
 						name=f"{self.vOpData.name}",
 						reason=f"Creating category for {self.vOpData.fileName}",
 						overwrites=ChanPermOverWrite.level3
@@ -433,7 +434,7 @@ class Commander():
 		"""
 		vParticipantsStr = await self.GetParticipants()
 
-		vMessage = f"ATTENTION: {vParticipantsStr}\n**{self.vOpData.name} HAS STARTED!**"
+		vMessage = f"**{self.vOpData.name} HAS STARTED!**\n\n{vParticipantsStr}\n"
 
 		notTrackedParticipants = ""
 		participant:Participant
@@ -473,34 +474,57 @@ class Commander():
 		## RETURN: `str` of `member.mention` for each user.
 		"""
 		self.participants.clear()
+		self.participantDiscordMembers.clear()
+		vGuild:discord.Guild = await botUtils.GetGuild(self.vBotRef)
 
 		vParticipantStr = ""
 		role: botData.operations.OpRoleData
 		member:discord.Member = None
 		BUPrint.Debug("Getting roled participants...")
+
 		for role in self.vOpData.roles:
-			for user in role.players:
-				member = self.vGuild.get_member(user)
+			for userID in role.players:
+				member = vGuild.get_member(userID)
 				if member == None:
-					member = await self.vGuild.fetch_member(user)
+					member = await vGuild.fetch_member(userID)
+				if member == None:
+					BUPrint.Info("Invalid user ID. Skipping...")
+					continue
 				vParticipantStr += f" {member.mention} "
 
-				newParticipant = Participant(member, None)
-				newParticipant.LoadParticipant()
-				self.participants.append(newParticipant)
+				# Set DiscordMember to ID, which will later be queried
+				self.participantDiscordMembers.append(member)
 
 
 		BUPrint.Debug("Getting reserved participants...")
 		if self.vOpData.options.bUseReserve:
 			for user in self.vOpData.reserves:
-				member = self.vGuild.get_member(user)
+				member = vGuild.get_member(user)
 				if member == None:
-					member = await self.vGuild.fetch_member(user)
+					member = await vGuild.fetch_member(user)
+				if member == None:
+					BUPrint.Info("Invalid user ID. Skipping...")
+					continue
+
 				vParticipantStr += f" {member.mention} "
 
-				newParticipant = Participant(member, None)
-				newParticipant.LoadParticipant()
-				self.participants.append(newParticipant)
+				# Set DiscordMember to ID, which will later be queried
+				self.participantDiscordMembers.append(member)
+
+		
+		BUPrint.Debug("Querying Users & Loading Participants")
+		user:discord.Member
+		# self.participantDiscordMembers = await vGuild.query_members(
+		# 					limit=len(self.participantDiscordMembers),
+		# 					user_ids=self.participantDiscordMembers,
+		# 					presences=True
+		# 					)
+		
+		user: discord.Member
+		for user in self.participantDiscordMembers:
+			newParticipant = Participant(user)
+			newParticipant.LoadParticipant()
+			self.participants.append(newParticipant)
 		
 
 		participant: Participant
@@ -509,7 +533,7 @@ class Commander():
 				charName = re.sub(r'\[\w\w\w\w\]', "", participant.discordUser.display_name )
 				charName = charName.strip()
 
-				BUPrint.Debug(f"Searching for: {charName}")
+				BUPrint.Debug(f"Searching for PS2 Character: {charName}")
 
 				playerChar = await self.vAuraxClient.get_by_name(auraxium.ps2.Character, charName)				
 				outfitChar = await playerChar.outfit_member()
@@ -532,7 +556,7 @@ class Commander():
 					participant.ps2Char = playerChar
 
 				else:
-					BUPrint.Debug("Unable to find PS2 Character with matching name.  User must create a library entry manually.")
+					BUPrint.Debug("Unable to find PS2 Character with matching name.")
 
 				if participant.libraryEntry != None and commanderSettings.bAutoCreateUserLibEntry:
 					participant.SaveParticipant()
@@ -629,7 +653,7 @@ class Commander():
 					vUsersInRole += f"{self.vBotRef.get_user(int(user)).mention}\n"
 				
 			vEmbed.add_field( 
-				name=f"{self.GetRoleName(role)}", 
+				name=f"{role.GetRoleName()}", 
 				value=vUsersInRole, 
 				inline=bFirstRole
 			)
@@ -645,6 +669,8 @@ class Commander():
 
 		Creates an Embed for player connections.
 		"""
+		await self.GetParticipants()
+
 		vEmbed = discord.Embed(colour=discord.Colour.from_rgb(200, 200, 255), title="CONNECTIONS", description="Discord and PS2 connection information for participants.")
 
 		vPlayersStr = "\u200b\n"
@@ -654,7 +680,8 @@ class Commander():
 		for participant in self.participants:
 			vPlayersStr += f"{participant.discordUser.display_name}\n"
 			
-			if participant.discordUser.raw_status == discord.Status.offline.value:
+			BUPrint.Debug(f"Status of {participant.discordUser.display_name}: {participant.discordUser.status}")
+			if participant.discordUser.status.value == discord.Status.offline.value:
 				vStatusStr += f"{commanderSettings.connIcon_discordOffline} | "
 			else:
 				vStatusStr += f"{commanderSettings.connIcon_discordOnline} | "
@@ -711,8 +738,9 @@ class Commander():
 		bOverflowMessage = False
 		tempStr = ""
 		for entry in self.vFeedback.generic:
-			if entry != "":
+			if entry != "" and entry != "\n":
 				tempStr += f"{entry}\n"
+		
 		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
 				tempStr[:1024]
@@ -722,8 +750,9 @@ class Commander():
 		
 		tempStr = ""
 		for entry in self.vFeedback.forSquadmates:
-			if entry != "":
+			if entry != "" and entry != "\n":
 				tempStr += f"{entry}\n"
+		
 		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
 				tempStr[:1024]
@@ -735,6 +764,7 @@ class Commander():
 		for entry in self.vFeedback.forSquadLead:
 			if entry != "" and entry != "\n":
 				tempStr += f"{entry}\n"
+		
 		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
 				tempStr[:1024]
@@ -744,8 +774,9 @@ class Commander():
 
 		tempStr = ""
 		for entry in self.vFeedback.forPlatLead:
-			if entry != "":
+			if entry != "" and entry != "\n":
 				tempStr += f"{entry}\n"
+		
 		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
 				tempStr[:1024]
@@ -809,6 +840,7 @@ class Commander():
 		This includes setting the forum variable via finding, and thread variable via creation.
 
 		This does NOT post a message and thus, does not set soberdogsFeedbackMsg.
+		It DOES however create the SoberDogs forum thread.
 
 		If using soberdogs but it isn't found or postable, fallback to using the default (off).
 		"""
@@ -829,15 +861,16 @@ class Commander():
 				self.vOpData.options.bUseSoberdogsFeedback = False
 				return
 			
+			vManagingUser = ""
 			if self.vOpData.managedBy != "":
-				vManagingUser = self.vBotRef.get_user( self.vOpData.managedBy )
+				vManagingUser = self.vBotRef.get_user( self.vOpData.managedBy ).mention
 	
 			try:
 				self.soberdogFeedbackThread = await self.soberdogFeedbackForum.create_thread(
 														name=f"{self.vOpData.date.year}-{self.vOpData.date.month}-{self.vOpData.date.day} Soberdogs",
 														auto_archive_duration=None,
 														reason="Soberdogs Debrief post",
-														content=f"Managed By: {vManagingUser.mention}\n{await self.GetParticipants()}"
+														content=f"Managed By: {vManagingUser}\n{await self.GetParticipants()}"
 														)
 
 			except discord.Forbidden:
@@ -859,8 +892,8 @@ class Commander():
 		Creates a commander view.  Buttons status are updated depending on Op Status
 
 		## RETURNS: `discord.ui.View`
-
 		"""
+
 		newView = discord.ui.View(timeout=None)
 		# Button Objects
 		btnStart = Commander_btnStart(p_commanderParent=self)
@@ -901,7 +934,9 @@ class Commander():
 		"""
 		# START OPERATION
 		Modifies and updates op signup post.
+		
 		Modifies commander status, then updates commander.
+		
 		Starts tracking, if enabled.
 		"""
 		if self.vOpData.status.value >= OpsData.status.started.value:
@@ -935,6 +970,7 @@ class Commander():
 		self.vCommanderStatus = CommanderStatus.Ended
 
 		await self.vAuraxClient.close()
+		self.scheduler.shutdown()
 
 		# Removes the operation posting.
 		vOpMan = opsManager.OperationManager()
@@ -946,28 +982,8 @@ class Commander():
 		# Yeetus deleetus the category; as if it never happened!
 		await self.RemoveChannels()
 
-		self.scheduler.shutdown()
-
 		BUPrint.Info(f"Operation {self.vOpData.name} has ended.")
 
-
-	def GetRoleName(self, p_role:botData.operations.OpRoleData):
-		"""
-		# GET ROLE NAME
-		Convenience function to get a role name with icon prefix if applicable, and append current/max, if applicable.	
-		"""
-		vRoleName = ""
-		if p_role.roleIcon != "-":
-			vRoleName = f"{p_role.roleIcon}{p_role.roleName}"
-		else:
-			vRoleName = p_role.roleName
-
-		if p_role.maxPositions > 0:
-			vRoleName += f" ({len(p_role.players)}/{p_role.maxPositions})"
-		else:
-			vRoleName += f" ({len(p_role.players)})"
-
-		return vRoleName
 
 
 	async def MoveUsers(self, p_moveToStandby:bool = True):
@@ -979,14 +995,16 @@ class Commander():
 		if not commanderSettings.bAutoMoveVCEnabled and p_moveToStandby:
 			BUPrint.Debug("Auto move disabled.")
 			return
+		
+		vGuild:discord.Guild = await botUtils.GetGuild(self.vBotRef)
 
-		fallbackChannel = self.vGuild.get_channel(commanderSettings.autoMoveBackChannelID)
+		fallbackChannel = vGuild.get_channel(commanderSettings.autoMoveBackChannelID)
 
 		if fallbackChannel == None:
-			fallbackChannel = await self.vGuild.fetch_channel(commanderSettings.autoMoveBackChannelID)
+			fallbackChannel = await vGuild.fetch_channel(commanderSettings.autoMoveBackChannelID)
 			if fallbackChannel == None:
 				BUPrint.Info("ATTENTION!  Invalid Auto Move-back Channel ID provided!")
-				fallbackChannel = await self.vGuild.fetch_channel(botSettings.fallbackVoiceChat)
+				fallbackChannel = await vGuild.fetch_channel(botSettings.fallbackVoiceChat)
 				if fallbackChannel == None:
 					BUPrint.Info("ATTENTION! Invalid fallback channel ID provided!  Unable to automatically move users.")
 					return
@@ -994,9 +1012,16 @@ class Commander():
 		vConnectedUsers = []
 
 		if p_moveToStandby: # Moving signed up users to standby
-			for voiceChannel in self.vGuild.voice_channels:
+			# allChannels = vGuild.channels
+			# voiceChannels = []
+			# for channel in allChannels:
+			# 	if channel.type == discord.ChannelType.voice:
+			# 		voiceChannels.append( self.vGuild.get_channel(channel.id) )
+			
+			voiceChannel:discord.VoiceChannel 
+			for voiceChannel in vGuild.voice_channels:
 				for user in voiceChannel.members:
-					if user in self.participants:
+					if user in self.participantDiscordMembers:
 						vConnectedUsers.append(user)
 
 
@@ -1005,7 +1030,6 @@ class Commander():
 				vConnectedUsers += voiceChannel.members
 
 
-		BUPrint.Debug(f"ConnectedUser List: {vConnectedUsers}")
 		user: discord.Member
 		for user in vConnectedUsers:
 			try:
@@ -1035,7 +1059,10 @@ class Commander_btnStart(discord.ui.Button):
 
 	async def callback(self, p_interaction:discord.Interaction):
 		await self.vCommander.StartOperation()
-		await p_interaction.response.defer()
+		try:
+			await p_interaction.response.send_message("Event Started", ephemeral=True)
+		except discord.errors.NotFound:
+			BUPrint.Info("Discord Error, response bugged out. Safe to Ignore.")
 
 class Commander_btnDebrief(discord.ui.Button):
 	def __init__(self, p_commanderParent:Commander):
@@ -1066,6 +1093,7 @@ class Commander_btnEnd(discord.ui.Button):
 
 	async def callback(self, p_interaction:discord.Interaction):
 		# End the Ops:
+		await p_interaction.response.send_message("Ending Operation...", ephemeral=True)
 		await self.vCommander.EndOperation()
 
 

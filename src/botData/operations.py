@@ -42,6 +42,27 @@ class OpRoleData:
 	roleIcon : str = ""
 	maxPositions : int = 0
 
+	def GetRoleName(self):
+		"""
+		# GET ROLE NAME:
+		Returns a precompiled string containing the icon if present, and the min/max or just current count, depending on configuration.
+		"""
+		vRolename = ""
+
+		# Icon
+		if self.roleIcon != "-":
+			vRolename = f"{self.roleIcon}{self.roleName}"
+		else:
+			vRolename = self.roleName
+
+		# Signed Up/Positions:
+		if self.maxPositions > 0:
+			vRolename += f" ({len(self.players)}/{self.maxPositions})"
+		else:
+			vRolename += f" ({len(self.players)})"
+
+		return vRolename
+
 
 
 @dataclass
@@ -85,8 +106,9 @@ class OperationData:
 
 	def GetRoleByName(self, p_roleName):
 		"""
-		GET ROLE BY NAME
-		RETURN: OpRoleData matching p_roleName
+		# GET ROLE BY NAME
+		### RETURN: 
+		`OpRoleData` matching `p_roleName`
 
 		Convenience function to avoid repetition.
 		"""
@@ -96,53 +118,84 @@ class OperationData:
 				return role
 
 
+	def ArgStringToList(self, p_string:str, p_deliminator:str = " "):
+		"""
+		# ARGUMENT STRING TO LIST
+		Converts an argument string to a list, then runs Parse.
+		A deliminator may be specified, uses ' ' by default.
+		"""
+		newArgList = p_string.split(p_deliminator)
+
+		if newArgList != None:
+			BUPrint.Debug(f"Setting op argument list: {newArgList}")
+			self.arguments = newArgList
+
+			BUPrint.Debug(f"OpData Argument list: {self.arguments}")
+
+			self.ParseArguments()
+
+		else:
+			BUPrint.Debug("No arguments.")
+
+
 	def ParseArguments(self):
 		"""
 		# PARSE ARGUMENTS
 		Parses the arguments given and sets their respective options.
 		"""
-		BUPrint.Debug("Parsing opdata arguments")
+		BUPrint.Debug(f"Parsing opdata arguments: {self.arguments}")
 		argument:str
 		for argument in self.arguments:
-			argInLower = argument.lower()
+
+			argInLower = argument.lower().strip()
+
 			# TOGGLE VIEW TYPE
-			if argInLower.__contains__("compact"):
+			if argInLower == "compact":
 				self.options.bUseCompact = True
 				BUPrint.Debug(f"Using viewmode: Compact for {self.name}")
+				continue
 
-			elif argInLower.__contains__("fullview"):
+			elif argInLower == "fullview":
 				self.options.bUseCompact = False
 				BUPrint.Debug(f"Using viewmode: Full for {self.name}")
+				continue
 
 
 			# TOGGLE RESERVE
-			if argInLower.__contains__("noreserve"):
+			if argInLower == "noreserve":
 				self.options.bUseReserve = False
-				BUPrint.Debug(f"Setting Reserves: ON for {self.name}")
-
-			elif argInLower.__contains__("reserveson"):
-				self.options.bUseReserve = True
 				BUPrint.Debug(f"Setting Reserves: OFF for {self.name}")
+				continue
+
+			elif argInLower == "reserveon":
+				self.options.bUseReserve = True
+				BUPrint.Debug(f"Setting Reserves: ON for {self.name}")
+				continue
 
 
 			# TOGGLE AUTO START
-			if argInLower.__contains__("noauto"):
+			if argInLower == "noauto":
 				self.options.bAutoStart = False
 				BUPrint.Debug(f"Setting Automatic Start: OFF for {self.name}")
+				continue
 
-			elif argInLower.__contains__("autostart"):
+			elif argInLower == "autostart":
 				self.options.bAutoStart = True
 				BUPrint.Debug(f"Setting Automatic Start: ON for {self.name}")
+				continue
 
 
 			# TOGGLE SOBERDOGS FEEDBACK
-			if argInLower.__contains__("nofeedback"):
+			if argInLower == "nofeedback":
 				self.options.bUseSoberdogsFeedback = False
 				BUPrint.Debug(f"Setting Soberdogs Feedback: OFF for {self.name}")
+				continue
 
-			elif argInLower.__contains__("soberfeedback"):
+			elif argInLower == "soberfeedback":
 				self.options.bUseSoberdogsFeedback = True
 				BUPrint.Debug(f"Setting Soberdogs Feedback: ON for {self.name}")
+				continue
+
 
 
 	def __repr__(self) -> str:

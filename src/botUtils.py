@@ -334,11 +334,17 @@ async def GetGuild(p_BotRef : commands.Bot):
 	"""
 	BotPrinter.Debug("Getting Guild from ID.")
 	try:
-		guild = await p_BotRef.fetch_guild( BotSettings.discordGuild )
+		guild = p_BotRef.get_guild( int(BotSettings.discordGuild) )
+		if guild != None:
+			return guild
+
+		BotPrinter.Debug(f"	-> Failed to GET, attempting fetch instead.")
+		guild = await p_BotRef.fetch_guild( int(BotSettings.discordGuild) )
 		if guild == None:
 			BotPrinter.Info("Unable to fetch guild!  Ensure you have the right ID.")
 			return None
-
+	
+		BotPrinter.Debug(f"Guild found with Fetch!  Chunked: {guild.chunked}")
 		return guild
 
 	except discord.Forbidden as vError:
@@ -355,7 +361,7 @@ async def GetGuild(p_BotRef : commands.Bot):
 async def UserHasCommandPerms(p_callingUser:discord.Member, p_requiredLevel:CommandRestrictionLevels, p_interaction: discord.Interaction):
 	"""
 	# USER HAS VALID PERMS
-	Checks if the user provided has any role within the role list provided.
+	Checks if the user provided has any role within restriction level.
 
 	NOTE: If `settings.bForceRoleRestrictions` is false, this always returns true.
 	"""
@@ -364,7 +370,7 @@ async def UserHasCommandPerms(p_callingUser:discord.Member, p_requiredLevel:Comm
 		BotPrinter.Debug(f"Required Roles: {p_requiredLevel.value}")
 		role: discord.Role
 		for role in p_callingUser.roles:
-				if role.id in p_requiredLevel.value or role.name in p_requiredLevel.value:
+				if str(role.id) in p_requiredLevel.value or role.name in p_requiredLevel.value:
 					return True
 		await p_interaction.response.send_message("You do not have valid permission to use this command!", ephemeral=True)
 		return False

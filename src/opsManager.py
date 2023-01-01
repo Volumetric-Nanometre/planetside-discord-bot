@@ -32,15 +32,27 @@ class Operations(commands.GroupCog):
 		BUPrint.Info("COG: Operations loaded.")
 
 	@app_commands.command(name="add", description="Add a new Ops event")
-	@app_commands.describe(optype="Type of Ops to create. If this doesn't match an existing option, defaults to 'custom'!",
-							edit="Open Ops Editor before posting this event (Always true if 'Custom')",
-							pDay="The day this ops will run.",
-							pMonth="The month this ops will run.",
-							pHour="The HOUR (24) the ops will run in.",
-							pMinute="The MINUTE within an hour the ops starts on",
-							pYear="Optional.\nThe Year the ops should run.",
-							pArguments="Optional.\nAdditional arguments to control the op behaviour.")
-	@app_commands.rename(pDay="day", pMonth="month", pHour="hour", pMinute="minute", pYear="year", pArguments="arguments")
+	@app_commands.describe(optype = "Type of Ops to create. If this doesn't match an existing option, defaults to 'custom'!",
+							edit = "Open Ops Editor before posting this event (Always true if 'Custom')",
+							pDay = "The day this ops will run.",
+							pMonth = "The month this ops will run.",
+							pHour = "The HOUR (24) the ops will run in.",
+							pMinute = "The MINUTE within an hour the ops starts on",
+							pYear = "(Optional) The Year the ops should run.",
+							pArguments = "(Optional) Additional arguments to control the op behaviour.",
+							pManagedBy = "(Optional) The user responsible for running this event",
+							pAdditionalInfo = "(Optional) Any additional information about this event: NOTE: Overwrites the default!"
+	)
+	@app_commands.rename(pDay="day", 
+						pMonth="month", 
+						pHour="hour", 
+						pMinute="minute", 
+						pYear="year", 
+						pArguments="arguments",
+						pManagedBy="managing_user",
+						pAdditionalInfo="info",
+	)
+
 	async def addopsevent (self, pInteraction: discord.Interaction, 
 		optype: str,
 		edit: bool, 
@@ -49,7 +61,9 @@ class Operations(commands.GroupCog):
 		pHour: app_commands.Range[int, 1, 23], 
 		pMinute:app_commands.Range[int, 0, 59],
 		pYear: int  = datetime.datetime.now().year,
-		pArguments: str = ""
+		pArguments: str = "",
+		pManagedBy: str = "",
+		pAdditionalInfo: str = ""
 	):
 		# HARDCODED ROLE USEAGE:
 		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandRestrictionLevels.level1), pInteraction):
@@ -60,7 +74,8 @@ class Operations(commands.GroupCog):
 			year=pYear,
 			month=pMonth,
 			day=pDay,
-			hour=pHour, minute=pMinute)
+			hour=pHour, minute=pMinute,
+			tzinfo=datetime.timezone.utc)
 
 		vOpTypeStr = str(optype).replace("OpsType.", "")
 
@@ -85,14 +100,23 @@ class Operations(commands.GroupCog):
 			vFilePath = f"{botSettings.Directories.savedDefaultsDir}{optype}"
 			newOpsData = OperationManager.LoadFromFile(vFilePath)
 
-			if newOpsData == None:
-				botUtils.FilesAndFolders.DeleteCorruptFile(vFilePath)
-				await pInteraction.response.send_message("The default you tried to use is corrupt and has been removed.  Please try again using another Ops, or create a new default.", ephemeral=True)
-				return
-
 			# Update date & args to the one given by the command
 			newOpsData.date = vDate
-			newOpsData.arguments += pArguments
+
+			if pArguments != "":
+				newOpsData.arguments = newOpsData.ArgStringToList(pArguments)
+
+			if pManagedBy != "":
+				newOpsData.managedBy = pManagedBy
+
+			if pAdditionalInfo != "":
+				newOpsData.customMessage = pAdditionalInfo
+
+			if newOpsData == None:
+				botUtils.FilesAndFolders.DeleteCorruptFile(vFilePath)
+				await pInteraction.response.send_message(botMessages.newOpCorruptData, ephemeral=True)
+				return
+
 
 			if(edit):
 				vEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
@@ -188,13 +212,6 @@ class OperationManager():
 			self.LoadOps()
 		BUPrint.Info(f"Operation Manager has been instantited. Live Ops Data: {len(self.vLiveOps)}")
 
-		# if self.vScheduler == None:
-		# 	BUPrint.Debug("Op Man Scheduler is None, creating instance.")
-		# 	self.vScheduler = AsyncIOScheduler()
-		# 	try:
-		# 		self.vScheduler.start()
-		# 	except:
-		# 		BUPrint.Debug("Already running.")
 
 	async def RefreshOps(self):
 		"""
@@ -516,15 +533,11 @@ class OperationManager():
 	
 		BUPrint.Debug("	-> Obtaining target channel...")
 
-		vGuild = self.vBotRef.guilds[0]
-		if vGuild is None:
-			BUPrint.Debug("	-> Guild is none, trying fetch instead.")
-			# Try again using non-cache "fetch":
-			vGuild = await self.vBotRef.fetch_guild(botSettings.BotSettings.discordGuild)
-			if vGuild is None:
-				botUtils.BotPrinter.LogError("Failed to find guild for getting Ops Channel!")
-				return None
-			BUPrint.Debug("	-> Guild obtained.")
+		vGuild:discord.Guild = await botUtils.GetGuild(self.vBotRef)
+
+		if vGuild == None:
+			return None
+
 		opsCategory = discord.utils.find(lambda items: items.name == botSettings.SignUps.signupCategory, vGuild.categories)
 
 		if opsCategory == None:
@@ -759,7 +772,9 @@ class OperationManager():
 		# GET MANAGED BY
 		Returns a mentionable of a user specified to be the person running the Op.
 		"""
-		vMember: discord.Member = discord.utils.find(lambda member: member.name == p_opData.managedBy, self.vBotRef.guilds[0].members)
+		vGuild = self.vBotRef.get_guild(int(botSettings.BotSettings.discordGuild))
+		
+		vMember: discord.Member = discord.utils.find(lambda member: member.name == p_opData.managedBy, vGuild.members)
 		if vMember != None:
 			return vMember.mention
 		
@@ -808,6 +823,11 @@ class OperationManager():
 		True- Success.
 		False- Failure.
 		"""
+
+		if not botSettings.Commander.bAutoStartEnabled:
+			BUPrint.Debug("Autostart is globally disabled.")
+			return
+
 		startTime = p_opData.date - dateutil.relativedelta.relativedelta(minutes=botSettings.Commander.autoPrestart + 5)
 
 		autoCommanderCog: OpCommander.autoCommander.AutoCommander = self.vBotRef.get_cog("AutoCommander")
@@ -818,19 +838,23 @@ class OperationManager():
 		if not p_opData.options.bAutoStart:
 			vJob = autoCommanderCog.scheduler.get_job(p_opData.messageID)
 			if vJob != None:
-				autoCommanderCog.scheduler.remove_job(p_opData.messageID)
-				return
+				try:
+					autoCommanderCog.scheduler.remove_job(p_opData.messageID)
+					return True
+				except apscheduler.jobstores.base.JobLookupError as vError:
+					BUPrint.LogErrorExc("Unable to remove scheduled job", vError)
+					return False
 
 		BUPrint.Info(f"Rescheduling autostart of {p_opData.name} to: {startTime}")
 
-		# self.scheduler.modify_job(p_opData.messageID, "date", run_date=startTime)
 		try:
 			autoCommanderCog.scheduler.reschedule_job(p_opData.messageID, None, "date", run_date=startTime)
 			return True
 
-		except apscheduler.jobstores.base.JobLookupError as vError:
-			BUPrint.LogErrorExc("Unable to remove scheduled job.  No Matching ID found.", vError)
-			return False
+		except apscheduler.jobstores.base.JobLookupError:
+			BUPrint.Info("Unable to reschedule autostart job: No Matching ID found. Creating new autostart entry")
+			self.AddNewAutoStart(p_opData)
+			return True
 
 
 	def AddNewAutoStart(self, p_opdata: OpData.OperationData):
@@ -1080,6 +1104,10 @@ class OpsEditor(discord.ui.View):
 		if self.vOpsData.messageID != "":
 			vOpMan = OperationManager()
 			self.vOpsData.status = OpData.OperationData.status.open
+
+			if not self.vOpsData.options.bUseReserve:
+				self.vOpsData.reserves.clear()
+
 			await vOpMan.UpdateMessage(self.vOpsData)
 			vOpMan.ReconfigureAutoStart(self.vOpsData)
 

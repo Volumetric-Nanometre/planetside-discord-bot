@@ -27,7 +27,7 @@ botUtils.FilesAndFolders.SetupFolders()
 class Bot(commands.Bot):
 
     def __init__(self):
-        super(Bot, self).__init__(command_prefix=['!'], intents=discord.Intents.all())
+        super().__init__(command_prefix=['!'], intents=discord.Intents.all())
         self.vGuildObj: discord.Guild
 
 		# Objects with BOT refs
@@ -53,11 +53,12 @@ class Bot(commands.Bot):
 
 
     async def on_ready(self):
+        self.vGuildObj = await botUtils.GetGuild(self)
         BUPrint.Info(f'Logged in as {self.user.name} ({self.user.id}) on Guild {self.vGuildObj.name}\n')
-        await self.vOpsManager.RefreshOps()
         await botUtils.ChannelPermOverwrites.Setup(p_botRef=self)
         await botUtils.RoleDebug(self.vGuildObj)
 
+        await self.vOpsManager.RefreshOps()
         # Setup existing Ops auto-starts:
         if settings.Commander.bAutoAlertsEnabled:
             self.vOpsManager.RefreshAutostarts()
