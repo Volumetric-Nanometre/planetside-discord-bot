@@ -71,6 +71,7 @@ class Commander():
 		self.vOpData : OpsData = p_opData
 		self.vCommanderStatus = CommanderStatus.Init
 		self.vFeedback = OpCommander.dataObjects.OpFeedback()
+		self.bHasSoftEnded = False # Set to true if soft ended (debriefed.)
 
 		# Auraxium client & Op event tracker
 		self.vAuraxClient = auraxium.EventClient()
@@ -590,25 +591,46 @@ class Commander():
 		)
 
 		# DISPLAY OPTIONS & DATA
+		vTempStr = ""
+		if self.vOpData.options.bAutoStart:
+			vTempStr += "Autostart *Enabled*\n"
+		else:
+			vTempStr += "Autostart *Disbaled*\n"
+
+		if self.vOpData.options.bUseReserve:
+			vTempStr += "Reserve: *Enabled*\n"
+		else:
+			vTempStr += "Reserve: *Disabled*\n"
+
+		if self.vOpData.options.bUseSoberdogsFeedback:
+			vTempStr += "Feedback: *Soberdogs*\n"
+		else:
+			vTempStr += "Feedback: *Standard*\n"
+
+		if commanderSettings.bAutoMoveVCEnabled:
+			vTempStr += "AutoVC Move: *Enabled*\n"
+		else:
+			vTempStr += "AutoVC Move: *Disabled*\n"
+
 		vEmbed.add_field(
-			name="Auto Start", 
-			value=f"{commanderSettings.bAutoStartEnabled}"
+			name="OPTIONS", 
+			value=vTempStr
 		)
 		
-		alertText = "Auto Alerts Disabled"
+		vTempStr = "Auto Alerts Disabled"
 		if commanderSettings.bAutoAlertsEnabled:
-			alertText = f"Auto Alerts Enabled\nSending: *{commanderSettings.autoAlertCount}*\n"
+			vTempStr = f"Auto Alerts Enabled\nSending: *{commanderSettings.autoAlertCount}*\n"
 
 			self.alertTimes.reverse()
 			alertTime: datetime
 			iteration = 1
 			for alertTime in self.alertTimes:
-				alertText += f"**{iteration}**: {botUtils.DateFormatter.GetDiscordTime(alertTime, botUtils.DateFormat.Dynamic )}\n"
+				vTempStr += f"**{iteration}**: {botUtils.DateFormatter.GetDiscordTime(alertTime, botUtils.DateFormat.Dynamic )}\n"
 				iteration += 1
 
 		vEmbed.add_field(
 			name="Alerts", 
-			value=alertText
+			value=vTempStr
 		)
 		
 		vSignedUpCount = 0
@@ -844,6 +866,8 @@ class Commander():
 
 		If using soberdogs but it isn't found or postable, fallback to using the default (off).
 		"""
+		await self.EndOperationSoft()
+		
 		if not self.vOpData.options.bUseSoberdogsFeedback:
 			BUPrint.Debug("Not using SoberDogs feedback.  No setup needed.")
 			return
@@ -896,26 +920,27 @@ class Commander():
 
 		newView = discord.ui.View(timeout=None)
 		# Button Objects
-		btnStart = Commander_btnStart(p_commanderParent=self)
-		btnEnd = Commander_btnEnd(p_commanderParent=self)
-		btnDebrief = Commander_btnDebrief(p_commanderParent=self)
-		btnDownloadDebrief = Commander_btnDownloadFeedback(p_commanderParent=self)
+		btnStart = Commander_btnStart(self)
+		btnEnd = Commander_btnEnd(self)
+		btnDebrief = Commander_btnDebrief(self)
+		btnDownloadDebrief = Commander_btnDownloadFeedback(self)
+		btnNotify = Commander_btnNotify(self)
 
-		newView.add_item(btnStart)
-		newView.add_item(btnDebrief)
-
-		# Configure button disabled.
+	
 		# Before op Started:
 		if self.vCommanderStatus.value < CommanderStatus.Started.value:
 			btnEnd.disabled = True
 			btnDebrief.disabled = True
+			newView.add_item(btnStart)
+			newView.add_item(btnNotify)
 
 		# Ops Started:
 		elif self.vCommanderStatus.value == CommanderStatus.Started.value:
 			btnStart.disabled = True
 			btnDebrief.disabled = False
 			btnEnd.disabled = False
-
+			newView.add_item(btnDebrief)
+			newView.add_item(btnEnd)
 
 		# Debrief:
 		elif self.vCommanderStatus.value == CommanderStatus.Debrief.value:
@@ -923,9 +948,8 @@ class Commander():
 			btnDebrief.disabled = True
 			btnEnd.disabled = False
 			newView.add_item(btnDownloadDebrief)
+			newView.add_item(btnEnd)
 
-
-		newView.add_item(btnEnd)
 
 		return newView
 
@@ -950,7 +974,7 @@ class Commander():
 		await self.GetParticipants()
 		await self.GenerateCommander()
 
-		if commanderSettings.bAutoStartEnabled:
+		if commanderSettings.bEnableLiveTracking:
 			# TODO: start tracking here.
 			pass
 
@@ -961,6 +985,17 @@ class Commander():
 		await self.SendAlertMessage(p_opStart=True)
 
 
+	async def EndOperationSoft(self):
+		"""
+		# SOFT END OPERATION
+		Performs minor cleanup, during debrief.
+		"""
+		await self.vAuraxClient.close()
+		self.scheduler.shutdown()
+
+		self.bHasSoftEnded = True
+	
+
 	async def EndOperation(self):
 		"""
 		# END OPERATION
@@ -969,8 +1004,8 @@ class Commander():
 		"""
 		self.vCommanderStatus = CommanderStatus.Ended
 
-		await self.vAuraxClient.close()
-		self.scheduler.shutdown()
+		if not self.bHasSoftEnded:
+			await self.EndOperationSoft()
 
 		# Removes the operation posting.
 		vOpMan = opsManager.OperationManager()
@@ -1083,6 +1118,18 @@ class Commander_btnDebrief(discord.ui.Button):
 
 		# await p_interaction.response.send_message("Debrief Started...", ephemeral=True)
 		await p_interaction.response.defer()
+
+
+
+class Commander_btnNotify(discord.ui.Button):
+	def __init__(self, p_commanderParent:Commander):
+		self.vCommander:Commander = p_commanderParent
+		super().__init__(label="NOTIFY", emoji="📨", row=0)
+
+	async def callback(self, p_interaction:discord.Interaction):
+		await self.vCommander.SendAlertMessage()
+		await p_interaction.response.defer()
+	
 
 
 
