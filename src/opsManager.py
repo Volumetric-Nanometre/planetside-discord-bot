@@ -279,7 +279,7 @@ class OperationManager():
 		True : Op Removed (or wasn't a file to begin with.)
 		False: Failed to remove.
 		"""
-		BUPrint.Info(f"Removing Operation: {p_opData}")
+		BUPrint.Info(f"Removing Operation: {p_opData.fileName}")
 		vFileToRemove : str = ""
 		bIsDefault = False # Convenience bool to avoid having to check messageID repeatedly
 
@@ -323,6 +323,7 @@ class OperationManager():
 			chanMessages = [message async for message in vChannel.history()]
 			if ( len(chanMessages) == 0 ):
 				await vChannel.delete(reason="Auto removal of empty signup channel")
+		
 			else:
 				# Check to see if other messages are from the bot, if not, remove the channel.
 				message:discord.Message
@@ -330,6 +331,8 @@ class OperationManager():
 				for message in chanMessages:
 					if message.author == self.vBotRef.user:
 						bBotPostFound = True
+						break
+
 				if not bBotPostFound:
 					await vChannel.delete(reason="Auto removal of empty signup channel")
 

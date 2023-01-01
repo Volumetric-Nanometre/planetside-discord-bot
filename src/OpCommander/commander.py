@@ -114,8 +114,8 @@ class Commander():
 		vEmbeds:list = []
 		
 		# Pre-Started display
-		if self.vCommanderStatus.value < CommanderStatus.Started.value:
-			pass
+		if self.vCommanderStatus.value == CommanderStatus.WarmingUp.value:
+			vEmbeds.append (await self.GenerateEmbed_Connections())
 
 		elif self.vCommanderStatus == CommanderStatus.Started:
 			vEmbeds.append( await self.GenerateEmbed_Connections())
@@ -172,6 +172,11 @@ class Commander():
 				BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
 				# self.vScheduler.enterabs(time=self.vOpData.date.timestamp(), action=self.StartOperation(), priority=1)
 				self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self])
+
+			
+			# Setup Connections Refresh
+			if commanderSettings.connectionRefreshInterval != 0:
+				self.scheduler.add_job( Commander.GenerateCommander, "interval", seconds=commanderSettings.connectionRefreshInterval, end_date=self.vOpData.date, args=[self])
 	
 			self.scheduler.start()
 
@@ -199,8 +204,8 @@ class Commander():
 				vCommanderMsg += "Auto-Start is enabled.  \n> *This Commander will automatically start the operation.*\n> *To start the operation early, press* ***START***."
 			self.commanderMsg =  await self.commanderChannel.send(vCommanderMsg, view=self.GenerateView_Commander())
 
-			# Set to standby and return.
-			self.vCommanderStatus = CommanderStatus.Standby
+			# Set to Warming and return.
+			self.vCommanderStatus = CommanderStatus.WarmingUp
 		else:
 			BUPrint.Info("Commander has already been set up!")
 

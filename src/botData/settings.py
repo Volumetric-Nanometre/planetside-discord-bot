@@ -141,6 +141,10 @@ class Commander:
 	# Auto Create UserLibrary Entry:  If true, and a user does not have an existing Library entry, create a new one
 	bAutoCreateUserLibEntry = True
 
+	# Connection Refresh Interval: time in seconds the connection embed is refreshed. (0 = disabled)
+	# For sub-65 seconds, a valid ps2 service id is needed.
+	connectionRefreshInterval = 65
+
 	# Icons for the CONNECTIONS embed.
 		# Discord
 	connIcon_discord = "🖥️"
