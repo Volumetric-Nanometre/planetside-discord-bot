@@ -48,7 +48,6 @@ class EditChannels(baseModal.BaseModal):
 					affectedUsers += f"{pInteraction.guild.get_member(userID).mention} "
 
 				await pInteraction.response.send_message(f"**ATTENTION!** Disabling reserve will remove the following users from this event:\n{affectedUsers}\n\nUse `ReserveOn` to revert this change.", ephemeral=True)
-			return
 
 		await pInteraction.response.defer()
 
