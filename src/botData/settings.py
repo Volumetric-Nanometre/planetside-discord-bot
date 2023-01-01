@@ -298,6 +298,9 @@ class Messages:
 	 - Use `!About` and press `Setup`.
 	Make sure you do this BEFORE the event starts, otherwise you will not be tracked!
 	"""
+	
+	# Invalid Command Permission : Displayed to users who don't have the required permissions to run a command.
+	invalidCommandPerms = "You do not have the required permission to use that command!"
 
 	# Feedback Overflow: Shown in feedback embeds if characters exceeds the max of 1024.
 	feedbackOverflow = "\n**UNABLE TO FIT ENTIRE FEEDBACK WITHIN EMBED!\nDownload Feedback to see it all.**"

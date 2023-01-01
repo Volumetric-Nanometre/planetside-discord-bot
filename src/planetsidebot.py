@@ -53,12 +53,17 @@ class Bot(commands.Bot):
 
 
     async def on_ready(self):
+
         self.vGuildObj = await botUtils.GetGuild(self)
+
         BUPrint.Info(f'Logged in as {self.user.name} ({self.user.id}) on Guild {self.vGuildObj.name}\n')
+
         await botUtils.ChannelPermOverwrites.Setup(p_botRef=self)
-        await botUtils.RoleDebug(self.vGuildObj)
+
+        await botUtils.RoleDebug(self.vGuildObj, p_showOnLive=False)
 
         await self.vOpsManager.RefreshOps()
+
         # Setup existing Ops auto-starts:
         if settings.Commander.bAutoAlertsEnabled:
             self.vOpsManager.RefreshAutostarts()
@@ -68,7 +73,7 @@ bot = Bot()
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
-        await ctx.send('You do not have the correct role for this command.', ephemeral=True)
+        await ctx.send(settings.Messages.invalidCommandPerms, ephemeral=True)
 
 
 def exit_handler():

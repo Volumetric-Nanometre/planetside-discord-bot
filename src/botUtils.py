@@ -5,6 +5,7 @@ from botData.settings import BotSettings
 from botData.settings import CommandRestrictionLevels
 from botData.settings import Directories
 from botData.settings import Roles
+from botData.settings import Messages
 import traceback
 import enum
 import discord
@@ -372,22 +373,24 @@ async def UserHasCommandPerms(p_callingUser:discord.Member, p_requiredLevel:Comm
 		for role in p_callingUser.roles:
 				if str(role.id) in p_requiredLevel.value or role.name in p_requiredLevel.value:
 					return True
-		await p_interaction.response.send_message("You do not have valid permission to use this command!", ephemeral=True)
+		await p_interaction.response.send_message(Messages.invalidCommandPerms, ephemeral=True)
 		return False
 
 	else:
 		return True
 
 	
-async def RoleDebug(p_guild:discord.Guild):
+async def RoleDebug(p_guild:discord.Guild, p_showOnLive=False):
 	"""
 	# ROLE DEBUG
 	Goes through all editable roles.
 	If any are not matching, they're listed.
 
-	Exits out if Debug is not enabled.
+	Returns immediately if Debug is not enabled.
+
+	Bypass this with `p_showOnLive=True`
 	"""
-	if not BotSettings.bDebugEnabled:
+	if not BotSettings.bDebugEnabled and not p_showOnLive:
 		return
 
 	guildRoles = await p_guild.fetch_roles()
@@ -401,7 +404,7 @@ async def RoleDebug(p_guild:discord.Guild):
 		guildRoleIDs.append(role.id)
 
 
-	vMessageStr += "		ROLE LEVELS\n"
+	vMessageStr += "\n		COMMAND RESTRICTION LEVELS\n"
 	for roleNID in CommandRestrictionLevels.level3.value:
 		if roleNID not in guildRoleNames and roleNID not in guildRoleIDs:
 			vMessageStr += f"\nCommand Restriction Level - Invalid Value: {roleNID}"
@@ -413,20 +416,31 @@ async def RoleDebug(p_guild:discord.Guild):
 		if option.value not in guildRoleNames or option.value not in guildRoleIDs:
 			vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
 
+	if len(Roles.addRoles_games1):
+		vMessageStr += "\n\n		GAME 1 ROLE SELECTOR\n"
+		for option in Roles.addRoles_games1:
+			if option.value not in guildRoleNames or option.value not in guildRoleIDs:
+				vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
 
-	vMessageStr += "\n\n		GAME 1 ROLE SELECTOR\n"
-	for option in Roles.addRoles_games1:
-		if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-			vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
+	if len(Roles.addRoles_games2):
+		vMessageStr += "\n\n		GAME 2 ROLE SELECTOR\n"
+		for option in Roles.addRoles_games2:
+			if option.value not in guildRoleNames or option.value not in guildRoleIDs:
+				vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
 
+	if len(Roles.addRoles_games3):
+		vMessageStr += "\n\n		GAME 3 ROLE SELECTOR\n"
+		for option in Roles.addRoles_games3:
+			if option.value not in guildRoleNames or option.value not in guildRoleIDs:
+				vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
 
-	vMessageStr += "\n\n		GAME 2 ROLE SELECTOR\n"
-	for option in Roles.addRoles_games2:
-		if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-			vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
 
 	vMessageStr += "\n\n"
-	BotPrinter.Debug(vMessageStr)
+
+	if not p_showOnLive:
+		BotPrinter.Debug(vMessageStr)
+	else:
+		BotPrinter.Info(vMessageStr)
 
 
 class ChannelPermOverwrites():
