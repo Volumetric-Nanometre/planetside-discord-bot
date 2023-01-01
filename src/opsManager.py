@@ -210,7 +210,6 @@ class OperationManager():
 		# Only update lists on first object instantiation (or there's no ops and it occurs each time):
 		if len(self.vLiveOps) == 0:
 			self.LoadOps()
-		BUPrint.Info(f"Operation Manager has been instantited. Live Ops Data: {len(self.vLiveOps)}")
 
 
 	async def RefreshOps(self):
@@ -222,7 +221,10 @@ class OperationManager():
 		vOpData : OpData.OperationData
 		for vOpData in self.vLiveOps:
 			await self.UpdateMessage(vOpData)
-			BUPrint.Info(f"Refreshing {vOpData}\n")
+			if botSettings.BotSettings.bDebugEnabled:
+				BUPrint.Info(f"Refreshing {vOpData}\n")
+			else:
+				BUPrint.Info(f"Refreshing {vOpData.fileName}")
 
 
 	def SetBotRef(p_botRef):

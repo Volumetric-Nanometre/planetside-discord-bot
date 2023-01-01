@@ -23,7 +23,7 @@ class BotSettings:
 	botDir		 = Env.BOT_DIR
 
 	# Debug Enabled: set to false during live use to reduce console clutter.
-	bDebugEnabled = True
+	bDebugEnabled = False
 
 	# ID of a channel which users are moved to when their current one is removed; this value is used when otherwise specified channels are not found.
 	fallbackVoiceChat = 326783867036106752 # Dev value!
