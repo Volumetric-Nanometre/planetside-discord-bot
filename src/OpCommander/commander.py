@@ -13,12 +13,14 @@
 # 3. SessionStats Embed: Start time, end time, user stats, link to Honu.
 # 4. SessionFeedback: Place to store player feedback.
 
+from __future__ import annotations
+
 import discord
 import discord.ext
 from discord.ext import tasks, commands
 import auraxium
-
 import re
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime, dateutil.relativedelta
 
@@ -99,7 +101,7 @@ class Commander():
 		self.vCategory: discord.CategoryChannel = None # Category object to keep the Ops self contained. All channels are created within here, except soberdogs feedback
 		self.standbyChn: discord.VoiceChannel = None # Standby channel voice connected users are moved into during start.
 		self.lastStartAlert: discord.Message = None # Last Start alert sent, used to store + remove a previous alert to not flood the channel.
-		self.participants = [Participant] # List of Participant objects.
+		self.participants:list[Participant] = [] # List of Participant objects.
 		self.notifFeedbackMsg: discord.Message = None # Message for non-soberdogs Feedback.
 		
 		# Soberdogs Discord Elements, saved here to avoid repeated fetching.
@@ -885,7 +887,7 @@ class Commander():
 		
 		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
-				tempStr[:1024]
+				tempStr = tempStr[:1000] + "..."
 				self.bFeedbackTooLarge = True
 			vEmbed.add_field(name="General", value=tempStr, inline=False)
 
@@ -897,7 +899,7 @@ class Commander():
 		
 		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
-				tempStr[:1024]
+				tempStr = tempStr[:1000] + "..."
 				self.bFeedbackTooLarge = True
 			vEmbed.add_field(name="To Squad Mates", value=tempStr, inline=False)
 
@@ -909,7 +911,7 @@ class Commander():
 		
 		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
-				tempStr[:1024]
+				tempStr = tempStr[:1000] + "..."
 				self.bFeedbackTooLarge = True
 			vEmbed.add_field(name="To Squad Lead", value=tempStr, inline=False)
 
@@ -921,7 +923,7 @@ class Commander():
 		
 		if tempStr != "" and entry != "\n":
 			if len(tempStr) > 1024:
-				tempStr[:1024]
+				tempStr = tempStr[:1000] + "..."
 				self.bFeedbackTooLarge = True
 			vEmbed.add_field(name="To Platoon Lead", value=tempStr, inline=False)
 
@@ -952,27 +954,30 @@ class Commander():
 		"""
 
 		vFeedbackEmbed = self.GenerateEmbed_Feedback()
+		feedbackFile = discord.File( self.vFeedback.SaveToFile(self.vOpData.fileName) )
 
 		if self.vOpData.options.bUseSoberdogsFeedback:
+			vFilePath = self.vFeedback.SaveToFile(self.vOpData.fileName)
 			if self.soberdogFeedbackMsg == None:
-				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(embed=vFeedbackEmbed)
+				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(embed=vFeedbackEmbed, file=feedbackFile)
 
 			else:
 				if self.vCommanderStatus == CommanderStatus.Ended and self.bFeedbackTooLarge:
 					
-					vFilePath = self.vFeedback.SaveToFile(self.vOpData.fileName)
 					if vFilePath != "":
-						await self.soberdogFeedbackMsg.edit(embed=vFeedbackEmbed, attachments=discord.File(vFilePath))
+						await self.soberdogFeedbackMsg.edit(embed=vFeedbackEmbed, attachments=[feedbackFile])
 
 				else:
 					await self.soberdogFeedbackMsg.edit(embed=vFeedbackEmbed)
 
 		else:
+			vFile = self.vFeedback.SaveToFile(self.vOpData.fileName)
+
 			if self.notifFeedbackMsg == None:
-				self.notifFeedbackMsg = await self.notifChn.send(embed=vFeedbackEmbed)
+				self.notifFeedbackMsg = await self.notifChn.send(embed=vFeedbackEmbed, file=feedbackFile)
 			
 			else:
-				await self.notifFeedbackMsg.edit(embed=vFeedbackEmbed)
+				await self.notifFeedbackMsg.edit(embed=vFeedbackEmbed, attachments=[feedbackFile])
 
 
 		await self.GenerateCommander()
@@ -1234,14 +1239,12 @@ class Commander_btnStart(discord.ui.Button):
 		super().__init__(label="START", emoji="🔘", row=0, style=discord.ButtonStyle.green)
 
 	async def callback(self, p_interaction:discord.Interaction):
-		await p_interaction.response.defer()
-
 		await self.vCommander.StartOperation()
 
 		try:
 			await p_interaction.response.send_message("Starting the event!", ephemeral=True)
 		except discord.errors.NotFound:
-			BUPrint.Info("Discord Error, response bugged out. Safe to Ignore.")
+			BUPrint.Info("Discord Error; took too long for a response. Safe to Ignore.")
 
 
 
@@ -1298,7 +1301,6 @@ class Commander_btnEnd(discord.ui.Button):
 
 
 
-
 class Commander_btnGiveFeedback(discord.ui.Button):
 	def __init__(self, p_commanderParent:Commander):
 		self.vCommander:Commander = p_commanderParent
@@ -1316,6 +1318,11 @@ class Commander_btnDownloadFeedback(discord.ui.Button):
 
 
 	async def callback(self, p_interaction:discord.Interaction):
+		if len(self.vCommander.vFeedback.userID) == 0:
+			await p_interaction.response.send_message("No user feedback yet!", ephemeral=True)
+			return
+
+
 		vFilePath = self.vCommander.vFeedback.SaveToFile(self.vCommander.vOpData.fileName)
 		if vFilePath != "":
 			vMessage = ""
