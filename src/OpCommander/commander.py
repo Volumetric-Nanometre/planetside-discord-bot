@@ -99,7 +99,7 @@ class Commander():
 		self.vCategory: discord.CategoryChannel = None # Category object to keep the Ops self contained. All channels are created within here, except soberdogs feedback
 		self.standbyChn: discord.VoiceChannel = None # Standby channel voice connected users are moved into during start.
 		self.lastStartAlert: discord.Message = None # Last Start alert sent, used to store + remove a previous alert to not flood the channel.
-		self.participants = [] # List of Participant objects.
+		self.participants = [Participant] # List of Participant objects.
 		self.notifFeedbackMsg: discord.Message = None # Message for non-soberdogs Feedback.
 		
 		# Soberdogs Discord Elements, saved here to avoid repeated fetching.
@@ -122,7 +122,7 @@ class Commander():
 		"""
 		vMessageView = self.GenerateView_Commander()
 		vEmbeds:list = []
-		vMessageContent = "**OP COMMANDER**"
+		vMessageContent = "**OP COMMANDER**\n\n"
 		
 		# Pre-Started display
 		if self.vCommanderStatus.value == CommanderStatus.WarmingUp.value:
@@ -439,7 +439,6 @@ class Commander():
 		vMessage += f"{vRoleMentionPing}|{self.GetParticipantMentions()}"
 
 		notTrackedParticipants = ""
-		participant:Participant
 		for participant in self.participants:
 			if participant.libraryEntry == None or participant.ps2Char == None:
 				notTrackedParticipants += f"{participant.discordUser.mention} "
@@ -474,7 +473,7 @@ class Commander():
 		vMessage = f"**{self.vOpData.name} HAS STARTED!**\n\n{vParticipantsStr}\n"
 
 		notTrackedParticipants = ""
-		participant:Participant
+
 		for participant in self.participants:
 			if participant.libraryEntry == None or participant.ps2Char == None:
 				notTrackedParticipants += f"{participant.discordUser.mention} "
@@ -512,7 +511,6 @@ class Commander():
 		Returns a string of `member.mention` for all participants.
 		"""
 		vMentionStr = ""
-		participantObj: Participant
 
 		for participantObj in self.participants:
 			if participantObj.discordUser != None:
@@ -542,7 +540,6 @@ class Commander():
 		else:
 			BUPrint.Debug("	-> Checking resigned participants")
 			# Check if current participant has resigned & remove.
-			vParticipantObj : Participant
 			for vParticipantObj in self.participants:
 				if vParticipantObj.discordID not in vParticipantIDs:
 					BUPrint.Debug(f"Participant: {vParticipantObj.discordID} not in list of Participant IDs, removing from list.")
@@ -595,7 +592,6 @@ class Commander():
 		vGuild = await botUtils.GetGuild(self.vBotRef)
 
 		BUPrint.Debug("Loading participant data...")
-		participantObj : Participant
 		for participantObj in self.participants:
 			BUPrint.Debug(f"User with ID: {participantObj.discordID}")
 
@@ -815,7 +811,6 @@ class Commander():
 		vPlayersStr = "\u200b\n"
 		vStatusStr = f"{commanderSettings.connIcon_discord} | {commanderSettings.connIcon_voice} | {commanderSettings.connIcon_ps2}\n"
 
-		participant: Participant
 		for participant in self.participants:
 			vPlayersStr += f"{participant.discordUser.display_name}\n"
 			
@@ -1110,10 +1105,6 @@ class Commander():
 			BUPrint.Debug("Event started early; stopping `ConnectionRefresh` job.")
 			self.scheduler.remove_job("ConnectionRefresh")
 
-		self.vOpData.status = OpsData.status.started
-		vOpMan = opsManager.OperationManager()
-		await vOpMan.UpdateMessage(self.vOpData)
-		self.vCommanderStatus = CommanderStatus.Started
 		await self.UpdateParticipants()
 		await self.GenerateCommander()
 
@@ -1127,6 +1118,11 @@ class Commander():
 			await self.MoveUsers(p_moveToStandby=True)
 
 		await self.SendAlertMessage(p_opStart=True)
+		self.vOpData.status = OpsData.status.started
+		vOpMan = opsManager.OperationManager()
+		await vOpMan.UpdateMessage(self.vOpData)
+		self.vCommanderStatus = CommanderStatus.Started
+
 
 
 	async def EndOperationSoft(self):
@@ -1191,16 +1187,10 @@ class Commander():
 		vConnectedUsers = []
 
 		if p_moveToStandby: # Moving signed up users to standby
-			# allChannels = vGuild.channels
-			# voiceChannels = []
-			# for channel in allChannels:
-			# 	if channel.type == discord.ChannelType.voice:
-			# 		voiceChannels.append( self.vGuild.get_channel(channel.id) )
-			
-			voiceChannel:discord.VoiceChannel 
+			vParticipantIDs = self.vOpData.GetParticipantIDs()
 			for voiceChannel in vGuild.voice_channels:
 				for user in voiceChannel.members:
-					if user in self.participants:
+					if user.id in vParticipantIDs:
 						vConnectedUsers.append(user)
 
 
