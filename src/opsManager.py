@@ -164,7 +164,7 @@ class Operations(commands.GroupCog):
 
 			# Prevent editing of an operation that's in progress.
 			if vLiveOpData.status == OpData.OpsStatus.prestart or vLiveOpData.status == OpData.OpsStatus.started:
-				pInteraction.response.send_message("You cannot edit an operation that is in progress!", ephemeral=True)
+				await pInteraction.response.send_message("You cannot edit an operation that is in progress!", ephemeral=True)
 				return
 
 			vEditor = OpsEditor(pBot=self.bot, pOpsData=vLiveOpData)
@@ -204,6 +204,7 @@ class OperationManager():
 	Should be used to manage Op related messages, including creation, deletion and editing.
 	"""
 	vLiveOps: list = [] # List of Live Ops (botData.OperationData)
+	vLiveCommanders = []
 	vBotRef: commands.Bot = None
 	
 	def __init__(self):
@@ -231,6 +232,7 @@ class OperationManager():
 		OperationManager.vBotRef = p_botRef
 
 
+
 	def GetOps():
 		"""
 		RETURN - Type: list(str), containing filenames of current Live Ops.
@@ -240,6 +242,7 @@ class OperationManager():
 		return botUtils.FilesAndFolders.GetFiles( botSettings.Directories.liveOpsDir, ".bin")
 
 
+	
 	def LoadOps(self):
 		"""
 		Clear current list of LiveOps, then load from files in opsList. 
@@ -263,6 +266,7 @@ class OperationManager():
 		## RETURN : list(str)
 		"""
 		return botUtils.FilesAndFolders.GetFiles(botSettings.Directories.savedDefaultsDir, ".bin")
+
 
 
 	async def RemoveOperation(self, p_opData: OpData.OperationData):
@@ -454,6 +458,7 @@ class OperationManager():
 			return None
 
 
+
 	async def AddNewLiveOp(self, p_opData: OpData.OperationData):
 		"""
 		# ADD NEW LIVE OP:
@@ -485,6 +490,7 @@ class OperationManager():
 		return True
 
 
+	
 	async def AddNewLive_PostOp(self, p_opData:OpData.OperationData):
 		"""
 		# POST OP:  
@@ -512,6 +518,8 @@ class OperationManager():
 		try:
 			vMessage:discord.Message = await vChannel.send(view=vView, embed=vEmbed)
 			p_opData.messageID = str(vMessage.id)
+			p_opData.jumpURL = vMessage.jump_url
+
 		except discord.HTTPException as vError:
 			BUPrint.LogErrorExc("Message did not send due to HTTP Exception.", vError)
 			return False
@@ -520,6 +528,7 @@ class OperationManager():
 			return False
 		
 		return True
+
 
 
 	async def AddNewLive_GetTargetChannel(self, p_opsData: OpData.OperationData):
@@ -579,6 +588,7 @@ class OperationManager():
 			return channel 
 
 
+	
 	async def AddNewLive_GenerateEmbed(self, p_opsData: OpData.OperationData):
 		"""
 		# GENERATE EMBED
@@ -603,11 +613,11 @@ class OperationManager():
 			vEmbed.colour = botUtils.Colours.opsStarting.value
 
 		if p_opsData.status == OpData.OperationData.status.started:
-			vEmbed.title += f"\n\n**{botMessages.OpsStarted}\n\n.**"
+			vEmbed.title += f"\n\n**{botMessages.OpsStarted}**"
 			vEmbed.colour = botUtils.Colours.opsStarted.value
 
 		if p_opsData.status == OpData.OperationData.status.editing:
-			vEmbed.title += f"\n\n**{botMessages.OpsBeingEdited}\n\n.**"
+			vEmbed.title += f"\n\n**{botMessages.OpsBeingEdited}**"
 			vEmbed.colour = botUtils.Colours.editing.value
 
 
@@ -685,29 +695,10 @@ class OperationManager():
 
 		# Add Options into footer.
 		if botSettings.SignUps.bShowOptsInFooter:
-			vOptsStr = "AS:"
-			if p_opsData.options.bAutoStart:
-				vOptsStr += "E"
-			else: vOptsStr += "D"
-
-			vOptsStr += "|UR:"
-			if p_opsData.options.bUseReserve:
-				vOptsStr += "E"
-			else: vOptsStr += "D"
-
-			vOptsStr += "|UC:"
-			if p_opsData.options.bUseCompact:
-				vOptsStr += "E"
-			else: vOptsStr += "D"
-
-			vOptsStr += "|SDF:"
-			if p_opsData.options.bUseSoberdogsFeedback:
-				vOptsStr += "E"
-			else: vOptsStr += "D"
-
-			vEmbed.set_footer(text=vOptsStr)
+			vEmbed.set_footer(text=f"\n{p_opsData.GetOptionsAsStr()}")
 
 		return vEmbed
+
 
 
 	async def AddNewLive_GenerateView(self, p_opsData: OpData.OperationData):
@@ -733,6 +724,7 @@ class OperationManager():
 		return vView
 
 
+
 	async def UpdateMessage(self, p_opData: OpData.OperationData):
 		"""
 		# UPDATE MESSAGE:
@@ -750,6 +742,11 @@ class OperationManager():
 		
 		try:
 			vMessage: discord.Message = await vChannel.fetch_message(p_opData.messageID)
+		
+			# Update JumpURL if not set.
+			if p_opData.jumpURL == "":
+				p_opData.jumpURL = vMessage.jump_url
+
 		except discord.NotFound as error:
 				BUPrint.LogErrorExc("Message not found! Posting a new one...", error)
 				if not await self.AddNewLive_PostOp(p_opData):
@@ -771,6 +768,15 @@ class OperationManager():
 		await vMessage.edit(embed=vNewEmbed, view=vView)
 
 
+		if p_opData.status == OpData.OpsStatus.prestart:
+			commander: OpCommander.commander.Commander = OperationManager.FindCommander(p_opData)
+			if commander == None:
+				BUPrint.Debug("Unable to get Commander for this event.")
+				return
+
+			await commander.GenerateInfo()
+
+
 
 	def GetManagedBy(self, p_opData: OpData.OperationData):
 		"""
@@ -780,6 +786,9 @@ class OperationManager():
 		vGuild = self.vBotRef.get_guild(int(botSettings.BotSettings.discordGuild))
 		
 		vMember: discord.Member = discord.utils.find(lambda member: member.name == p_opData.managedBy, vGuild.members)
+		if vMember == None:
+			vMember: discord.Member = discord.utils.find(lambda member: member.display_name == p_opData.managedBy, vGuild.members)
+
 		if vMember != None:
 			return vMember.mention
 		
@@ -797,6 +806,26 @@ class OperationManager():
 		for role in p_opData.roles:
 			if p_userToRemove in role.players:
 				role.players.remove(p_userToRemove)
+				return
+
+
+	def FindCommander(p_opdata:OpData.OperationData):
+		"""
+		# FIND COMMANDER
+		Will iterate through the live commanders for a matching opdata and return the found commander.
+		"""
+		if len(OperationManager.vLiveCommanders):
+			commander: OpCommander.commander.Commander
+			
+			for commander in OperationManager.vLiveCommanders:
+				if commander.vOpData.messageID == p_opdata.messageID:
+					return commander
+			
+			BUPrint.Debug("No matching commander found.")
+			return None
+
+		else:
+			BUPrint.Debug("No live commanders.")
 
 # SCHEDULER RELATED FUNCTIONS
 	def RefreshAutostarts(self):

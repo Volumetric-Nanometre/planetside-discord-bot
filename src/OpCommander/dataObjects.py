@@ -32,21 +32,43 @@ class Participant:
 	# PARTICIPANT
 	Dataclass containing a reference to a `discord.Member`, and a `userLibrary.User` for a participant.
 	"""
-	discordUser: Member = None
-	libraryEntry: User = None
-	ps2Char: PS2Character = None
+	# OBJECT REFERENCES
+	discordUser : Member = None
+	libraryEntry : User = None
+	ps2Char : PS2Character = None
+
+	# DATA
+	discordID : int = 0
+	bIsTracking : bool = False # Convenience bool, stays false if ps2Char is invalid/None.
+	lastCheckedName : str = "" # Last Checked name: skips searching for a PS2 character if this is the same.
+
+	def __repr__(self) -> str:
+		vStr = f"PARTICIPANT: {self.discordID}\n"
+		if self.ps2Char != None:
+			vStr += f"	PS2 Character: {self.ps2Char}"
+		if self.libraryEntry == None:
+			vStr += f"	LIBRARY ENTRY NOT SET"
+		else:
+			vStr += f"	LIBRARY PS2 NAME: {self.libraryEntry.ps2Name}"
+		if self.discordUser == None:
+			vStr += f"	DISCORD USER UNSET"
+		else:
+			vStr += f"	DISCORD USER SET :{self.discordUser.display_name}"
+
+		return vStr
+
 
 	def LoadParticipant(self):
 		"""
 		# LOAD PARTICIPANT
 		Loads and sets the `libraryEntry` data object representing the participant.
 		"""
-		dataFile = f"{Directories.userLibrary}{self.discordUser.id}.bin"
+		dataFile = f"{Directories.userLibrary}{self.discordID}.bin"
 		lockFile = BUFolders.GetLockPathGeneric(dataFile)
 
 		
-		if os.path.exists(f"{Directories.userLibrary}{self.discordUser.id}.bin"):
-			BUPrint.Debug("Found existing Library entry!")
+		if os.path.exists(f"{Directories.userLibrary}{self.discordID}.bin"):
+			BUPrint.Debug(f"Found existing Library entry! \n{self.libraryEntry}")
 			BUFolders.GetLock(lockFile)
 			try:
 				with open(dataFile, "rb") as vFile:
@@ -67,7 +89,7 @@ class Participant:
 		# SAVE PARTICIPANT
 		Saves the participant libEntry data to file.
 		"""
-		dataFile = f"{Directories.userLibrary}{self.discordUser.id}.bin"
+		dataFile = f"{Directories.userLibrary}{self.discordID}.bin"
 		lockFile = BUFolders.GetLockPathGeneric(dataFile)
 
 		BUFolders.GetLock(lockFile)
@@ -87,12 +109,41 @@ class OpFeedback:
 	# OPS FEEDBACK
 	Class containing variable lists which hold user submitted feedback
 	"""
-	userID:str = "" # Saved to allow users to edit their feedback.
+	userID:list = field(default_factory=list) # Saved to allow users to edit their feedback.
 	generic:list = field(default_factory=list)
 	forSquadmates:list = field(default_factory=list)
 	forSquadLead:list = field(default_factory=list)
 	forPlatLead:list = field(default_factory=list)
-	
+
+	def SaveToFile(self, p_eventName:str):
+		"""
+		# SAVE TO FILE
+
+		Saves the feedback to a file, using the event name provided.
+
+		## Returns: 
+		The filepath of the saved file.
+		Or "" if saving failed.
+		"""
+
+		# Save feedback to file.
+		filePath = f"{Directories.tempDir}{p_eventName}_feedback.txt" 
+		try:
+			with open(filePath, "w") as vFile:
+				vFile.write("GENERAL FEEDBACK\n")
+				vFile.writelines(self.generic)
+				vFile.write("\n\nTO SQUADMATES\n")
+				vFile.writelines(self.forSquadmates)
+				vFile.write("\n\nTO SQUAD LEAD\n")
+				vFile.writelines(self.forSquadLead)
+				vFile.write("\n\nTO PLATOON LEAD\n")
+				vFile.writelines(self.forPlatLead)
+			
+			return filePath 
+
+		except:
+			BUPrint.LogError("Unable to save a the file!")
+			return ""
 
 
 

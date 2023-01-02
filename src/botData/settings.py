@@ -23,7 +23,7 @@ class BotSettings:
 	botDir		 = Env.BOT_DIR
 
 	# Debug Enabled: set to false during live use to reduce console clutter.
-	bDebugEnabled = False
+	bDebugEnabled = True
 
 	# ID of a channel which users are moved to when their current one is removed; this value is used when otherwise specified channels are not found.
 	fallbackVoiceChat = 326783867036106752 # Dev value!
@@ -105,6 +105,17 @@ class NewUsers:
 		return vString
 
 
+class PS2EventTrackOptions(Enum):
+	"""
+	EVENT TRACKING OPTIONS:
+	Sets the requirements for when to enable tracking a ps2 event.
+
+	NOTE: To change the setting, See `botData.settings.Commander.trackEvent`.
+	"""
+	Disabled = 0
+	InGameOnly = 10
+	InGameAndDiscordVoice = 20
+
 
 @dataclass(frozen=True)
 class Commander:
@@ -112,8 +123,10 @@ class Commander:
 	# COMMANDER
 	Settings used by Op Commanders.
 	"""
-	# Enable Ops Tracking: if true, an ops commander tracks the live operation.
+	# REMOVING
+	# Enable Ops Tracking: if true, an ops commander tracks the live operation:
 	bEnableLiveTracking = True
+	trackEvent = PS2EventTrackOptions.InGameOnly
 
 	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
 	bAutoStartEnabled = True
@@ -143,7 +156,7 @@ class Commander:
 
 	# Connection Refresh Interval: time in seconds the connection embed is refreshed. (0 = disabled)
 	# For sub-65 seconds, a valid ps2 service id is needed.
-	connectionRefreshInterval = 65
+	connectionRefreshInterval = 30
 
 	# Icons for the CONNECTIONS embed.
 		# Discord
@@ -164,13 +177,14 @@ class Commander:
 		vString = "\n	OP COMMANDER SETTINGS\n"
 		vString += f"	> Auto prestart:	{self.autoPrestart} minutes\n"
 		vString += f"	> Auto Start:		{self.bAutoStartEnabled}\n"
-		vString += f"	> Live Tracking:	{self.bEnableLiveTracking}\n"
+		vString += f"	> Live Tracking:	{self.trackEvent.name}\n"
 		vString += f"	> Auto Alerts:		{self.bAutoAlertsEnabled}\n"
 		vString += f"	> Auto Alert count:	{self.autoAlertCount}\n"
 		vString += f"	> Auto Move VC:		{self.bAutoMoveVCEnabled}\n"
 		vString += f"	> Automove VC ID:	{self.autoMoveBackChannelID}\n"
-		vString += f"	> Soberdogs Feedback:{self.soberFeedbackID}\n"
-		vString += f"	> AutoCreate UserLib:{self.bAutoCreateUserLibEntry}\n"
+		vString += f"	> Soberdogs Feedback: {self.soberFeedbackID}\n"
+		vString += f"	> AutoCreate UserLib: {self.bAutoCreateUserLibEntry}\n"
+		vString += f"	> ConnectionsRefresh: {self.connectionRefreshInterval} seconds\n"
 		return vString		
 
 
@@ -312,6 +326,9 @@ class Messages:
 	# New Operation- Corrupt Data: Shown when adding a new Op but unable to read the default.
 	newOpCorruptData = "The default you tried to use is corrupt and has been removed.  Please try again using another default, or create a new one."
 
+	# COMMANDER AutoStart: Displayed on the commander when autostart is enabled.
+	commanderAutoStart = "Auto-Start is enabled.\n> *This Commander will automatically start the operation.*\n> *To start the operation early, press* ***START***."
+
 
 @dataclass(frozen=True)
 class Roles:
@@ -444,3 +461,5 @@ class CommandRestrictionLevels(Enum):
 	level1 = level0 + BotSettings.roleRestrict_level_1
 	level2 = level1 + BotSettings.roleRestrict_level_2
 	level3 = level2 + BotSettings.roleRestrict_level_3
+
+

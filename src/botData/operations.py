@@ -25,9 +25,10 @@ class OperationOptions:
 	Options, typically altered via use of arguments, to determine behaviour of the ops.
 	"""
 	bUseReserve : bool = True # Only enable built in RESERVE if true.
-	bUseCompact : bool = False # Not yet used, argument: -COMPACT; does not show a member list for each role.
-	bAutoStart : bool = True # If false, someone must use `/op-commander [OpData]` to start the commander.
+	bUseCompact : bool = False # If True, does not show a member list for each role.
+	bAutoStart : bool = True # If false, someone must use `/commander [OpData]` to start the commander.
 	bUseSoberdogsFeedback : bool = False # If true, debriefing opens a new forum thread and send the feedback message there.
+	bIsPS2Event : bool = True # If false, treats this event as a non-PS2 event.
 
 
 @dataclass
@@ -82,12 +83,14 @@ class OperationData:
 	description : str = ""
 	customMessage : str = ""
 	managedBy:str = ""
+	pingables : list = field(default_factory=list) # roles to mention/ping in relation to this ops.
 
 	# Backend variables
 	messageID : str = "" 
 	status : OpsStatus = OpsStatus.open
 	targetChannel: str = ""
 	options: OperationOptions = OperationOptions()
+	jumpURL: str = ""
 
 	# Factory fields
 	voiceChannels: list = field(default_factory=list)
@@ -195,6 +198,74 @@ class OperationData:
 				self.options.bUseSoberdogsFeedback = True
 				BUPrint.Debug(f"Setting Soberdogs Feedback: ON for {self.name}")
 				continue
+
+
+			# TOGGLE PS2 EVENT
+			if argInLower == "ps2event":
+				self.options.bIsPS2Event = True
+				BUPrint.Debug(f"Setting PS2 Event: ON for {self.name}")
+				continue
+
+			elif argInLower == "notps2":
+				self.options.bIsPS2Event = False
+				BUPrint.Debug(f"Setting PS2 Event: OFF for {self.name}")
+				continue
+
+
+	def GetOptionsAsStr(self):
+		"""
+		# GET OPTIONS AS STRING
+
+		Returns a condensed formatted version of the options as a string, eg:
+		AS:E|UR:E|UC:D|SDF:D
+		"""
+		vOptsStr = "AS:"
+		if self.options.bAutoStart:
+			vOptsStr += "E"
+		else: vOptsStr += "D"
+
+
+		vOptsStr += "|UR:"
+		if self.options.bUseReserve:
+			vOptsStr += "E"
+		else: vOptsStr += "D"
+
+
+		vOptsStr += "|UC:"
+		if self.options.bUseCompact:
+			vOptsStr += "E"
+		else: vOptsStr += "D"
+
+
+		vOptsStr += "|SDF:"
+		if self.options.bUseSoberdogsFeedback:
+			vOptsStr += "E"
+		else: vOptsStr += "D"
+
+
+		vOptsStr += "|PSE:"
+		if self.options.bIsPS2Event:
+			vOptsStr += "E"
+		else: vOptsStr += "D" 
+
+		return vOptsStr
+
+
+	def GetParticipantIDs(self):
+		"""
+		# GET PARTICIPANT IDS
+		Returns all roles participants (IDs), including reserve if enabled in a list.
+		"""
+		vIDList = []
+
+		role: OpRoleData
+		for role in self.roles:
+			vIDList += role.players
+
+		if self.options.bUseReserve:
+			vIDList += self.reserves
+
+		return vIDList
 
 
 

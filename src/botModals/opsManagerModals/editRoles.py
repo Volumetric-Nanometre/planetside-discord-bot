@@ -6,6 +6,13 @@ import botUtils
 from botData.settings import Messages as botMessages
 
 class EditRoles(baseModal.BaseModal):
+	txtPingables = discord.ui.TextInput(
+		label="Pingables",
+		placeholder="Roles to ping",
+		style=discord.TextStyle.short,
+		required=False
+	)
+
 	txtEmoji = discord.ui.TextInput(
 		label="Emoji",
 		placeholder="EmojiID String per line",
@@ -36,13 +43,15 @@ class EditRoles(baseModal.BaseModal):
 
 	async def on_submit(self, pInteraction: discord.Interaction):
 		BUPrint.Debug("Edit Roles Modal submitted...")
+		self.vOpData.pingables = self.txtPingables.value.split(" ")
+
 		vRoleNames = self.txtRoleName.value.splitlines()
 		vRoleEmoji = self.txtEmoji.value.splitlines()
 		vRoleMax = self.txtRoleMaxPos.value.splitlines()
 		
 		# If user made an error, don't proceed- inconstsent lengths!
 		if len(vRoleNames) != len(vRoleEmoji) != len(vRoleMax):
-			await pInteraction.response.send_message('Inconsistent array lengths in fields!  \nMake sure the number of lines matches in all three fields.\n\nFor empty Emojis, use "".', ephemeral=True)
+			await pInteraction.response.send_message('Inconsistent array lengths in fields!  \nMake sure the number of lines matches in all three fields.\n\nFor empty Emojis, use "-".', ephemeral=True)
 			return
 
 		vIndex = 0
@@ -101,11 +110,14 @@ class EditRoles(baseModal.BaseModal):
 
 	def PresetFields(self):
 		BUPrint.Debug("Auto-filling modal (ROLES) with existing data.")
-		
+		vPingables: str = ""
 		vRoleNames: str = ""
 		vRoleEmojis: str = ""
-		vRoleMembers: str = "DISPLAY PURPOSES ONLY\n"
 		vRoleMaxPos: str = ""
+		vRoleMembers: str = "DISPLAY PURPOSES ONLY\n"
+
+		for pingable in self.vOpData.pingables:
+			vPingables += f"{pingable} "
 
 		roleIndex: OpData.OpRoleData
 		for roleIndex in self.vOpData.roles:
@@ -118,6 +130,7 @@ class EditRoles(baseModal.BaseModal):
 				vRoleEmojis += f"{roleIndex.roleIcon}\n"
 
 	# Set the text inputs to existing values:
+		self.txtPingables.default = vPingables.strip()
 		self.txtRoleName.default = vRoleNames.strip()
 		self.txtEmoji.default = vRoleEmojis.strip()
 		self.txtRoleMaxPos.default = vRoleMaxPos.strip()
