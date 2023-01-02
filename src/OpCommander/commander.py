@@ -572,15 +572,17 @@ class Commander():
 				if participantObj.ps2Char == None:
 					participantObj.bIsTracking = False
 					continue
-				
-				if commanderSettings.trackEvent == PS2EventTrackOptions.InGameOnly:
-					if await participantObj.ps2Char.is_online():
-						participantObj.bIsTracking = True
+				try:
+					if commanderSettings.trackEvent == PS2EventTrackOptions.InGameOnly:
+						
+						if await participantObj.ps2Char.is_online():
+							participantObj.bIsTracking = True
 
-				elif commanderSettings.trackEvent == PS2EventTrackOptions.InGameAndDiscordVoice:
-					if await participantObj.ps2Char.is_online() and participantObj.discordUser.voice != None:
-						participantObj.bIsTracking = True
-
+					elif commanderSettings.trackEvent == PS2EventTrackOptions.InGameAndDiscordVoice:
+						if await participantObj.ps2Char.is_online() and participantObj.discordUser.voice != None:
+							participantObj.bIsTracking = True
+				except auraxium.errors.AuraxiumException as vError:
+					BUPrint.LogErrorExc("Unable to determine if user is online.", vError)
 
 
 	async def LoadParticipantData(self):
@@ -828,11 +830,16 @@ class Commander():
 
 
 			if participant.ps2Char != None:
-				isOnline = await participant.ps2Char.is_online()
-				if isOnline:
-					vStatusStr += f"{commanderSettings.connIcon_ps2Online}\n"
-				else:
-					vStatusStr += f"{commanderSettings.connIcon_ps2Offline}\n"
+				try:
+					isOnline = await participant.ps2Char.is_online()
+					if isOnline:
+						vStatusStr += f"{commanderSettings.connIcon_ps2Online}\n"
+					else:
+						vStatusStr += f"{commanderSettings.connIcon_ps2Offline}\n"
+				except:
+					vStatusStr += f"{commanderSettings.connIcon_ps2Invalid}\n"
+
+
 			else:
 				vStatusStr += f"{commanderSettings.connIcon_ps2Invalid}\n"
 
@@ -1227,12 +1234,14 @@ class Commander_btnStart(discord.ui.Button):
 		super().__init__(label="START", emoji="🔘", row=0, style=discord.ButtonStyle.green)
 
 	async def callback(self, p_interaction:discord.Interaction):
+		await p_interaction.response.defer()
+
+		await self.vCommander.StartOperation()
+
 		try:
 			await p_interaction.response.send_message("Starting the event!", ephemeral=True)
 		except discord.errors.NotFound:
 			BUPrint.Info("Discord Error, response bugged out. Safe to Ignore.")
-
-		await self.vCommander.StartOperation()
 
 
 

@@ -127,17 +127,28 @@ class OpFeedback:
 		"""
 
 		# Save feedback to file.
-		filePath = f"{Directories.tempDir}{p_eventName}_feedback.txt" 
+		filePath = f"{Directories.tempDir}{p_eventName}_feedback.txt"
 		try:
 			with open(filePath, "w") as vFile:
 				vFile.write("GENERAL FEEDBACK\n")
-				vFile.writelines(self.generic)
+				for line in self.generic:
+					if line != "" or "\n":
+						vFile.write(f"{line}\n\n")
+
 				vFile.write("\n\nTO SQUADMATES\n")
-				vFile.writelines(self.forSquadmates)
+				for line in self.forSquadmates:
+					if line != "" or "\n":
+						vFile.write(f"{line}\n\n")
+
 				vFile.write("\n\nTO SQUAD LEAD\n")
-				vFile.writelines(self.forSquadLead)
+				for line in self.forSquadLead:
+					if line != "" or "\n":
+						vFile.write(f"{line}\n\n")
+
 				vFile.write("\n\nTO PLATOON LEAD\n")
-				vFile.writelines(self.forPlatLead)
+				for line in self.forPlatLead:
+					if line != "" or "\n":
+						vFile.write(f"{line}\n\n")
 			
 			return filePath 
 
