@@ -1106,7 +1106,6 @@ class Commander():
 			self.scheduler.remove_job("ConnectionRefresh")
 
 		await self.UpdateParticipants()
-		await self.GenerateCommander()
 
 		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
 			# TODO: start tracking here.
@@ -1122,6 +1121,7 @@ class Commander():
 		vOpMan = opsManager.OperationManager()
 		await vOpMan.UpdateMessage(self.vOpData)
 		self.vCommanderStatus = CommanderStatus.Started
+		await self.GenerateCommander()
 
 
 
