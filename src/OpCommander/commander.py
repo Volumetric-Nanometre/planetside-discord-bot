@@ -182,7 +182,7 @@ class Commander():
 			# Setup AutoStart
 			if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
 				BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
-				self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self])
+				self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self], id="CommanderAutoStart")
 
 			
 			# Setup Connections Refresh
@@ -1111,11 +1111,18 @@ class Commander():
 			BUPrint.Debug("Operation has already been started. Skipping.")
 			return
 
-		# If early start; stop connection refresh
+		# If early start; stop connection refresh & autostart
 		vSchedJob = self.scheduler.get_job("ConnectionRefresh")
 		if vSchedJob != None:
 			BUPrint.Debug("Event started early; stopping `ConnectionRefresh` job.")
 			self.scheduler.remove_job("ConnectionRefresh")
+
+
+		vSchedJob = self.scheduler.get_job("CommanderAutoStart")
+		if vSchedJob != None:
+			BUPrint.Debug("Event started early; stopping `CommanderAutoStart` job.")
+			self.scheduler.remove_job("CommanderAutoStart")
+
 
 		await self.UpdateParticipants()
 
