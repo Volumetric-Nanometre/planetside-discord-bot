@@ -22,6 +22,10 @@ class BotSettings:
 	ps2ServiceID = Env.PS2_SVS_ID
 	botDir		 = Env.BOT_DIR
 
+	# Admin Chanel: The chanel admin related features are directed to.
+	adminChannel = 1049424595750506527 # DEV VALUE
+	# adminChannel = 1 # LIVE VALUE
+
 	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
 
@@ -54,6 +58,7 @@ class BotSettings:
 		vString += f"	> DiscordGuild:	{self.discordGuild}\n"
 		vString += f"	> PS2ServiceID:	{self.ps2ServiceID}\n"
 		vString += f"	> BotDirectory:	{self.botDir}\n"
+		vString += f"	> AdminChannel:	{self.adminChannel}\n"
 		vString += f"	> Force Role Restrictions: {self.bForceRoleRestrictions}\n"
 		vString += f"	> Level 0:	{self.roleRestrict_level_0}\n"
 		vString += f"	> Level 1:	{self.roleRestrict_level_1}\n"
@@ -69,9 +74,6 @@ class NewUsers:
 	# NEW USERS
 	Settings pertaining to the bot behaviour for `NewUser` cog.
 	"""
-	# New User Admin Chanel: the channel (ID) new user join requests are sent to.
-	adminChannel = 1049424595750506527
-
 	# Gate Channel: Channel (ID) where new user join forms are sent to.
 	gateChannelID = 1041860598822096950
 
@@ -95,7 +97,6 @@ class NewUsers:
 
 	def __repr__(self) -> str:
 		vString = "\n	NEW USER SETTINGS\n"
-		vString += f"	> Admin Channel:	{self.adminChannel}\n"
 		vString += f"	> Gate channel:		{self.gateChannelID}\n"
 		vString += f"	> General Channel:	{self.generalChanelID}\n"
 		vString += f"	> Rule Channel:		{self.ruleChnID}\n"
@@ -123,10 +124,11 @@ class Commander:
 	# COMMANDER
 	Settings used by Op Commanders.
 	"""
-	# REMOVING
-	# Enable Ops Tracking: if true, an ops commander tracks the live operation:
-	bEnableLiveTracking = True
+	# Track Event: Setting to determine which participants of a ps2 event are tracked
 	trackEvent = PS2EventTrackOptions.InGameOnly
+
+	# Marked Present: Setting to determine when a participant is considered part of the event and their userLib entry is updated
+	markedPresent = PS2EventTrackOptions.InGameAndDiscordVoice
 
 	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
 	bAutoStartEnabled = True
@@ -175,13 +177,13 @@ class Commander:
 		vString += f"	> Auto prestart:	{self.autoPrestart} minutes\n"
 		vString += f"	> Auto Start:		{self.bAutoStartEnabled}\n"
 		vString += f"	> Live Tracking:	{self.trackEvent.name}\n"
+		vString += f"	> Marked Present:	{self.markedPresent.name}\n"
 		vString += f"	> Auto Alerts:		{self.bAutoAlertsEnabled}\n"
 		vString += f"	> Auto Alert count:	{self.autoAlertCount}\n"
 		vString += f"	> Auto Move VC:		{self.bAutoMoveVCEnabled}\n"
 		vString += f"	> Automove VC ID:	{self.autoMoveBackChannelID}\n"
-		vString += f"	> Soberdogs Feedback: {self.soberFeedbackID}\n"
-		vString += f"	> AutoCreate UserLib: {self.bAutoCreateUserLibEntry}\n"
-		vString += f"	> ConnectionsRefresh: {self.connectionRefreshInterval} seconds\n"
+		vString += f"	> Soberdogs Feedback:	{self.soberFeedbackID}\n"
+		vString += f"	> ConnectionsRefresh:	{self.connectionRefreshInterval} seconds\n"
 		return vString		
 
 
@@ -275,6 +277,20 @@ class UserLib:
 	# Commander can Auto Create: When true, new user library entries are created for non-existant entries if a valid ps2 name is found from their username.
 	bCommanderCanAutoCreate = True
 
+	# Max Saved Events: The maximum number of saved events a users entry can hold.  0 for no limit.
+	maxSavedEvents = 0
+
+	# Auto Promote Enabled: When true, after a user has participated in minAttendedEvents, they are promoted (if appropriate role found)
+	bAutoPromoteEnabled = True
+
+	# Min Attended Events: the minimum number of events a user has to participate in before auto-promotion.
+	minAttendedEvents = 4
+
+	# Promotion Requires Validation: If true, a validation request is sent to the userRequest channel to be confirmed, otherwise they are promoted automatically.
+	bPromotionRequiresValidation = True
+
+	def __repr__(self) -> str:
+		vString = "\n	USER LIBRARY SETTINGS\n"
 
 
 @dataclass(frozen=True)

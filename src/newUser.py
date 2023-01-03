@@ -61,7 +61,7 @@ class NewUser(commands.Cog):
 		gateChannel = self.botRef.get_channel(NewUserSettings.gateChannelID)
 		await gateChannel.purge(reason="Start-up/Shutdown Purge.")
 		BotPrinter.Debug("	-> Gate channel Purged.")
-		adminRequestChannel = self.botRef.get_channel(NewUserSettings.adminChannel)
+		adminRequestChannel = self.botRef.get_channel(botData.settings.BotSettings.adminChannel)
 		await adminRequestChannel.purge(reason="Startup/Shutdown Purge")
 		BotPrinter.Debug("	-> Request Channel Purged.")
 		await gateChannel.send(botData.settings.Messages.gateChannelDefaultMsg)
@@ -69,7 +69,7 @@ class NewUser(commands.Cog):
 	@commands.Cog.listener("on_member_join")
 	async def promptUser(self, p_member: discord.Member):
 		if NewUserRequest.vRequestChannel == None:
-			NewUserRequest.vRequestChannel = await self.botRef.fetch_channel(NewUserSettings.adminChannel)
+			NewUserRequest.vRequestChannel = self.botRef.get_channel(botData.settings.BotSettings.adminChannel)
 			if(NewUserRequest.vRequestChannel == None):
 				BotPrinter.Info("NEW USER REQUEST CHANNEL NOT FOUND!")
 				return
