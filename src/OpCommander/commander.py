@@ -38,6 +38,7 @@ from botData.settings import Commander as commanderSettings
 from botData.settings import PS2EventTrackOptions
 from botData.settings import Messages as botMessages
 from botData.settings import Directories
+from botData.settings import UserLib
 
 import botData.operations
 from botData.operations import OperationData as OpsData
@@ -654,7 +655,7 @@ class Commander():
 				BUPrint.Debug("	-> PS2 Character found!")
 				p_participant.libraryEntry = UserEntry(discordID=p_participant.discordID, ps2Name=charName)
 				
-				if commanderSettings.bAutoCreateUserLibEntry:
+				if UserLib.bCommanderCanAutoCreate:
 					BUPrint.Debug("Saving new user Entry:")
 					p_participant.SaveParticipant()
 

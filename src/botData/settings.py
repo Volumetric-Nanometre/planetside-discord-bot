@@ -151,9 +151,6 @@ class Commander:
 	# Sober Feedback ID: The ID of the forum to post a new SoberDogs Debrief message into.
 	soberFeedbackID = 1042463290472800317
 
-	# Auto Create UserLibrary Entry:  If true, and a user does not have an existing Library entry, create a new one
-	bAutoCreateUserLibEntry = True
-
 	# Connection Refresh Interval: time in seconds the connection embed is refreshed. (0 = disabled)
 	# For sub-65 seconds, a valid ps2 service id is needed.
 	connectionRefreshInterval = 30
@@ -266,6 +263,17 @@ class SignUps:
 		vString += f"	> Auto Prestart:{self.bAutoPrestartEnabled}\n"
 		vString += f"	> Show Opts in Footer: {self.bShowOptsInFooter}\n"
 		return vString
+
+
+
+@dataclass(frozen=True)
+class UserLib:
+	"""
+	# USER LIBRARY
+	Settings pertaining to the behaviour of the user library.
+	"""
+	# Commander can Auto Create: When true, new user library entries are created for non-existant entries if a valid ps2 name is found from their username.
+	bCommanderCanAutoCreate = True
 
 
 

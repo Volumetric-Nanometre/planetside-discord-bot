@@ -373,7 +373,9 @@ async def UserHasCommandPerms(p_callingUser:discord.Member, p_requiredLevel:Comm
 		for role in p_callingUser.roles:
 				if str(role.id) in p_requiredLevel.value or role.name in p_requiredLevel.value:
 					return True
-		await p_interaction.response.send_message(Messages.invalidCommandPerms, ephemeral=True)
+		
+		if p_interaction != None:
+			await p_interaction.response.send_message(Messages.invalidCommandPerms, ephemeral=True)
 		return False
 
 	else:

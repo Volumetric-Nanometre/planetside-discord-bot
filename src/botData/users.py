@@ -6,8 +6,10 @@ import datetime
 @dataclass
 class User:
 	"""
-	# USER
-	Data object representing a user on the discord.
+	# USER (UserLibrary)
+	Data object representing a user on the discord.  
+	
+	Contains their planetside2 character information, and tracked event sessions.
 	"""
 	discordID: int = -1
 
