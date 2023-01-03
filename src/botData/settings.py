@@ -277,8 +277,8 @@ class UserLib:
 	# Commander can Auto Create: When true, new user library entries are created for non-existant entries if a valid ps2 name is found from their username.
 	bCommanderCanAutoCreate = True
 
-	# Max Saved Events: The maximum number of saved events a users entry can hold.  0 for no limit.
-	maxSavedEvents = 0
+	# Max Saved Events: The maximum number of saved events a users entry can hold.  -1 for no limit, or 0 to disable.
+	maxSavedEvents = -1
 
 	# Auto Promote Enabled: When true, after a user has participated in minAttendedEvents, they are promoted (if appropriate role found)
 	bAutoPromoteEnabled = True
@@ -289,8 +289,19 @@ class UserLib:
 	# Promotion Requires Validation: If true, a validation request is sent to the userRequest channel to be confirmed, otherwise they are promoted automatically.
 	bPromotionRequiresValidation = True
 
+	# Session Preview Max: The number of saved sessions that are previewed in a libraryViewer general page.
+	sessionPreviewMax = 5
+
 	def __repr__(self) -> str:
 		vString = "\n	USER LIBRARY SETTINGS\n"
+		vString += f"	> AutoCreate Entry: {self.bCommanderCanAutoCreate}\n"
+		vString += f"	> Max Saved Events:	{self.maxSavedEvents}\n"
+		vString += f"	> AutoPromote Users:	{self.bAutoPromoteEnabled}\n"
+		vString += f"	> Min Attended Events:	{self.minAttendedEvents}\n"
+		vString += f"	> Validate AutoPromote:	{self.bPromotionRequiresValidation}\n"
+		vString += f"	> Max Session Previews:	{self.sessionPreviewMax}\n"
+
+		return vString
 
 
 @dataclass(frozen=True)

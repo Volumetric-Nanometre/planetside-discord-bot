@@ -20,6 +20,9 @@ class User:
 	# Users PS2 Char Outfit Rank, if applicable.
 	ps2OutfitRank: str = ""
 
+	# Used alongside auto-promote; this is set by newUser or manually.
+	bIsRecruit = False
+
 	# Tracked Sessions
 	sessions :list = field(default_factory=list)
 	
@@ -30,7 +33,7 @@ class User:
 	eventsMissed = 0
 	
 	# Users birthday.
-	birthday:datetime = None
+	birthday:datetime.datetime = None
 
 	# User provided "about" text.
 	aboutMe = ""

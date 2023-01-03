@@ -16,11 +16,12 @@ import opsManager
 from OpCommander.autoCommander import AutoCommander
 from OpCommander.autoCommander import CommanderCommands
 from OpCommander.commander import Commander
+from userManager import UserLibraryCog, UserLibrary
 
 
 # import chatlinker
 
-BUPrint.Info(f"Starting bot with settings:\n{settings.BotSettings()}\n{settings.Directories()}\n{settings.SignUps()}\n{settings.NewUsers()}\n{settings.Commander()}")
+BUPrint.Info(f"Starting bot with settings:\n{settings.BotSettings()}\n{settings.Directories()}\n{settings.SignUps()}\n{settings.NewUsers()}\n{settings.Commander()}\n{settings.UserLib()}\n")
 
 botUtils.FilesAndFolders.SetupFolders()
 
@@ -36,6 +37,7 @@ class Bot(commands.Bot):
         Commander.vBotRef = self
 
 
+
     async def setup_hook(self):
         BUPrint.Info("Setting up hooks...")
         # Needed for later functions, which want a discord object instead of a plain string.
@@ -46,6 +48,7 @@ class Bot(commands.Bot):
         await self.add_cog(opsManager.Operations(p_bot=self))
         await self.add_cog(AutoCommander(p_bot=self))
         await self.add_cog(CommanderCommands(p_bot=self))
+        await self.add_cog(UserLibraryCog(self))
         # await self.add_cog(chatlinker.ChatLinker(self))
 
         self.tree.copy_global_to(guild=self.vGuildObj)
@@ -53,20 +56,15 @@ class Bot(commands.Bot):
 
 
     async def on_ready(self):
-
         self.vGuildObj = await botUtils.GetGuild(self)
-
-        BUPrint.Info(f'Logged in as {self.user.name} ({self.user.id}) on Guild {self.vGuildObj.name}\n')
-
         await botUtils.ChannelPermOverwrites.Setup(p_botRef=self)
-
         await botUtils.RoleDebug(self.vGuildObj, p_showOnLive=False)
-
         await self.vOpsManager.RefreshOps()
 
         # Setup existing Ops auto-starts:
         if settings.Commander.bAutoAlertsEnabled:
             self.vOpsManager.RefreshAutostarts()
+        BUPrint.Info(f'Logged in as {self.user.name} ({self.user.id}) on Guild {self.vGuildObj.name}\n')
 
 bot = Bot()
 

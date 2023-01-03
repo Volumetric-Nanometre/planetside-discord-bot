@@ -4,8 +4,6 @@ import discord
 import discord.ext
 from discord.ext import commands
 import discord.utils
-# from discord.ext import commands
-# from discord import app_commands
 import asyncio
 
 import botData.settings 
