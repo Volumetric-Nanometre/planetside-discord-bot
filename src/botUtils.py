@@ -405,37 +405,34 @@ async def RoleDebug(p_guild:discord.Guild, p_showOnLive=False):
 		guildRoleNames.append(role.name)
 		guildRoleIDs.append(role.id)
 
-
-	vMessageStr += "\n		COMMAND RESTRICTION LEVELS\n"
 	for roleNID in CommandRestrictionLevels.level3.value:
 		if roleNID not in guildRoleNames and roleNID not in guildRoleIDs:
-			vMessageStr += f"\nCommand Restriction Level - Invalid Value: {roleNID}"
+			vMessageStr += f"\nCOMMAND RESTRICT LEVEL | Invalid Value: {roleNID}"
 
 
-	vMessageStr += "\n\n		TDKD ROLE SELECTOR\n"
+	vMessageStr += "\n"
 	option:discord.SelectOption
 	for option in Roles.addRoles_TDKD:
 		if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-			vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
+			vMessageStr += f"\nTDKD ROLE SELECTOR | Invalid Value: {option.value} for {option.label}"
 
 	if len(Roles.addRoles_games1):
-		vMessageStr += "\n\n		GAME 1 ROLE SELECTOR\n"
+		vMessageStr += "\n"
 		for option in Roles.addRoles_games1:
 			if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-				vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
+				vMessageStr += f"\nGAME ROLES 1 | Invalid Value: {option.value} for {option.label}"
 
 	if len(Roles.addRoles_games2):
-		vMessageStr += "\n\n		GAME 2 ROLE SELECTOR\n"
+		vMessageStr += "\n"
 		for option in Roles.addRoles_games2:
 			if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-				vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
+				vMessageStr += f"\nnGAME ROLES 2 | Invalid Value: {option.value} for {option.label}"
 
 	if len(Roles.addRoles_games3):
-		vMessageStr += "\n\n		GAME 3 ROLE SELECTOR\n"
+		vMessageStr += "\n"
 		for option in Roles.addRoles_games3:
 			if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-				vMessageStr += f"\nInvalid Value: {option.value} for {option.label}"
-
+				vMessageStr += f"\nnGAME ROLES 3 | Invalid Value: {option.value} for {option.label}"
 
 	vMessageStr += "\n\n"
 

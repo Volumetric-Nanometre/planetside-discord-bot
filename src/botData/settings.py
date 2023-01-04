@@ -309,11 +309,15 @@ class UserLib:
 	# Auto Promote Enabled: When true, after a user has participated in minAttendedEvents, they are promoted (if appropriate role found)
 	bAutoPromoteEnabled = True
 
-	# Min Attended Events: the minimum number of events a recruit has to participate in before promotion.
+	# Min Attended Events: the minimum number of events a recruit has to actively participate in before promotion.
 	minAttendedEvents = 4
 
-	# Promotion Requires Validation: If true, a validation request is sent to the userRequest channel to be confirmed, otherwise they are promoted automatically.
+	# Promotion Requires Validation: If true, a validation request is sent to the admin channel to be confirmed, otherwise they are promoted automatically.
 	bPromotionRequiresValidation = True
+
+	# Promotion Role ID: The ID of the role recruit users are promoted to.
+	promotionRoleID = 1050286811940921344 # DEV VALUE
+	# promotionRoleID = 710472193045299260 # LIVE VALUE
 
 	# Session Preview Max: The number of saved sessions that are previewed in a libraryViewer general page.
 	sessionPreviewMax = 5

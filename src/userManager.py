@@ -33,6 +33,7 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 	def __init__(self, p_botRef):
 		self.botRef = p_botRef
 		UserLibrary.botRef = p_botRef
+		UserLib_RecruitValidationRequest.botRef = p_botRef
 		BUPrint.Info("COG: User Library loaded!")
 
 
@@ -75,13 +76,16 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 	"""
 	# USER LIBRARY ADMIN COG
-	Administrative commands for managing the user library.
+	Administrative commands and listeners for managing the user library.
 	"""
 	def __init__(self, p_botRef):
 		self.adminLevel = settings.CommandRestrictionLevels.level1
 		self.botRef = p_botRef
 		UserLibrary.botRef = p_botRef
+		UserLib_RecruitValidationRequest.botRef = p_botRef
 		BUPrint.Info("COG: User Library Admin loaded!")
+
+
 
 	@app_commands.command(name="reconfigure_user", description="Opens the Edit modal for the specified user entry, if they have one.")
 	@app_commands.describe(p_userToEdit="Choose the user to edit.", p_createNew="If no entry exists, create a new entry (Default: True)")
@@ -96,6 +100,7 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 			await p_interaction.response.send_message("Invalid user!", ephemeral=True)
 			return
 
+
 		vEntry = None
 		if UserLibrary.HasEntry(p_userToEdit.id):
 			vEntry = UserLibrary.LoadEntry(p_userToEdit.id)
@@ -106,7 +111,7 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 		if vEntry != None:
 			await p_interaction.response.send_modal( LibViewer_ConfigureModal(p_adminEditEntry=vEntry) )
 		else:
-			await p_interaction.response.send_message("No entry was found. If you want to create a new one, ensure `Create_if_none`is true (default!)")
+			await p_interaction.response.send_message("No entry was found. If you want to create a new one, ensure `Create_if_none` is true (default!)")
 
 	
 	@commands.Cog.listener("on_raw_member_remove")
@@ -129,7 +134,7 @@ class UserLibrary():
 	"""
 	# USER LIBRARY OBJECT
 	Contains functions relating to the entries.
-	Most functions will not require an instance.
+	Functions will not require an instance.
 	"""
 	botRef:commands.Bot
 	def __init__(self):
@@ -234,6 +239,22 @@ class UserLibrary():
 
 
 		return vLibEntry
+
+
+	def GetAllEntries():
+		"""
+		# GET ALL ENTRIES
+		Loads all entries and returns them in a list.
+		"""
+		vEntryList = []
+		files = FilesAndFolders.GetFiles(settings.Directories.userLibrary, ".bin")
+
+		file:str
+		for file in files:
+			vEntryList.append( UserLibrary.LoadEntry(file.replace(".bin", "")) )
+
+		return vEntryList
+
 
 
 	async def PropogatePS2Info(p_entry:User):
@@ -804,3 +825,72 @@ class LibViewer_ConfigureModal(discord.ui.Modal):
 			self.vUserEntry.sessions.clear()
 	
 		BUPrint.Debug(f"Settings: {self.vUserEntry.settings}")
+
+
+
+### RECRUIT ADMIN REQUEST
+
+class UserLib_RecruitValidationRequest():
+	"""
+	# USER LIBRARY: RECRUIT VALIDATION
+	A class that handles a validation request for a recruits promotion.
+	"""
+	botRef:commands.Bot
+
+	def __init__(self, p_userEntry:User):
+		self.userEntry = p_userEntry
+		self.requestMsg:discord.Message = None
+
+
+	async def SendRequest(self):
+		"""
+		# SEND REQUEST
+		Sends the request to an admin channel.
+		"""
+		vAdminChn = self.botRef.get_channel(settings.BotSettings.adminChannel)
+
+		if vAdminChn == None:
+			BUPrint.Info("Unable to get admin channel for promotion request!")
+			return
+
+		vView = discord.ui.View(timeout=None)
+		vView.add_item(RecruitValidationReq_btnAccept(self))
+
+		vUser = self.botRef.get_user(self.userEntry.discordID)
+
+		self.requestMsg = vAdminChn.send(f"User {vUser.mention} is ready to be promoted!", view=vView)
+
+
+class RecruitValidationReq_btnAccept(discord.ui.Button):
+	def __init__(self, p_parentRequest:UserLib_RecruitValidationRequest):
+		self.parent = p_parentRequest
+		super().__init__(label="Promote!")
+
+	async def callback(self, p_interaction:discord.Interaction):
+		vRecruitRole:discord.Role = None
+		vPromotionRole:discord.Role = None
+
+		for role in p_interaction.guild.roles:
+			if vRecruitRole != None and vPromotionRole != None:
+				break
+
+			if role.id == settings.NewUsers.recruitRole:
+				vRecruitRole = role
+				continue
+
+			if role.id == settings.UserLib.promotionRoleID:
+				vPromotionRole = role
+				continue
+
+		vUserToPromote = p_interaction.guild.get_member(self.parent.userEntry.discordID)
+
+		if vUserToPromote == None:
+			await p_interaction.response.send_message("Failed to promote the user. Couldn't find them!")
+			return
+
+		await vUserToPromote.remove_roles(vRecruitRole, reason="Promotion of user from recruit!")
+		await vUserToPromote.add_roles(vPromotionRole, reason="Promotion of user from recruit!")
+
+		await self.parent.requestMsg.delete()
+
+		await p_interaction.response.send_message(f"User {vUserToPromote.display_name} has been promoted to {vPromotionRole.name}!")
