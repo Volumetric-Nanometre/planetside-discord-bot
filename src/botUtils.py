@@ -432,7 +432,7 @@ async def RoleDebug(p_guild:discord.Guild, p_showOnLive=False):
 		vMessageStr += "\n"
 		for option in Roles.addRoles_games3:
 			if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-				vMessageStr += f"\nnGAME ROLES 3 | Invalid Value: {option.value} for {option.label}"
+				vMessageStr += f"\nGAME ROLES 3 | Invalid Value: {option.value} for {option.label}"
 
 	vMessageStr += "\n\n"
 
