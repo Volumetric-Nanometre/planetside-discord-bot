@@ -1,6 +1,7 @@
 from enum import Enum
 from dataclasses import dataclass, field
 import datetime
+from dateutil.relativedelta import relativedelta
 
 
 @dataclass
@@ -19,6 +20,37 @@ class UserSettings:
 		vStr += f"	> Track History:	{self.bTrackHistory}\n"
 
 		return vStr
+
+
+
+
+@dataclass(frozen=True)
+class AutoPromoteRule():
+	"""
+	# AUTO PROMOTE RULE
+	Contains values pertaining to the rules a user must meet before auto-promotion from recruit.
+	"""
+	# Attended Minimum Events: the number of events a user must participate in
+	bAttendedMinimumEvents: bool
+	minimumEvents: int
+
+	# Length of time a user must be in the outfit.
+	bInOutfitForDuration: bool
+	outfitDuration: datetime.time
+
+	# Length of time a user must have been in the discord server.
+	bInDiscordForDuration: bool
+	discordDuration: datetime.time
+
+
+	def __repr__(self) -> str:
+		vString = f"\n		> Attend Minimum Events: {self.bAttendedMinimumEvents} ({self.minimumEvents})\n"
+		vString += f"		> In Outfit for Duration: {self.bInOutfitForDuration} | {self.outfitDuration}\n"
+		vString += f"		> In Discord for Duration: {self.bInDiscordForDuration} | {self.discordDuration}\n"
+
+		return vString
+
+
 
 
 @dataclass

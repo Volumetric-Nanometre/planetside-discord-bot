@@ -17,10 +17,10 @@ from enum import Enum
 
 from botUtils import BotPrinter as BUPrint
 from botUtils import UserHasCommandPerms
-from botUtils import FilesAndFolders
-from botUtils import DateFormatter, DateFormat
+from botUtils import DateFormatter, DateFormat, FilesAndFolders
 
 import botData.settings as settings
+from botData.settings import CommandRestrictionLevels
 from botData.users import User
 from botData.operations import UserSession
 
@@ -79,12 +79,11 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 	Administrative commands and listeners for managing the user library.
 	"""
 	def __init__(self, p_botRef):
-		self.adminLevel = settings.CommandRestrictionLevels.level1
+		self.adminLevel = CommandRestrictionLevels.level1
 		self.botRef = p_botRef
 		UserLibrary.botRef = p_botRef
 		UserLib_RecruitValidationRequest.botRef = p_botRef
 		BUPrint.Info("COG: User Library Admin loaded!")
-
 
 
 	@app_commands.command(name="reconfigure_user", description="Opens the Edit modal for the specified user entry, if they have one.")

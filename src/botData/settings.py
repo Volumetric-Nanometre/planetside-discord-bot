@@ -10,9 +10,12 @@ For more help:
 https://github.com/LCWilliams/planetside-discord-bot/wiki/Bot-Configuration/
 """
 from discord import SelectOption
+from botData.users import AutoPromoteRule
+from dateutil.relativedelta import relativedelta
 import botData.envVars as Env
 from dataclasses import dataclass
 from enum import Enum
+
 
 @dataclass(frozen=True)
 class BotSettings:
@@ -24,7 +27,7 @@ class BotSettings:
 
 	# Admin Chanel: The chanel admin related features are directed to.
 	adminChannel = 1049424595750506527 # DEV VALUE
-	# adminChannel = 1 # LIVE VALUE
+	# adminChannel = -1 # LIVE VALUE
 
 	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
@@ -53,7 +56,7 @@ class BotSettings:
 	def __repr__(self) -> str:
 		vString = "\n	GENERAL BOT SETTINGS\n"
 		vString += f"	> DebugEnabled: {self.bDebugEnabled}\n"
-		token = self.discordToken[:5] # Always hide most of the token.
+		token = self.discordToken[:5] # Always hide most of the token; shows JUST the first 5 characters.
 		vString += f"	> DiscordToken:	{token}...\n"
 		vString += f"	> DiscordGuild:	{self.discordGuild}\n"
 		token = self.ps2ServiceID[:5]
@@ -118,10 +121,10 @@ class NewUsers:
 		vString += f"	> Rule Message:		{self.ruleMsgID}\n"
 		vString += f"	> Recruit ID:		{self.recruitRole}\n"
 		vString += f"	> AutoAssign Roles:	{self.autoAssignRoles}\n"
+		vString += f"	> Show AddRoles Button:	{self.bShowAddRolesBtn}\n"
+		vString += f"	> Create Library Entry on Accept: {self.bCreateLibEntryOnAccept}\n"
 		vString += f"\n	> Warnings: Discord Account age: {self.newAccntWarn} months\n"
 		vString += f"	> Warnings: Outfit Rank (Ord): {self.outfitRankWarn}\n"
-		vString += f"	> Create Library Entry on Accept: {self.bCreateLibEntryOnAccept}\n"
-		vString += f"	> Show AddRoles Button:		{self.bShowAddRolesBtn}\n"
 		return vString
 
 
@@ -306,11 +309,23 @@ class UserLib:
 	# Max Saved Events: The maximum number of saved events a users entry can hold.  -1 for no limit, or 0 to disable.
 	maxSavedEvents = -1
 
-	# Auto Promote Enabled: When true, after a user has participated in minAttendedEvents, they are promoted (if appropriate role found)
+	# Auto Promote Enabled: When true, after a user has met the requirements, they are promoted (if appropriate role found)
 	bAutoPromoteEnabled = True
 
-	# Min Attended Events: the minimum number of events a recruit has to actively participate in before promotion.
-	minAttendedEvents = 4
+	# Auto Promote Rules: A dataclass containing rules/conditions for auto promotion.
+	autoPromoteRules = AutoPromoteRule(
+		# Attended Minimum Events: When true, a recruit must participate in the specified number of events.
+		bAttendedMinimumEvents = True,
+		minimumEvents = 4,
+		
+		# In Outfit For Duration: When true, a recruit must be in the ps2 outfit for the specified duration.
+		bInOutfitForDuration = True,
+		outfitDuration = relativedelta(days=7),
+
+		# In Discord For Duration: When true, a recruit must be in the discord server for the specified duration.
+		bInDiscordForDuration = True,
+		discordDuration = relativedelta(days=7)
+	)
 
 	# Promotion Requires Validation: If true, a validation request is sent to the admin channel to be confirmed, otherwise they are promoted automatically.
 	bPromotionRequiresValidation = True
@@ -336,7 +351,7 @@ class UserLib:
 		vString += f"	> User Self Create:	{self.bUserCanSelfCreate}\n"
 		vString += f"	> Max Saved Events:	{self.maxSavedEvents}\n"
 		vString += f"	> AutoPromote Users:	{self.bAutoPromoteEnabled}\n"
-		vString += f"	> Min Attended Events:	{self.minAttendedEvents}\n"
+		vString += f"	> AutoPromote Rules:	{self.autoPromoteRules}\n"
 		vString += f"	> Validate AutoPromote:	{self.bPromotionRequiresValidation}\n"
 		vString += f"	> Max Session Previews:	{self.sessionPreviewMax}\n"
 		vString += f"	> Remove Entry/Special on leave: {self.bRemoveEntryOnLeave}/{self.bRemoveSpecialEntryOnLeave}\n"
