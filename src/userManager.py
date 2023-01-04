@@ -11,7 +11,7 @@ import os
 
 import pickle
 
-import datetime
+from datetime import datetime
 
 from enum import Enum
 
@@ -90,7 +90,6 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 	@app_commands.describe(p_userToEdit="Choose the user to edit.", p_createNew="If no entry exists, create a new entry (Default: True)")
 	@app_commands.rename(p_userToEdit="user", p_createNew="create_if_none")
 	async def ConfigureUser(self, p_interaction:discord.Interaction, p_userToEdit:discord.Member, p_createNew:bool = True):
-
 		# HARDCODED ROLE USEAGE:
 		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
 			return
@@ -111,6 +110,34 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 			await p_interaction.response.send_modal( LibViewer_ConfigureModal(p_adminEditEntry=vEntry) )
 		else:
 			await p_interaction.response.send_message("No entry was found. If you want to create a new one, ensure `Create_if_none` is true (default!)")
+
+
+	@app_commands.command(name="get_recruits", description="Returns a message containing recruits and their statistics.")
+	async def GetRecruits(self, p_interaction:discord.Interaction):
+		# HARDCODED ROLE USEAGE:
+		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
+			return
+
+		vUserEntries = UserLibrary.GetAllEntries()
+		vRecruitEntries = []
+
+		if vUserEntries == None:
+			p_interaction.response.send_message("No user entries are saved.", ephemeral=True)
+			return
+
+		entry:User
+		for entry in vUserEntries:
+			if entry.bIsRecruit:
+				vRecruitEntries.append(entry)
+
+		if len(vRecruitEntries) == 0:
+			p_interaction.response.send_message("No recruits found.", ephemeral=True)
+
+		vMessage = f"**RECRUITS ({len(vRecruitEntries)})**"
+
+		for entry in vRecruitEntries:
+			vUser = p_interaction.guild.get_member( entry.discordID )
+			vMessage += f"{vUser.mention} : Participated in {entry.eventsAttended} events. Missed: {entry.eventsMissed}."
 
 	
 	@commands.Cog.listener("on_raw_member_remove")
@@ -602,7 +629,10 @@ class LibViewer_view(discord.ui.View):
 
 	async def on_timeout(self):
 		BUPrint.Debug(f"Viewer for {self.vViewer.userID} removed.")
-		await self.vViewer.viewerMsg.delete()
+		try:
+			await self.vViewer.viewerMsg.delete()
+		except discord.errors.NotFound:
+			BUPrint.Debug("Message not found, user most likely dismissed message.")
 
 
 class LibViewerBtn_setup(discord.ui.Button):
@@ -696,7 +726,7 @@ class LibViewer_ConfigureModal(discord.ui.Modal):
 	)
 	txt_birthday = discord.ui.TextInput(
 		label="Birth Date (year is optional & never shown)",
-		placeholder="D/M/YYYY (3/7/1991)",
+		placeholder="DD/MM/YYYY (03/07/1991)",
 		required=False,
 		style=discord.TextStyle.short
 	)
@@ -757,18 +787,26 @@ class LibViewer_ConfigureModal(discord.ui.Modal):
 			self.vUserEntry.aboutMe = self.txt_about.value
 
 		if self.txt_birthday.value != "":
+			vDateStr = ""
+			vFormat = r"%d/%m/%Y"
 
 			try:
 				if self.txt_birthday.value.count("/") == 2:
-					# Provided full date- with year
-					vDate = datetime.datetime.strptime(self.txt_birthday.value, r"%-d/%-m/%Y")
+					BUPrint.Debug("User provided full date.")
+					vDate = datetime.strptime( self.txt_birthday.value , vFormat)
+					vDateStr = self.txt_birthday.value
 				else:
-					vDate = datetime.datetime.strptime(f"{self.txt_birthday.value}/2000", r"%-d/%-m/Y")
-				
+					BUPrint.Debug("User provided partial date.")
+					vDateStr = f"{self.txt_birthday.value}/2000"
+					vDate = datetime.strptime( f"{self.txt_birthday.value}/2000" , vFormat)
+						
+					
+				BUPrint.Debug(f"Date Str: {vDateStr}")
 				self.vUserEntry.birthday = vDate
+
 			except ValueError:
 				BUPrint.Debug("User provided invalid date format.")
-				vSuccessMessage += "\n\nThe date provided was an invalid format. Don't include leading zeros, and if providing the year, ensure it's 4 digits."
+				vSuccessMessage += f"\n\n{settings.Messages.invalidBirthdate}"
 
 
 		if self.txt_ps2Char.value != "":

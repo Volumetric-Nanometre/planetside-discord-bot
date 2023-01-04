@@ -160,6 +160,20 @@ class FilesAndFolders():
 		FilesAndFolders.GenerateUserLibraryFolder()
 		FilesAndFolders.GenerateTempFolder()
 
+	def CleanupTemp():
+		"""
+		# CLEANUP TEMP
+		Removes the temp directory.
+		"""
+		if os.path.exists(Directories.tempDir):
+			vFiles = FilesAndFolders.GetFiles(Directories.tempDir)
+			for fileName in vFiles:
+				try:
+					os.remove(f"{Directories.tempDir}{fileName}")
+				except OSError as vError:
+					BotPrinter.LogErrorExc(f"Unable to remove file: {fileName}", vError)
+
+
 
 	def DeleteCorruptFile(pDir: str):
 		BotPrinter.Info(f"Corrupt file being removed: {pDir}")
@@ -169,8 +183,12 @@ class FilesAndFolders():
 	def GetFiles(pDir: str, pEndsWith: str = ""):
 		vDataFiles: list = []
 		for file in os.listdir(pDir):
-			if file.endswith(".bin"):
+			if pEndsWith != "" and file.endswith(pEndsWith):
 				vDataFiles.append(file)
+
+			elif pEndsWith == "":
+				vDataFiles.append(file)
+
 		BotPrinter.Debug(f"Files ending with: {pEndsWith} In: {pDir} found:\n{vDataFiles}")
 		return vDataFiles
 
@@ -250,6 +268,7 @@ class FilesAndFolders():
 			return True
 		else:
 			return False
+
 
 	def GetLock(p_opLockFile):
 		"""

@@ -18,12 +18,10 @@ from userManager import UserLibraryCog, UserLibraryAdminCog
 from chatMonitor import ChatMonitorCog
 
 
-
-botUtils.FilesAndFolders.SetupFolders()
-
 class Bot(commands.Bot):
 
     def __init__(self):
+        discord.utils.setup_logging()
         super().__init__(command_prefix=['!'], intents=discord.Intents.all())
         BUPrint.Info(f"Starting bot with settings:\n{settings.BotSettings()}\n{settings.Directories()}\n{settings.SignUps()}\n{settings.NewUsers()}\n{settings.Commander()}\n{settings.UserLib()}\n")
 
@@ -62,11 +60,16 @@ class Bot(commands.Bot):
         # Setup existing Ops auto-starts:
         if settings.Commander.bAutoAlertsEnabled:
             self.vOpsManager.RefreshAutostarts()
-        BUPrint.Info(f'Logged in as {self.user.name} ({self.user.id}) on Guild {self.vGuildObj.name}\n')
+        
+        BUPrint.Info(f'\n\nBOT READY	|	{self.user.name} ({self.user.id}) on: {self.vGuildObj.name}\n')
 
 
 
     def ExitCalled(self):
-        BUPrint.Info("Bot shutting down.")
-		
+        """
+		# EXIT CALLED
+		Called when an exit signal is sent.
+		"""
+        BUPrint.Info("Bot shutting down. Performing cleanup...")
+        botUtils.FilesAndFolders.CleanupTemp()
 

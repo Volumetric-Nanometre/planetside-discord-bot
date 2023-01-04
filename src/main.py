@@ -10,6 +10,7 @@ import asyncio
 import atexit
 
 from botUtils import FilesAndFolders
+from botUtils import BotPrinter as BUPrint
 from botData.settings import BotSettings
 
 FilesAndFolders.SetupFolders()
@@ -17,4 +18,14 @@ FilesAndFolders.SetupFolders()
 ps2Bot = Bot()
 atexit.register(ps2Bot.ExitCalled)
 
-asyncio.run( ps2Bot.run(BotSettings.discordToken), debug=BotSettings.bDebugEnabled)
+
+mainLoop = asyncio.get_event_loop()
+
+try:
+	mainLoop.run_until_complete(ps2Bot.start(BotSettings.discordToken))
+except KeyboardInterrupt:
+	BUPrint.Info("Keyboard interrupt detected.")
+finally:
+	mainLoop.close()
+
+# asyncio.run( ps2Bot.run(BotSettings.discordToken), debug=BotSettings.bDebugEnabled)

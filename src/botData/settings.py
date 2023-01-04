@@ -410,6 +410,8 @@ class Messages:
 	# Invalid Command Permission : Displayed to users who don't have the required permissions to run a command.
 	invalidCommandPerms = "You do not have the required permission to use that command!"
 
+	invalidBirthdate = "The date provided was an invalid format. Make sure to  include leading zeros (eg: 03/05), and if providing the year, ensure it's 4 digits not 2!."
+
 	# Feedback Overflow: Shown in feedback embeds if characters exceeds the max of 1024.
 	feedbackOverflow = "\n**UNABLE TO FIT ENTIRE FEEDBACK WITHIN EMBED!\nDownload Feedback to see it all.**"
 
