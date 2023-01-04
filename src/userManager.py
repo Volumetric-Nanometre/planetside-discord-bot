@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 # from discord.ext.commands import Context
 from discord import app_commands
 from discord import SelectMenu, SelectOption
@@ -24,10 +24,11 @@ import botData.settings as settings
 from botData.users import User
 from botData.operations import UserSession
 
+
 class UserLibraryCog(commands.GroupCog, name="user_library"):
 	"""
 	# USER LIBRARY COG
-	Handles commands related to managing the user library.
+	Commands related to the user library, for regular users.
 	"""
 	def __init__(self, p_botRef):
 		self.botRef = p_botRef
@@ -42,16 +43,85 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 		# HARDCODED ROLE USEAGE:
 		if not await UserHasCommandPerms(p_interaction.user, (settings.CommandRestrictionLevels.level3), p_interaction):
 			return
-		bViewingSelf = bool(p_userToFind == None)
-		vLibViewer = LibraryViewer(p_interaction.user.id, bViewingSelf)
+		userID = -1
 
-		await vLibViewer.SendViewer(p_interaction)
+		bViewingSelf = bool(p_userToFind == None or p_userToFind.id == p_interaction.user.id)
 
-		# if p_userToFind == None:
-		# 	await p_interaction.response.send_message("Viewing yourself!", ephemeral=True)
+		if bViewingSelf:
+			userID = p_interaction.user.id
+		else:
+			userID = p_userToFind.id
 
-		# else:
-		# 	await p_interaction.response.send_message(f"Viewing info for: {p_userToFind.name}", ephemeral=True)
+		if UserLibrary.HasEntry(userID):
+			vLibViewer = LibraryViewer(userID, bViewingSelf)
+			await vLibViewer.SendViewer(p_interaction)
+	
+		elif not bViewingSelf:
+			await p_interaction.response.send_message("User has no library entry. :(", ephemeral=True)
+	
+		elif settings.UserLib.bUserCanSelfCreate:
+			newEntry = User(discordID=p_interaction.user.id)
+			UserLibrary.SaveEntry(newEntry)
+			
+			vLibViewer = LibraryViewer(p_interaction.user.id, True)
+			await vLibViewer.SendViewer(p_interaction)
+		
+		else:
+			await p_interaction.response.send_message("You have no entry.  Ask an administrator to create one for you.")
+
+
+
+
+class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
+	"""
+	# USER LIBRARY ADMIN COG
+	Administrative commands for managing the user library.
+	"""
+	def __init__(self, p_botRef):
+		self.adminLevel = settings.CommandRestrictionLevels.level1
+		self.botRef = p_botRef
+		UserLibrary.botRef = p_botRef
+		BUPrint.Info("COG: User Library Admin loaded!")
+
+	@app_commands.command(name="reconfigure_user", description="Opens the Edit modal for the specified user entry, if they have one.")
+	@app_commands.describe(p_userToEdit="Choose the user to edit.", p_createNew="If no entry exists, create a new entry (Default: True)")
+	@app_commands.rename(p_userToEdit="user", p_createNew="create_if_none")
+	async def ConfigureUser(self, p_interaction:discord.Interaction, p_userToEdit:discord.Member, p_createNew:bool = True):
+
+		# HARDCODED ROLE USEAGE:
+		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
+			return
+
+		if p_userToEdit == None:
+			await p_interaction.response.send_message("Invalid user!", ephemeral=True)
+			return
+
+		vEntry = None
+		if UserLibrary.HasEntry(p_userToEdit.id):
+			vEntry = UserLibrary.LoadEntry(p_userToEdit.id)
+
+		elif p_createNew:
+			vEntry = User( discordID=p_userToEdit.id )
+		
+		if vEntry != None:
+			await p_interaction.response.send_modal( LibViewer_ConfigureModal(p_adminEditEntry=vEntry) )
+		else:
+			await p_interaction.response.send_message("No entry was found. If you want to create a new one, ensure `Create_if_none`is true (default!)")
+
+	
+	@commands.Cog.listener("on_raw_member_remove")
+	async def UserLeft(self, p_Event:discord.RawMemberRemoveEvent):
+		"""
+		# USER LEFT
+		Listener function, if the appropriate settings are set, removes the User Library entry files.
+		"""
+		BUPrint.Info(f"User {p_Event.user.display_name} has left.  Removing Entry:Special - {settings.UserLib.bRemoveEntryOnLeave}:{settings.UserLib.bRemoveSpecialEntryOnLeave}")
+
+		if settings.UserLib.bRemoveEntryOnLeave:
+			BUPrint.Info(f"User {p_Event.user.display_name} has left, removing their library entries.")
+			UserLibrary.RemoveEntry(p_Event.user.id, settings.UserLib.bRemoveSpecialEntryOnLeave)
+
+
 
 
 
@@ -112,6 +182,17 @@ class UserLibrary():
 			FilesAndFolders.ReleaseLock(vLockFile)
 			return
 
+		
+		if p_entry.specialAbout == "":
+			return
+
+		vSpecialPath = vFilePath.replace(".bin", ".txt")
+		try:
+			with open(vSpecialPath, "wt") as vSpecialFile:
+				vSpecialFile.write(p_entry.specialAbout)
+		except OSError as vError:
+			BUPrint.LogErrorExc("Unable to load special entry", vError)
+
 
 
 	def LoadEntry(p_userID:int):
@@ -122,9 +203,11 @@ class UserLibrary():
 		### RETURNS:
 		`User` library entry, or `None` if not found.
 		"""
+		BUPrint.Debug(f"Loading Library Entry: {p_userID}")
 		if not UserLibrary.HasEntry(p_userID):
 			BUPrint.Debug(f"User with id {p_userID} has no library entry")
 			return None
+
 		vFilePath = UserLibrary.GetEntryPath(p_userID)
 		vLockFile = FilesAndFolders.GetLockPathGeneric(vFilePath)
 		FilesAndFolders.GetLock(vLockFile)
@@ -141,6 +224,15 @@ class UserLibrary():
 			FilesAndFolders.ReleaseLock(vLockFile)
 			return None
 
+		vSpecialPath = vFilePath.replace(".bin", ".txt")
+		if os.path.exists(vSpecialPath):
+			try:
+				with open(vSpecialPath, "rt") as vSpecialFile:
+					vLibEntry.specialAbout = vSpecialFile.read()
+			except OSError as vError:
+				BUPrint.LogErrorExc("Unable to load special entry", vError)
+
+
 		return vLibEntry
 
 
@@ -155,7 +247,7 @@ class UserLibrary():
 		True if character is found.
 		"""
 		if p_entry.ps2Name == "":
-			BUPrint.LogError("Invalid PS2 name given, shouldn't have been able to get here!")
+			BUPrint.Debug("Invalid PS2 name given, shouldn't have been able to get here!")
 			return False
 		
 		vAuraxClient = AuraxClient(service_id=settings.BotSettings.ps2ServiceID)
@@ -185,6 +277,30 @@ class UserLibrary():
 		UserLibrary.SaveEntry(p_entry)
 		await vAuraxClient.close()
 		return True
+
+
+	def RemoveEntry(p_userID:int, p_removeSpecial:bool = False):
+		"""
+		# REMOVE ENTRY
+		Removes a user entry file from disk.
+		If removeSpecial is true, the special file is also removed if present.
+		"""
+		BUPrint.Info(f"Removing user library entry for user with ID: {p_userID}")
+		vPath = UserLibrary.GetEntryPath(p_userID)
+	
+		try:
+			os.remove(vPath)
+		except OSError as error:
+			BUPrint.LogErrorExc(f"Unable to remove file: {vPath}", error)
+
+		if not p_removeSpecial:
+			return
+
+		try:
+			vPath = vPath.replace(".bin", ".txt")
+			os.remove(vPath)
+		except OSError as error:
+			BUPrint.LogErrorExc(f"Unable to remove file: {vPath}", error)
 		
 
 
@@ -198,6 +314,8 @@ class LibraryViewPage(Enum):
 	ps2Info = 10
 	sessions = 20
 	individualSession = 25
+
+
 
 
 class LibraryViewer():
@@ -251,7 +369,7 @@ class LibraryViewer():
 
 
 	def GenerateView(self):
-		vView = discord.ui.View()
+		vView = LibViewer_view(self)
 		btn_configure = LibViewerBtn_setup(self)
 		btn_General = LibViewerBtn_general(self)
 		btn_Ps2 = LibViewerBtn_planetside2(self)
@@ -330,6 +448,13 @@ class LibraryViewer():
 			description=f"They joined the server {DateFormatter.GetDiscordTime(discordUser.joined_at, DateFormat.Dynamic)}!"
 		)
 
+		if self.userEntry.specialAbout != "":
+			vEmbed.add_field(
+				name="Special",
+				value=self.userEntry.specialAbout,
+				inline=False
+			)
+
 		if self.userEntry.aboutMe != "":
 			vEmbed.add_field(
 				name="About",
@@ -404,6 +529,17 @@ class LibraryViewer():
 		return vEmbed
 
 
+	def GenerateEmbed_sessionBrowser(self):
+		"""
+		# GENERTAE EMBED: SESSION BROWSER
+		Generates an embed showing a browser like view of the users sessions.
+		"""
+		vEmbed = discord.Embed(
+			title="Tracked Sessions",
+			description=f"This user has attended {self.userEntry.eventsAttended}, missed {self.userEntry.eventsMissed}, and has {len(self.userEntry.sessions)} tracked sessions saved!"
+		)
+
+
 
 	def GenerateEmbed_session(self, p_session:UserSession):
 		"""
@@ -438,7 +574,16 @@ class LibraryViewer():
 
 
 
-####### LIBRARY VIEWER BUTTONS
+####### LIBRARY VIEWER BUTTONS & UI.VIEWER
+class LibViewer_view(discord.ui.View):
+	def __init__(self, p_viewer:LibraryViewer):
+		self.vViewer = p_viewer
+		super().__init__(timeout=180)
+
+	async def on_timeout(self):
+		BUPrint.Debug(f"Viewer for {self.vViewer.userID} removed.")
+		await self.vViewer.viewerMsg.delete()
+
 
 class LibViewerBtn_setup(discord.ui.Button):
 	def __init__(self, p_viewer:LibraryViewer):
@@ -511,6 +656,11 @@ class LibViewerBtn_session_previous(discord.ui.Button):
 #### LIB VIEWER CONFIGURE MODAL
 
 class LibViewer_ConfigureModal(discord.ui.Modal):
+	"""
+	# LIBRARY VIEWER: CONFIGURE MODAL
+	Takes one of two parameters; if an entry is specified with p_adminEditEntry, 
+	"""
+
 	txt_ps2Char = discord.ui.TextInput(
 		label="PS2 Character Name",
 		placeholder="YourPS2CharName",
@@ -525,41 +675,132 @@ class LibViewer_ConfigureModal(discord.ui.Modal):
 		style=discord.TextStyle.paragraph
 	)
 	txt_birthday = discord.ui.TextInput(
-		label="Birth Date (year optional: it's never shown)",
-		placeholder="DD/MM",
+		label="Birth Date (year is optional & never shown)",
+		placeholder="D/M/YYYY (3/7/1991)",
 		required=False,
 		style=discord.TextStyle.short
 	)
 
-	def __init__(self, p_parentLibViewer:LibraryViewer):
-		self.parentViewer = p_parentLibViewer
-		super().__init__(title="CONFIGURE YOUR LIBRARY ENTRY")
-		if self.parentViewer.userEntry.ps2Name != "":
-			self.txt_ps2Char.default = self.parentViewer.userEntry.ps2Name
-		
-		if self.parentViewer.userEntry.aboutMe != "":
-			self.txt_about.default = self.parentViewer.userEntry.aboutMe
+	txt_admin = discord.ui.TextInput(
+		label="Admin Commands",
+		placeholder="Enter commands here to change settings.",
+		required=False
+	)
 
-		if self.parentViewer.userEntry.birthday != None:
-			self.txt_birthday.default = f"{self.parentViewer.userEntry.birthday.day}/{self.parentViewer.userEntry.birthday.month}"
+	txt_adminSpecial = discord.ui.TextInput(
+		label="Special",
+		placeholder="Non-User Editable special info, saved to text file...",
+		required=False,
+		style=discord.TextStyle.paragraph,
+		max_length=1024
+	)
+
+	def __init__(self, p_parentLibViewer:LibraryViewer = None, p_adminEditEntry:User = None):
+		super().__init__(title="CONFIGURE YOUR LIBRARY ENTRY")
+		self.parentViewer = p_parentLibViewer
+		self.vUserEntry:User = None
+		self.bIsAdminEdit = False
+
+		if p_adminEditEntry != None:
+			self.bIsAdminEdit = True
+			self.vUserEntry = p_adminEditEntry
+			self.parentViewer = None
+		else:
+			self.vUserEntry = p_parentLibViewer.userEntry
+			self.remove_item(self.txt_admin)
+			self.remove_item(self.txt_adminSpecial)
+
+		if self.vUserEntry.ps2Name != "" and not self.vUserEntry.settings.bLockPS2Char:
+			self.txt_ps2Char.placeholder = self.vUserEntry.ps2Name
+		elif self.vUserEntry.settings.bLockPS2Char:
+			self.remove_item(self.txt_ps2Char)
+		
+		if self.vUserEntry.aboutMe != "" and not self.vUserEntry.settings.bLockAbout:
+			self.txt_about.default = self.vUserEntry.aboutMe
+		elif self.vUserEntry.settings.bLockAbout:
+			self.remove_item(self.txt_about)
+
+		if self.vUserEntry.birthday != None:
+			self.txt_birthday.default = f"{self.vUserEntry.birthday.day}/{self.vUserEntry.birthday.month}"
+
+		if self.vUserEntry.specialAbout != "":
+			self.txt_adminSpecial.default = self.vUserEntry.specialAbout
 
 
 	async def on_submit(self, p_interaction:discord.Interaction):
-		await p_interaction.response.defer()
+		vSuccessMessage = "Entry has been updated!"
 
-		self.parentViewer.userEntry.ps2Name = self.txt_ps2Char.value
-		self.parentViewer.userEntry.aboutMe = self.txt_about.value
+		if self.txt_adminSpecial.value != "":
+			self.vUserEntry.specialAbout = self.txt_adminSpecial.value
+
+		if self.txt_about.value != "":
+			self.vUserEntry.aboutMe = self.txt_about.value
 
 		if self.txt_birthday.value != "":
-			if len(self.txt_birthday.value) > 5:
-				# Provided full date- with year
-				vDate = datetime.datetime.strptime(self.txt_birthday.value, r"%d/%m/%y")
-			else:
-				vDate = datetime.datetime.strptime(self.txt_birthday.value, r"%d/%m")
-			
-			self.parentViewer.userEntry.birthday = vDate
 
-			UserLibrary.SaveEntry(self.parentViewer.userEntry)
+			try:
+				if self.txt_birthday.value.count("/") == 2:
+					# Provided full date- with year
+					vDate = datetime.datetime.strptime(self.txt_birthday.value, r"%-d/%-m/%Y")
+				else:
+					vDate = datetime.datetime.strptime(f"{self.txt_birthday.value}/2000", r"%-d/%-m/Y")
+				
+				self.vUserEntry.birthday = vDate
+			except ValueError:
+				BUPrint.Debug("User provided invalid date format.")
+				vSuccessMessage += "\n\nThe date provided was an invalid format. Don't include leading zeros, and if providing the year, ensure it's 4 digits."
+
 
 		if self.txt_ps2Char.value != "":
-			await UserLibrary.PropogatePS2Info(self.parentViewer.userEntry)
+			if self.txt_ps2Char != self.vUserEntry.ps2Name:
+				self.vUserEntry.ps2Name = self.txt_ps2Char.value
+				await UserLibrary.PropogatePS2Info(self.vUserEntry)
+
+		if self.bIsAdminEdit:
+			self.ParseAdminCommands()
+			vSuccessMessage += f"\n\n**Settings:**\n"
+			vSuccessMessage += f"PS2 Character Locked: {self.vUserEntry.settings.bLockPS2Char}\n"
+			vSuccessMessage += f"AboutMe Locked: {self.vUserEntry.settings.bLockAbout}\n"
+			vSuccessMessage += f"Session History: {self.vUserEntry.settings.bTrackHistory}\n"
+			vSuccessMessage += f"User is Recruit: {self.vUserEntry.bIsRecruit}\n"
+
+			await p_interaction.response.send_message(vSuccessMessage, ephemeral=True)
+		else:
+			await self.parentViewer.UpdateViewer()
+			await p_interaction.response.send_message(vSuccessMessage, ephemeral=True)
+
+		UserLibrary.SaveEntry(self.vUserEntry)
+
+
+	def ParseAdminCommands(self):
+		"""
+		# PARSE ADMIN COMMANDS
+		Checks if any commands are found in the commands text field and sets their respective settings.
+		"""
+		adminCommands = self.txt_admin.value.lower()
+		# Manually set recruit status
+		if adminCommands.__contains__("isrecruit"):
+			self.vUserEntry.bIsRecruit = True
+		if adminCommands.__contains__("notrecruit"):
+			self.vUserEntry.bIsRecruit = False
+
+		# Set LockPS2 Character
+		if adminCommands.__contains__("lockps2"):
+			self.vUserEntry.settings.bLockPS2Char = True
+		if adminCommands.__contains__("openps2"):
+			self.vUserEntry.settings.bLockPS2Char = False
+	
+		# Set Lock About
+		if adminCommands.__contains__("lockabout"):
+			self.vUserEntry.settings.bLockAbout = True
+		if adminCommands.__contains__("openabout"):
+			self.vUserEntry.settings.bLockAbout = False
+		
+		# Set Tracking Sessions
+		if adminCommands.__contains__("trackhistory"):
+			self.vUserEntry.settings.bTrackHistory = True
+		if adminCommands.__contains__("nohistory"):
+			self.vUserEntry.settings.bTrackHistory = False
+			self.vUserEntry.sessions.clear()
+	
+		BUPrint.Debug(f"Settings: {self.vUserEntry.settings}")

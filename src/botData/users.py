@@ -4,6 +4,24 @@ import datetime
 
 
 @dataclass
+class UserSettings:
+	"""
+	# USER SETTINGS
+	Settings pertaining to the User data object.
+	"""
+	bLockPS2Char = False
+	bLockAbout = False
+	bTrackHistory = True
+
+	def __repr__(self) -> str:
+		vStr = f"	> Lock PS2 Character:	{self.bLockPS2Char}\n"
+		vStr += f"	> Lock About:		{self.bLockAbout}\n"
+		vStr += f"	> Track History:	{self.bTrackHistory}\n"
+
+		return vStr
+
+
+@dataclass
 class User:
 	"""
 	# USER (UserLibrary)
@@ -37,3 +55,10 @@ class User:
 
 	# User provided "about" text.
 	aboutMe = ""
+
+	# About loaded from a seperate file, editable only by admins.
+	specialAbout = ""
+
+	# Settings object.
+	settings: UserSettings = field(default_factory=UserSettings)
+

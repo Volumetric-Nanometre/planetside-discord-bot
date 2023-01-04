@@ -53,10 +53,11 @@ class BotSettings:
 	def __repr__(self) -> str:
 		vString = "\n	GENERAL BOT SETTINGS\n"
 		vString += f"	> DebugEnabled: {self.bDebugEnabled}\n"
-		token = self.discordToken.partition(".")[0] # Always hide most of the token.
+		token = self.discordToken[:5] # Always hide most of the token.
 		vString += f"	> DiscordToken:	{token}...\n"
 		vString += f"	> DiscordGuild:	{self.discordGuild}\n"
-		vString += f"	> PS2ServiceID:	{self.ps2ServiceID}\n"
+		token = self.ps2ServiceID[:5]
+		vString += f"	> PS2ServiceID:	{token}\n"
 		vString += f"	> BotDirectory:	{self.botDir}\n"
 		vString += f"	> AdminChannel:	{self.adminChannel}\n"
 		vString += f"	> Force Role Restrictions: {self.bForceRoleRestrictions}\n"
@@ -74,6 +75,16 @@ class NewUsers:
 	# NEW USERS
 	Settings pertaining to the bot behaviour for `NewUser` cog.
 	"""
+	# Create Library Entry on Accept: When true, after a user has been accepted, automatically create a user entry for them.
+	bCreateLibEntryOnAccept = True
+
+	# Recruit Role: ID of the recruit role.  Used to automatically apply isRecruit to user entry (if above is enabled)
+	# recruitRole = 780253442605842472 # LIVE
+	recruitRole = 1060009718837411962 # DEV VALUE
+
+	# Auto Assign Roles: A list of role IDs that are always assigned when a user is accepted.
+	autoAssignRoles = [818218528372424744] # Currently just "Tags"
+
 	# Gate Channel: Channel (ID) where new user join forms are sent to.
 	gateChannelID = 1041860598822096950
 
@@ -92,7 +103,11 @@ class NewUsers:
 
 	# Rule Channel ID: The ID of the channel which the Rules message is in.
 	ruleChnID = 1049523449867022348 # DEV SERVER 
-	# ruleChnID = 913086821263626360 # LIVE SERVER 
+	# ruleChnID = 913086821263626360 # LIVE SERVER
+
+	# Show Add Roles Button: When true, a button to add roles is shown in the welcome message.
+	# It is advisable to ensure the message reflects the presence or lack of this button.
+	bShowAddRolesBtn = True
 
 
 	def __repr__(self) -> str:
@@ -101,8 +116,12 @@ class NewUsers:
 		vString += f"	> General Channel:	{self.generalChanelID}\n"
 		vString += f"	> Rule Channel:		{self.ruleChnID}\n"
 		vString += f"	> Rule Message:		{self.ruleMsgID}\n"
+		vString += f"	> Recruit ID:		{self.recruitRole}\n"
+		vString += f"	> AutoAssign Roles:	{self.autoAssignRoles}\n"
 		vString += f"\n	> Warnings: Discord Account age: {self.newAccntWarn} months\n"
 		vString += f"	> Warnings: Outfit Rank (Ord): {self.outfitRankWarn}\n"
+		vString += f"	> Create Library Entry on Accept: {self.bCreateLibEntryOnAccept}\n"
+		vString += f"	> Show AddRoles Button:		{self.bShowAddRolesBtn}\n"
 		return vString
 
 
@@ -274,8 +293,15 @@ class UserLib:
 	# USER LIBRARY
 	Settings pertaining to the behaviour of the user library.
 	"""
+	# Enable Special Users: when true, user viewer checks for a matching ID .txt file.
+	# The contents of this file are added to the General page; only admins are able to modify this text.
+	bEnableSpecialUsers = True
+
 	# Commander can Auto Create: When true, new user library entries are created for non-existant entries if a valid ps2 name is found from their username.
 	bCommanderCanAutoCreate = True
+
+	# User Can Self Create: When true, if an entry doesn't exist for a user and its themself, a new entry is created.
+	bUserCanSelfCreate = True
 
 	# Max Saved Events: The maximum number of saved events a users entry can hold.  -1 for no limit, or 0 to disable.
 	maxSavedEvents = -1
@@ -283,7 +309,7 @@ class UserLib:
 	# Auto Promote Enabled: When true, after a user has participated in minAttendedEvents, they are promoted (if appropriate role found)
 	bAutoPromoteEnabled = True
 
-	# Min Attended Events: the minimum number of events a user has to participate in before auto-promotion.
+	# Min Attended Events: the minimum number of events a recruit has to participate in before promotion.
 	minAttendedEvents = 4
 
 	# Promotion Requires Validation: If true, a validation request is sent to the userRequest channel to be confirmed, otherwise they are promoted automatically.
@@ -292,14 +318,24 @@ class UserLib:
 	# Session Preview Max: The number of saved sessions that are previewed in a libraryViewer general page.
 	sessionPreviewMax = 5
 
+	# Remove Entry On Leave: If true, a users entry is removed when they leave the server.
+	bRemoveEntryOnLeave = False
+
+	# Remove Special Entry on Leave: If true, a users special entry is remove when they leave the server.
+	# If enabled, requires `bRemoveEntryOnLeave` to also be TRUE.
+	bRemoveSpecialEntryOnLeave = False
+
 	def __repr__(self) -> str:
 		vString = "\n	USER LIBRARY SETTINGS\n"
-		vString += f"	> AutoCreate Entry: {self.bCommanderCanAutoCreate}\n"
+		vString += f"	> Special Users:	{self.bEnableSpecialUsers}\n"
+		vString += f"	> Commander Create Entry: {self.bCommanderCanAutoCreate}\n"
+		vString += f"	> User Self Create:	{self.bUserCanSelfCreate}\n"
 		vString += f"	> Max Saved Events:	{self.maxSavedEvents}\n"
 		vString += f"	> AutoPromote Users:	{self.bAutoPromoteEnabled}\n"
 		vString += f"	> Min Attended Events:	{self.minAttendedEvents}\n"
 		vString += f"	> Validate AutoPromote:	{self.bPromotionRequiresValidation}\n"
 		vString += f"	> Max Session Previews:	{self.sessionPreviewMax}\n"
+		vString += f"	> Remove Entry/Special on leave: {self.bRemoveEntryOnLeave}/{self.bRemoveSpecialEntryOnLeave}\n"
 
 		return vString
 
@@ -324,10 +360,10 @@ class Messages:
 	newUserAcceptedRules = "Thank you for accepting the rules.  You may now request access!"
 
 	# Displayed after the "Welcome @mention" line when a new user is accepted.
-	newUserWelcome = "Make sure to use `/roles` to assign both PS2 and other game related roles (and access related channels)!"
+	newUserWelcome = "Make sure to use either the button, or the `/roles add` command to add planetside2 and other game roles!\nWe play more than just planetside, but to keep the server tidy, they are hidden with roles."
 
 	# Displayed when a user is choosing roles to ADD.
-	userAddingRoles = "Select the roles you wish to **ADD** using the dropdowns, then click update."
+	userAddingRoles = "Select the roles you wish to **ADD** using the dropdowns, then click update.\n\nDropdown is multiple choice."
 
 	# Displayed when a user is choosing roles to REMOVE.
 	userRemovingRoles = "Select the roles you wish to **REMOVE** using the dropdowns, then click Update."
@@ -377,6 +413,7 @@ class Roles:
 	# Provides a dropdown containing these roles for giving to new users.
 	newUser_roles = [ 
 		SelectOption(label="Recruit", value="780253442605842472"),
+		SelectOption(label="Test Recruit", value="1060009718837411962", description="DEV VALUE!"), # DEV VALUE!
 		# SelectOption(label="TDKD", value="1050286811940921344", description="DEV VALUE!"), # Dev server RoleID
 		SelectOption(label="TDKD", value="710472193045299260"), # Live server RoleID
 		SelectOption(label="The Washed Masses", value="710502581893595166"),

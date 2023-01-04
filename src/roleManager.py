@@ -14,7 +14,11 @@ from botData.settings import BotSettings
 import botData.settings
 
 
-class UserRoles(commands.GroupCog):
+class UserRoles(commands.GroupCog, name="roles", description="Add or remove user-assignable roles"):
+	"""
+	# USER ROLES COG
+	Responsible for the commands which add and remove user-assignable roles.
+	"""
 	def __init__(self, p_bot):
 		super().__init__()
 		self.bot: commands.Bot = p_bot
@@ -49,7 +53,18 @@ class UserRoles(commands.GroupCog):
 
 		await pInteraction.response.send_message(botData.settings.Messages.userRemovingRoles, view=vView, ephemeral=True)
 
+
+
 class RoleManager(discord.ui.View):
+	"""
+	# ROLE MANAGER:
+	A view that displays the role selectors and an update button.
+	Requires multiple arguments during creation:
+
+	`p_bot` : Reference to the Bot; needed to get, add and remove roles.
+	`p_user`: The user who is being edited.
+	`pisAdding`: A boolean to determine whether roles are being added (true) or removed (false) 
+	"""
 	def __init__(self, p_bot, p_user: discord.Member, pIsAdding: bool):
 		super().__init__()
 		self.bot: commands.Bot = p_bot

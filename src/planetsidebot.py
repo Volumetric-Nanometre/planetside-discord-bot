@@ -16,7 +16,7 @@ import opsManager
 from OpCommander.autoCommander import AutoCommander
 from OpCommander.autoCommander import CommanderCommands
 from OpCommander.commander import Commander
-from userManager import UserLibraryCog, UserLibrary
+from userManager import UserLibraryCog, UserLibraryAdminCog, UserLibrary
 
 
 # import chatlinker
@@ -41,14 +41,15 @@ class Bot(commands.Bot):
     async def setup_hook(self):
         BUPrint.Info("Setting up hooks...")
         # Needed for later functions, which want a discord object instead of a plain string.
-        self.vGuildObj = await botUtils.GetGuild(p_BotRef=self)
+        self.vGuildObj = await botUtils.GetGuild(self)
 # COGS
-        await self.add_cog(newUser.NewUser(pBot=self))
-        await self.add_cog(roleManager.UserRoles(p_bot=self))
-        await self.add_cog(opsManager.Operations(p_bot=self))
-        await self.add_cog(AutoCommander(p_bot=self))
-        await self.add_cog(CommanderCommands(p_bot=self))
+        await self.add_cog(newUser.NewUser(self))
+        await self.add_cog(roleManager.UserRoles(self))
+        await self.add_cog(opsManager.Operations(self))
+        await self.add_cog(AutoCommander(self))
+        await self.add_cog(CommanderCommands(self))
         await self.add_cog(UserLibraryCog(self))
+        await self.add_cog(UserLibraryAdminCog(self))
         # await self.add_cog(chatlinker.ChatLinker(self))
 
         self.tree.copy_global_to(guild=self.vGuildObj)
@@ -57,7 +58,7 @@ class Bot(commands.Bot):
 
     async def on_ready(self):
         self.vGuildObj = await botUtils.GetGuild(self)
-        await botUtils.ChannelPermOverwrites.Setup(p_botRef=self)
+        await botUtils.ChannelPermOverwrites.Setup(self)
         await botUtils.RoleDebug(self.vGuildObj, p_showOnLive=False)
         await self.vOpsManager.RefreshOps()
 
