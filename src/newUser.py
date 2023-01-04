@@ -391,6 +391,9 @@ class NewUserRequest():
 			strOkay += "- Users claimed character is not a high ranking outfit member.\n"
 
 
+		if UserLibrary.HasEntry(self.userData.userObj.id):
+			strOkay += "- User has been in the server previously.\n"
+
 		if strOkay == "":
 			strOkay = "*None*"
 		if strWarnings == "":
@@ -543,8 +546,8 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		await self.parentRequest.requestMessage.delete()
 
 
-		# Create library entry, if enabled:
-		if NewUserSettings.bCreateLibEntryOnAccept:
+		# Create library entry, if enabled and user doesn't already have one:
+		if NewUserSettings.bCreateLibEntryOnAccept and not UserLibrary.HasEntry(self.userData.userObj.id):
 			vUserLibEntry = UserLibEntry(
 				discordID=self.userData.userObj.id,
 				ps2Name=self.userData.ps2CharName,
