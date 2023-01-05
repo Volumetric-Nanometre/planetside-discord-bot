@@ -109,7 +109,7 @@ class NewUsers:
 	# ruleChnID = 913086821263626360 # LIVE SERVER
 
 	# Show Add Roles Button: When true, a button to add roles is shown in the welcome message.
-	# It is advisable to ensure the message reflects the presence or lack of this button.
+	# It is advisable to ensure the message "NewUserWelcome" reflects the presence (or lack thereof) of this button.
 	bShowAddRolesBtn = True
 
 

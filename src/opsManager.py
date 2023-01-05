@@ -1147,12 +1147,47 @@ class OpsEditor(discord.ui.View):
 		vOldFilename = self.vOpsData.fileName
 		# Ensure fileName is empty so its saved as a default
 		self.vOpsData.fileName = ""
+
+		# Ensure roles is empty. 
+		vOrigRoles = self.vOpsData.roles
+		vOrigReserves = self.vOpsData.reserves
+
+		role:OpData.OpRoleData
+		for role in self.vOpsData.roles:
+			role.players.clear()
+		self.vOpsData.reserves.clear()
+
+		# Save File
 		OperationManager.SaveToFile(self.vOpsData)
+
+		# Check old name and rename if needed.
+		bWasRenamed = False
+		if self.vOldName != self.vOpsData.name and self.vOldName != "":
+			try:
+				vOriginal = f"{botSettings.Directories.savedDefaultsDir}{self.vOldName}.bin"
+				vNew = f"{botSettings.Directories.savedDefaultsDir}{self.vOpsData.name}.bin"
+
+				if os.path.exists( vOriginal ):
+					os.rename( vOriginal, vNew )
+					bWasRenamed = True
+
+				self.vOldName = self.vOpsData.name
+
+			except OSError as vError:
+				BUPrint.LogErrorExc(f"Unable to rename Saved Default from {vOriginal} to {vNew}", vError)
+
+
 		BUPrint.Debug("	-> Saved!")
 
+		# Re-Add old data to Op Data.
+		self.vOpsData.roles = vOrigRoles
+		self.vOpsData.reserves = vOrigReserves
 		self.vOpsData.fileName = vOldFilename
-
-		await pInteraction.response.send_message(f"Added new default: {self.vOpsData.name}!", ephemeral=True)
+		
+		if bWasRenamed:
+			await pInteraction.response.send_message(f"Saved default: {self.vOpsData.name}\nOriginal Op was renamed:\nFrom:{vOriginal}\nTo:{vNew}")
+		else:
+			await pInteraction.response.send_message(f"Added new default: {self.vOpsData.name}!", ephemeral=True)
 
 # # # # # # DELETE BUTTON
 	@discord.ui.button(
@@ -1170,7 +1205,7 @@ class OpsEditor(discord.ui.View):
 
 # # # # # # CLOSE BUTTON
 	@discord.ui.button(
-						label="Cancel",
+						label="Close/Cancel",
 						style=discord.ButtonStyle.success,
 						emoji="🔓",
 						row=4)
