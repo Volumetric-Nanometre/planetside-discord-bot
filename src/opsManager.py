@@ -8,7 +8,6 @@ import pickle
 import discord
 from discord.ext import commands
 from discord import app_commands
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import apscheduler.jobstores.base
 
 from botData.settings import Messages as botMessages

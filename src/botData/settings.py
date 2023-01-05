@@ -51,6 +51,10 @@ class BotSettings:
 	As such, this is merely a redundancy if security concerned."""
 	bForceRoleRestrictions = True
 
+	# Protected Categories: ID of categories that cannot be deleted by chatMonitor.remove_category
+	protectedCategories = [360823500711395328, 360823731804831756, 1037871280709443608, 1049415497621454929] # DEV VALUE
+	# protectedCategories = [] # LIVE VALUE
+
 
 	# Collapse for ease of reading.
 	def __repr__(self) -> str:

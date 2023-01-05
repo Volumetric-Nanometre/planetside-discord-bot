@@ -15,7 +15,7 @@ from OpCommander.autoCommander import AutoCommander
 from OpCommander.autoCommander import CommanderCommands
 from OpCommander.commander import Commander
 from userManager import UserLibraryCog, UserLibraryAdminCog
-from chatMonitor import ChatMonitorCog
+from chatUtility import ChatUtilityCog
 
 
 class Bot(commands.Bot):
@@ -45,7 +45,7 @@ class Bot(commands.Bot):
         await self.add_cog(CommanderCommands(self))
         await self.add_cog(UserLibraryCog(self))
         await self.add_cog(UserLibraryAdminCog(self))
-        await self.add_cog(ChatMonitorCog(self))
+        await self.add_cog(ChatUtilityCog(self))
 
         self.tree.copy_global_to(guild=self.vGuildObj)
         await self.tree.sync(guild=self.vGuildObj)
