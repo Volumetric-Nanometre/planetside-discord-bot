@@ -84,6 +84,8 @@ class ChatMonitorCog(commands.GroupCog, name="voice_monitor", description="Handl
 		if bUserSwappedChannels:
 			await self.UserLeftChannel(vGuild, p_member, p_before.channel)
 			return
+		elif not bUserSwappedChannels and bUserJoined:
+			return
 
 
 	# If code reaches here, user has left:		
