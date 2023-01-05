@@ -98,6 +98,14 @@ class OperationData:
 
 
 	def GenerateFileName(self):
+		"""
+		# GENERATE FILE NAME
+		Generates a filename using the operation name, and the date (opName_y-m-d_h-m).
+		File name does not include the extension!
+		
+		NOTE: Sets the fileName variable with the result.  
+			It is not returned.
+		"""
 		self.fileName = f"{self.name}_{self.date.year}-{self.date.month}-{self.date.day}_{self.date.hour}-{self.date.minute}"
 		
 		BUPrint.Debug(f"Filename for Op {self.name} generated: {self.fileName}")

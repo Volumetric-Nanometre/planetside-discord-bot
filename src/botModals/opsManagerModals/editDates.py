@@ -55,15 +55,7 @@ class EditDates(baseModal.BaseModal):
 		)
 
 		self.vOpData.date = newDateTime
-		oldFileName = self.vOpData.fileName
 
-		if self.vOpData.fileName != "":
-			self.vOpData.GenerateFileName()
-			BUPrint.Debug("Renaming filename to match new datetime.")
-			try:
-				os.rename(f"{Directories.liveOpsDir}{oldFileName}.bin", f"{Directories.liveOpsDir}{self.vOpData.fileName}.bin" )
-			except OSError as vError:
-				BUPrint.LogErrorExc("Unable to rename file.", vError)
 		await pInteraction.response.defer()
 
 

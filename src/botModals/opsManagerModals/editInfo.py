@@ -42,20 +42,11 @@ class EditInfo(baseModal.BaseModal):
 	# Where the fun happens!
 	async def on_submit(self, pInteraction: discord.Interaction):
 		botUtils.BotPrinter.Debug("Edit Info Modal submitted...")
-		vOldName = self.vOpData.fileName
 
 		self.vOpData.name = self.txtName.value
 		self.vOpData.description = self.txtDescription.value
 		self.vOpData.customMessage = self.txtMessage.value
 		self.vOpData.managedBy = self.txtRunner.value
-
-		if self.vOpData.fileName != "":
-			BUPrint.Debug("Renaming existing file to match new Ops Name.")
-			self.vOpData.GenerateFileName()
-			try:
-				os.rename( f"{Directories.liveOpsDir}{vOldName}.bin", f"{Directories.liveOpsDir}{self.vOpData.fileName}.bin" )
-			except OSError as vError:
-				BUPrint.LogErrorExc("Unable to rename file.", vError)
 
 		await pInteraction.response.defer()
 

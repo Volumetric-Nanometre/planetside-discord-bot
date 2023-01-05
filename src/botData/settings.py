@@ -261,7 +261,7 @@ class SignUps:
 	NOTE:  These are NOT settings for individual signups! See `botData.operations.operationOptions` for those.
 	"""
 
-	# The category name (if using existing category, must match capitalisation! Discord always displays categories in upper case, even if its actual name is not.)
+	# The category name (results are searched in lower, so this is generally case insensitive.)
 	signupCategory = "SIGN UP"
 
 	# Icon used for built in RESIGN role.
@@ -410,7 +410,8 @@ class Messages:
 	# Invalid Command Permission : Displayed to users who don't have the required permissions to run a command.
 	invalidCommandPerms = "You do not have the required permission to use that command!"
 
-	invalidBirthdate = "The date provided was an invalid format. Make sure to  include leading zeros (eg: 03/05), and if providing the year, ensure it's 4 digits not 2!."
+	# Invalid Birthdate: Displayed to the user when they configure their userLibrary entry and provide an invalid birthdate.
+	invalidBirthdate = "The date provided was an invalid format. Make sure to include leading zeros (eg: 03/05), and if providing the year, ensure it's 4 digits not 2!."
 
 	# Feedback Overflow: Shown in feedback embeds if characters exceeds the max of 1024.
 	feedbackOverflow = "\n**UNABLE TO FIT ENTIRE FEEDBACK WITHIN EMBED!\nDownload Feedback to see it all.**"

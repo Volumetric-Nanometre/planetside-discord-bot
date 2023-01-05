@@ -93,6 +93,7 @@ class Operations(commands.GroupCog):
 			botUtils.BotPrinter.Debug(f"Editor: {vEditor}, Type: {type(vEditor)}")
 
 			await pInteraction.response.send_message("**OPS EDITOR**", view=vEditor, ephemeral=True)
+			vEditor.vEditorMsg = await pInteraction.original_response()
 			return
 
 		else:
@@ -121,7 +122,7 @@ class Operations(commands.GroupCog):
 			if(edit):
 				vEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
 				await pInteraction.response.send_message(f"**Editing OpData for** *{optype}*", view=vEditor, ephemeral=True)
-
+				vEditor.vEditorMsg = await pInteraction.original_response()
 
 			else:
 				if await vOpManager.AddNewLiveOp(p_opData=newOpsData):
@@ -163,7 +164,7 @@ class Operations(commands.GroupCog):
 		if vLiveOpData != None:
 
 			# Prevent editing of an operation that's in progress.
-			if vLiveOpData.status == OpData.OpsStatus.prestart or vLiveOpData.status == OpData.OpsStatus.started:
+			if vLiveOpData.status.value >= OpData.OpsStatus.prestart.value:
 				await pInteraction.response.send_message("You cannot edit an operation that is in progress!", ephemeral=True)
 				return
 
@@ -173,6 +174,7 @@ class Operations(commands.GroupCog):
 			await vOpMan.UpdateMessage(vLiveOpData)
 
 			await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
+			vEditor.vEditorMsg = await pInteraction.original_response()
 
 		else:
 			botUtils.FilesAndFolders.DeleteCorruptFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit) )
@@ -368,6 +370,22 @@ class OperationManager():
 		return True
 
 
+	def FindOpData(self, p_opData:OpData.OperationData):
+		"""
+		# FIND OP DATA (Live only!)
+		Returns a matching opData from the Live ops.
+		If none are found, recursively searches through live ops and returns one with matching messageIDs.
+		"""
+		opData:OpData.OperationData
+		if p_opData in self.vLiveOps:
+			for opData in self.vLiveOps:
+				if opData == p_opData:
+					return opData
+		else:
+			for opData in self.vLiveOps:
+				if opData.messageID == p_opData.messageID:
+					return opData
+
 
 	def GetDefaultOpsAsList():
 		"""
@@ -552,14 +570,12 @@ class OperationManager():
 		if vGuild == None:
 			return None
 
-		opsCategory = discord.utils.find(lambda items: items.name == botSettings.SignUps.signupCategory, vGuild.categories)
+		opsCategory = discord.utils.find(lambda items: items.name.lower() == botSettings.SignUps.signupCategory.lower(), vGuild.categories)
 
 		if opsCategory == None:
 			BUPrint.Info("SIGNUP CATEGORY NOT FOUND!  Check settings and ensure signupCategory matches the name of the category to be used; including capitalisation!")
 			return None
 
-		argument: str
-		BUPrint.Debug("	-> Parsing arguments...")
 		channel = None
 		if p_opsData.targetChannel != "":
 			channel = discord.utils.find(lambda items: items.name == p_opsData.targetChannel.lower().replace(" ", "-"), vGuild.text_channels)
@@ -1008,6 +1024,11 @@ class OpsEditor(discord.ui.View):
 	def __init__(self, pBot: commands.Bot, pOpsData: OpData.OperationData):
 		self.vBot = pBot
 		self.vOpsData = pOpsData # Original data, not edited.
+		# Used to check if file renaming needs to occur.
+		self.vOldName = pOpsData.name
+		self.vOldDate = pOpsData.date
+		self.vOldFileName = pOpsData.fileName
+		self.vEditorMsg :discord.Message = None
 
 		BUPrint.Info("Ops Editor Instantiated")
 		super().__init__(timeout=None)
@@ -1068,10 +1089,11 @@ class OpsEditor(discord.ui.View):
 						emoji="📨",
 						row=3)
 	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		self.vOpsData.GenerateFileName()
 		vOpManager = OperationManager()
+		
 		if self.vOpsData.messageID == "":
 			BUPrint.Info("Adding new Live Op...")
+			self.vOpsData.GenerateFileName()
 			bSucsessfulOp = await vOpManager.AddNewLiveOp(self.vOpsData)
 			
 			if bSucsessfulOp:
@@ -1082,15 +1104,33 @@ class OpsEditor(discord.ui.View):
 				await pInteraction.response.send_message("An error occured when posting the message.  Check console for more information.\n\nTry again, or close the editor.", ephemeral=True)
 
 		else:
-			BUPrint.Info(f"Saving updated data for {self.vOpsData.name}")
+			if not self.vOpsData.options.bUseReserve:
+				self.vOpsData.reserves.clear()
 
-			self.vOpsData.status = OpData.OperationData.status.open
-			OperationManager.SaveToFile(self.vOpsData)
-			await pInteraction.response.send_message(f"Operation data for {self.vOpsData.name} saved! Updating signup message...\nMake sure to `Finish` before you dismiss the editor!", ephemeral=True)
+			if self.vOpsData.name != self.vOldName or self.vOpsData.date != self.vOldDate:
+				vOriginalData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(self.vOpsData.fileName) )
+				await vOpManager.RemoveOperation(vOriginalData)
 
-			vOpMan = OperationManager()
-			self.vOpsData.status = OpData.OperationData.status.editing
-			await vOpMan.UpdateMessage(self.vOpsData)
+
+				self.vOpsData.GenerateFileName()
+				self.vOpsData.status = OpData.OpsStatus.open
+				await vOpManager.AddNewLiveOp(self.vOpsData)
+				
+				await pInteraction.response.send_message(f"Operation data for {self.vOldName} has been recreated with updated information", ephemeral=True)
+
+			else:
+				BUPrint.Info(f"Saving updated data for {self.vOpsData.name}")
+
+				self.vOpsData.status = OpData.OperationData.status.open
+				OperationManager.SaveToFile(self.vOpsData)
+				await pInteraction.response.send_message(f"Operation data for {self.vOpsData.name} saved! Updating signup message...\nMake sure to `Finish` before you dismiss the editor!", ephemeral=True)
+				await vOpManager.UpdateMessage(self.vOpsData)
+
+		try:
+			await self.vEditorMsg.delete()
+		except discord.errors.NotFound:
+			BUPrint.Info("Unable to delete Op Editor message; most likely due to the channel being removed. Safe to ignore.")
+
 
 
 	@discord.ui.button( 
@@ -1130,26 +1170,21 @@ class OpsEditor(discord.ui.View):
 
 # # # # # # CLOSE BUTTON
 	@discord.ui.button(
-						label="Finish",
+						label="Cancel",
 						style=discord.ButtonStyle.success,
 						emoji="🔓",
 						row=4)
-	async def btnFinish(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):
+	async def btnFinish(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):		
 		if self.vOpsData.messageID != "":
 			vOpMan = OperationManager()
-			self.vOpsData.status = OpData.OperationData.status.open
 
-			if not self.vOpsData.options.bUseReserve:
-				self.vOpsData.reserves.clear()
+			vOriginalData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath( self.vOpsData.fileName ) )
+			vOriginalData.status = OpData.OpsStatus.open
+			OperationManager.SaveToFile(vOriginalData)
+			await vOpMan.UpdateMessage(vOriginalData)
 
-			await vOpMan.UpdateMessage(self.vOpsData)
-			vOpMan.ReconfigureAutoStart(self.vOpsData)
-
-		item: discord.ui.Button
-		for item in self.children:
-			item.disabled = True
-		self.stop()
-		await pInteraction.response.send_message("You may now dismiss the editor.", ephemeral=True)
+		await pInteraction.response.send_message("You may now dismiss the editor if it hasn't automatically closed.", ephemeral=True)
+		await self.vEditorMsg.delete()
 
 
 # # # # # # HELP BUTTON
