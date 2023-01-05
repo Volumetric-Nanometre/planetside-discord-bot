@@ -15,7 +15,6 @@ class ChatMonitorCog(commands.GroupCog, name="voice_monitor", description="Handl
 		self.botRef:commands.Bot = p_botRef
 		BUPrint.Info("COG: Chat Monitor loaded!")
 
-	@commands.has_any_role(f"{botUtils.CommandRestrictionLevels.level1.value}")
 	@app_commands.command(name="move", description="Move all users from one channel to another.")
 	@app_commands.rename(p_targetChannel="target", p_relocationChannel="new_channel")
 	async def MoveUsers(self, p_interaction:discord.Interaction, p_targetChannel:discord.VoiceChannel, p_relocationChannel:discord.VoiceChannel):
@@ -24,7 +23,12 @@ class ChatMonitorCog(commands.GroupCog, name="voice_monitor", description="Handl
 			return
 
 		for member in p_targetChannel.members:
-			await member.move_to(p_relocationChannel)
+			try:
+				await member.move_to(p_relocationChannel)
+			except discord.errors.Forbidden:
+				BUPrint.Info(f"Invalid permission to move {member.display_name}")
+			except discord.HTTPException:
+				BUPrint.Info(f"Discord failed to move {member.display_name}.")
 
 		await p_interaction.response.send_message("Succesfully relocated users to specified channel", ephemeral=True)
 
