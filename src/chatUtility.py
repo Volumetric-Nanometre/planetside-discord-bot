@@ -24,15 +24,17 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 		if not await botUtils.UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
 			return
 
+		stat_movedUSers = 0
 		for member in p_targetChannel.members:
 			try:
 				await member.move_to(p_relocationChannel)
+				stat_movedUSers += 1
 			except discord.errors.Forbidden:
 				BUPrint.Info(f"Invalid permission to move {member.display_name}")
 			except discord.HTTPException:
 				BUPrint.Info(f"Discord failed to move {member.display_name}.")
 
-		await p_interaction.response.send_message("Succesfully relocated users to specified channel", ephemeral=True)
+		await p_interaction.response.send_message(f"Succesfully relocated {stat_movedUSers} users to specified channel", ephemeral=True)
 
 
 
