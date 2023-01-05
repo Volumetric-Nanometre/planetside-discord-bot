@@ -403,20 +403,29 @@ async def UserHasCommandPerms(p_callingUser:discord.Member, p_requiredLevel:Comm
 
 	NOTE: If `settings.bForceRoleRestrictions` is false, this always returns true.
 	"""
-	if BotSettings.bForceRoleRestrictions:
-
-		BotPrinter.Debug(f"Required Roles: {p_requiredLevel.value}")
-		role: discord.Role
-		for role in p_callingUser.roles:
-				if str(role.id) in p_requiredLevel.value or role.name in p_requiredLevel.value:
-					return True
-		
-		if p_interaction != None:
-			await p_interaction.response.send_message(Messages.invalidCommandPerms, ephemeral=True)
-		return False
-
-	else:
+	if not BotSettings.bForceRoleRestrictions:
 		return True
+
+	bHasPermission = UserHasPerms(p_callingUser, p_requiredLevel)
+	
+	if not bHasPermission and p_interaction != None:
+		await p_interaction.response.send_message(Messages.invalidCommandPerms, ephemeral=True)
+	
+	return bHasPermission
+
+
+
+def UserHasPerms(p_user:discord.Member, p_requiredLevel:CommandRestrictionLevels):
+	"""
+	# USER HAS PERMS
+	Similar to UserHasCommandPerms, except does not check `settings.bForceRoleRestrictions`.
+	Expected to be used outside of command/button checks, but still utilise the `CommandRestrictionLevels`.
+	"""
+	for role in p_user.roles:
+		if str(role.id) in p_requiredLevel.value or role.name in p_requiredLevel.value:
+			return True
+	
+	return False
 
 	
 async def RoleDebug(p_guild:discord.Guild, p_showOnLive=False):
