@@ -60,7 +60,7 @@ class ChatMonitorCog(commands.GroupCog, name="voice_monitor", description="Handl
 		vTextChn = self.GetTextChannel(vGuild, vVoiceChn)
 		
 		# First user to join?
-		if bUserJoined or bUserSwappedChannels and vTextChn == None:
+		if (bUserJoined or bUserSwappedChannels) and vTextChn == None:
 			try:
 				vTextChn = await vGuild.create_text_channel(
 					name=f"{vVoiceChn.name}-chat",
@@ -76,7 +76,6 @@ class ChatMonitorCog(commands.GroupCog, name="voice_monitor", description="Handl
 
 		elif bUserJoined or bUserSwappedChannels:
 			await vTextChn.set_permissions(p_member, read_messages=True)
-			return
 
 		# Apply userLeft to old channel.
 		if bUserSwappedChannels:

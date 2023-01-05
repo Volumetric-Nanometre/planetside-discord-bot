@@ -1,4 +1,5 @@
 import os
+import sys
 import datetime
 import time
 from botData.settings import BotSettings
@@ -77,7 +78,7 @@ class BotPrinter():
 		Prints a pre-formatted message to console IF ShowDebug is enabled.
 		"""
 		if(BotSettings.bDebugEnabled):
-			print(f"[{datetime.datetime.now()}] {p_string}")
+			print(f"{ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{p_string}{ConsoleStyles.reset} ")
 
 	@staticmethod
 	def Info(p_string):
@@ -86,7 +87,7 @@ class BotPrinter():
 		Similar to debug, but doesn't depend on ShowDebug to show.
 		Should ideally only be used for displaying status as to not flood the console.
 		"""
-		print(f"[{datetime.datetime.now()}] {p_string}")
+		print(f"{ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{ConsoleStyles.reset} {p_string}")
 
 	# Convenience function to pretty print errors.
 	@staticmethod
@@ -98,14 +99,14 @@ class BotPrinter():
 		p_string : The message to show first.
 		p_tracebacks : The number of tracebacks. Default: 3.
 		"""
-		print(f"[{datetime.datetime.now()}] ERROR: {p_string}  {traceback.print_tb(limit=p_tracebacks)}")
+		print(f"{ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{ConsoleStyles.reset} {ConsoleStyles.colourWarn}ERROR:{ConsoleStyles.reset} {ConsoleStyles.ColourInfo}{p_string}{ConsoleStyles.reset} | {traceback.print_tb(limit=p_tracebacks)}", file=sys.stderr)
 
 	@staticmethod
 	def LogErrorExc(p_string: str, p_exception: Exception):
 		"""
 		Same as LOG ERROR, with addition of Exception parameter.
 		"""
-		print(f"[{datetime.datetime.now()}] ERROR: {p_string}\n{traceback.print_tb(p_exception.__traceback__)}")
+		print(f"{ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{ConsoleStyles.reset} {ConsoleStyles.colourWarn}ERROR:{ConsoleStyles.reset} {ConsoleStyles.ColourInfo}{p_string} | {ConsoleStyles.reset}{traceback.print_tb(p_exception.__traceback__)}", file=sys.stderr)
 
 
 class DateFormat(enum.Enum):
@@ -125,6 +126,10 @@ class DateFormat(enum.Enum):
 
 
 class Colours(enum.Enum):
+	"""
+	# COLOURS:
+	Enum class of colours for use with discord objects.
+	"""
 	openSignup = discord.Colour.from_rgb(0,244,0)
 	opsStarting = discord.Colour.from_rgb(150, 0, 0)
 	opsStarted = discord.Colour.from_rgb(255,0,0)
@@ -133,8 +138,21 @@ class Colours(enum.Enum):
 	userRequest = discord.Colour.from_rgb(106, 77, 255)
 	userWarnOkay = discord.Colour.from_rgb(170, 255, 0)
 	userWarning = discord.Colour.from_rgb(255, 85, 0)
-	
-			
+
+class ConsoleStyles:
+	"""
+	# CONSOLE STYLES
+	Class specifically for holding values for setting console formatting & colours.
+	"""
+	reset = "\033[0m"
+	bold = "\033[1m"
+	dim = "\033[2m"
+	colourWarn = "\033[31m"
+	ColourInfo = "\033[37m"
+	timeStyle = dim + ColourInfo
+
+
+
 class DateFormatter():
 
 	# Used to clear up repeating code
