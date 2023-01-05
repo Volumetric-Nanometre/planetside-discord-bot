@@ -67,6 +67,9 @@ class ChatMonitorCog(commands.GroupCog, name="voice_monitor", description="Handl
 					category=vVoiceChn.category,
 					overwrites=ChannelPermOverwrites.invisible
 				)
+				await vTextChn.set_permissions(p_member, read_messages=True, send_messages=True)
+
+
 			except discord.errors.Forbidden as error:
 				BUPrint.LogErrorExc("Invalid permissions to create channel!", error)
 				return
@@ -75,7 +78,7 @@ class ChatMonitorCog(commands.GroupCog, name="voice_monitor", description="Handl
 				return
 
 		elif bUserJoined or bUserSwappedChannels:
-			await vTextChn.set_permissions(p_member, read_messages=True)
+			await vTextChn.set_permissions(p_member, read_messages=True,send_messages=True)
 
 		# Apply userLeft to old channel.
 		if bUserSwappedChannels:
@@ -114,4 +117,4 @@ class ChatMonitorCog(commands.GroupCog, name="voice_monitor", description="Handl
 			await vTextChan.delete()
 
 		else:
-			await vTextChan.set_permissions(p_member, read_messages=False)
+			await vTextChan.set_permissions(p_member, read_messages=False, send_messages=False)

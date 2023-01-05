@@ -78,7 +78,7 @@ class BotPrinter():
 		Prints a pre-formatted message to console IF ShowDebug is enabled.
 		"""
 		if(BotSettings.bDebugEnabled):
-			print(f"{ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{p_string}{ConsoleStyles.reset} ")
+			print(f"{ConsoleStyles.timeStyle}[{datetime.datetime.now()}] {p_string}{ConsoleStyles.reset} ")
 
 	@staticmethod
 	def Info(p_string):
@@ -497,6 +497,7 @@ class ChannelPermOverwrites():
 		guild = await p_botRef.fetch_guild(BotSettings.discordGuild)
 		roles = await guild.fetch_roles()
 		# Defaults:
+
 		ChannelPermOverwrites.level3[guild.default_role] = discord.PermissionOverwrite(read_messages=False)
 
 		ChannelPermOverwrites.level2[guild.default_role] = discord.PermissionOverwrite(read_messages=False)
