@@ -1,5 +1,5 @@
 import discord
-import botData.operations as OpData
+from botData.dataObjects import OperationData, OpRoleData
 from botUtils import BotPrinter as BUPrint
 import botModals.opsManagerModals.baseModal as baseModal
 import botUtils
@@ -37,7 +37,7 @@ class EditRoles(baseModal.BaseModal):
 		style=discord.TextStyle.paragraph,
 		required=False
 	)
-	def __init__(self, p_opData: OpData.OperationData):
+	def __init__(self, p_opData: OperationData):
 		super().__init__(p_opData, p_title="Edit Roles")
 		self.reservedUsers = [] # Get users who were moved to reserve as a result of this change.
 
@@ -61,7 +61,7 @@ class EditRoles(baseModal.BaseModal):
 		botUtils.BotPrinter.Debug(f"Size of array: {len(vRoleNames)}")
 		while vIndex < vArraySize:
 
-			vCurrentRole = OpData.OpRoleData(roleName=vRoleNames[vIndex], roleIcon=vRoleEmoji[vIndex], maxPositions=int(vRoleMax[vIndex]))
+			vCurrentRole = OpRoleData(roleName=vRoleNames[vIndex], roleIcon=vRoleEmoji[vIndex], maxPositions=int(vRoleMax[vIndex]))
 			if vIndex < len(self.vOpData.roles) :
 				# Index is on an existing role, adjust values to keep any signed up users.
 				self.vOpData.roles[vIndex].roleName = vCurrentRole.roleName
@@ -119,7 +119,7 @@ class EditRoles(baseModal.BaseModal):
 		for pingable in self.vOpData.pingables:
 			vPingables += f"{pingable} "
 
-		roleIndex: OpData.OpRoleData
+		roleIndex: OpRoleData
 		for roleIndex in self.vOpData.roles:
 			vRoleNames += f"{roleIndex.roleName}\n"
 			vRoleMembers += f"{roleIndex.players}\n"

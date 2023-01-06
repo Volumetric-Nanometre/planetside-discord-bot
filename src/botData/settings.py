@@ -10,7 +10,8 @@ For more help:
 https://github.com/LCWilliams/planetside-discord-bot/wiki/Bot-Configuration/
 """
 from discord import SelectOption
-from botData.users import AutoPromoteRule
+import botData.dataObjects
+# from botData.users import AutoPromoteRule
 from dateutil.relativedelta import relativedelta
 from datetime import time, timezone
 import botData.envVars as Env
@@ -327,7 +328,7 @@ class UserLib:
 	bAutoPromoteEnabled = True
 
 	# Auto Promote Rules: A dataclass containing rules/conditions for auto promotion.
-	autoPromoteRules = AutoPromoteRule(
+	autoPromoteRules = botData.dataObjects.AutoPromoteRule(
 		# Attended Minimum Events: When true, a recruit must participate in the specified number of events.
 		bAttendedMinimumEvents = True,
 		# Whether Events MUST be PS2 to be considerd.

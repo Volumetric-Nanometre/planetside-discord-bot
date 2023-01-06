@@ -25,8 +25,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime, dateutil.relativedelta
 
 from OpCommander.events import OpsEventTracker
-from OpCommander.dataObjects import CommanderStatus, Participant, Session
-import OpCommander.dataObjects
+from botData.dataObjects import CommanderStatus, Participant, Session, OpFeedback
 
 import botUtils
 from botUtils import BotPrinter as BUPrint
@@ -39,15 +38,16 @@ from botData.settings import Messages as botMessages
 from botData.settings import Directories
 from botData.settings import UserLib
 
-import botData.operations
-from botData.operations import OperationData as OpsData
-from botData.users import User as UserEntry
+# import botData.operations
+# from botData.operations import OperationData as OperationData
+# from botData.users import User as UserEntry
+from botData.dataObjects import OperationData, User, OpRoleData, DefaultChannels
 
 from userManager import UserLibrary
 
 import opsManager
 
-async def StartCommander(p_opData: OpsData):
+async def StartCommander(p_opData: OperationData):
 	"""
 	# START COMMANDER
 	Self explanitory, calling this will start the commander for the given ops file.
@@ -79,18 +79,21 @@ class Commander():
 	Class containing functions and members used during a live, running Operation
 	"""
 	vBotRef: commands.Bot
-	def __init__(self, p_opData: OpsData) -> None:
+	def __init__(self, p_opData: OperationData) -> None:
 		BUPrint.Info("Ops Commander created")
-		self.vOpData : OpsData = p_opData
+		self.vOpData : OperationData = p_opData
 		self.vCommanderStatus = CommanderStatus.Init
-		self.vFeedback = OpCommander.dataObjects.OpFeedback()
+		self.vFeedback = OpFeedback()
 		self.bFeedbackTooLarge = False # Set to true if feedback is too large for an embed.
 		self.bHasSoftEnded = False # Set to true if soft ended (debriefed.)
 		self.trueStartTime: datetime = None # Set when the event is started.
 
 		# Auraxium client & Op event tracker
-		self.vAuraxClient = auraxium.EventClient(service_id=botSettings.ps2ServiceID)
-		self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
+		self.vAuraxClient:auraxium.EventClient = None
+		self.vOpsEventTracker:OpsEventTracker = None
+		if p_opData.options.bIsPS2Event:
+			self.vAuraxClient = auraxium.EventClient(service_id=botSettings.ps2ServiceID)
+			self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
 
 		# Alert & Autostart Scheduler
 		self.scheduler = AsyncIOScheduler()
@@ -199,7 +202,7 @@ class Commander():
 
 
 			# Update Signup Post with new Status.
-			self.vOpData.status = OpsData.status.prestart
+			self.vOpData.status = OperationData.status.prestart
 			vOpMan = opsManager.OperationManager()
 			await vOpMan.UpdateMessage(self.vOpData)
 
@@ -269,13 +272,13 @@ class Commander():
 		bFoundNotif = False
 		# Find existing Commander & Notif channels
 		for txtChannel in self.vCategory.text_channels:
-			if txtChannel.name.lower() == botData.operations.DefaultChannels.opCommander.lower():
+			if txtChannel.name.lower() == DefaultChannels.opCommander.lower():
 				BUPrint.Debug("Existing op commander channel found in category, using that instead.")
 				self.commanderChannel = txtChannel
 				await self.commanderChannel.purge()
 				bFoundCommander = True
 
-			if txtChannel.name.lower() == botData.operations.DefaultChannels.notifChannel.lower():
+			if txtChannel.name.lower() == DefaultChannels.notifChannel.lower():
 				BUPrint.Debug("Existing notification channel found in category, using that instead.")
 				self.notifChn = txtChannel
 				await self.notifChn.purge()
@@ -288,19 +291,19 @@ class Commander():
 		# Manually create Commander & Notif channel if not already present
 		if self.commanderChannel == None:
 			self.commanderChannel = await self.vCategory.create_text_channel(
-				name=botData.operations.DefaultChannels.opCommander,
+				name=DefaultChannels.opCommander,
 				overwrites=ChanPermOverWrite.level2
 			)
 
 		if self.notifChn == None:
 			self.notifChn = await self.vCategory.create_text_channel(
-				name=botData.operations.DefaultChannels.notifChannel,
+				name=DefaultChannels.notifChannel,
 				overwrites=ChanPermOverWrite.level3_readOnly
 			)
 
 		# Add non-existing channels for custom text channels
 		txtChannelName:str
-		for txtChannelName in botData.operations.DefaultChannels.textChannels:
+		for txtChannelName in DefaultChannels.textChannels:
 			if txtChannelName.lower() not in self.vCategory.text_channels:
 				await self.vCategory.create_text_channel(
 					name=txtChannelName,
@@ -317,18 +320,18 @@ class Commander():
 		# Create always present voice channels:
 		bAlreadyExists = False
 		for existingChannel in self.vCategory.voice_channels:
-			if existingChannel.name.lower() == botData.operations.DefaultChannels.standByChannel.lower():
+			if existingChannel.name.lower() == DefaultChannels.standByChannel.lower():
 				bAlreadyExists = True
 				BUPrint.Debug("Existing standby channel found.")
 				self.standbyChn = existingChannel
 				break
 
 		if self.standbyChn == None:
-			self.standbyChn = await self.vCategory.create_voice_channel(name=botData.operations.DefaultChannels.standByChannel)
+			self.standbyChn = await self.vCategory.create_voice_channel(name=DefaultChannels.standByChannel)
 
 		BUPrint.Debug("	-> Creating default chanels")
-		if len(botData.operations.DefaultChannels.persistentVoice) != 0:
-			for newChannel in botData.operations.DefaultChannels.persistentVoice:
+		if len(DefaultChannels.persistentVoice) != 0:
+			for newChannel in DefaultChannels.persistentVoice:
 
 				bAlreadyExists = False
 				for existingChannel in self.vCategory.voice_channels:
@@ -364,7 +367,7 @@ class Commander():
 		else: # No custom voice channels given, use default
 		
 			BUPrint.Debug("	-> No voice channels specified, using defaults...")
-			for newChannel in botData.operations.DefaultChannels.voiceChannels:
+			for newChannel in DefaultChannels.voiceChannels:
 				BUPrint.Debug(f"	-> Adding channel: {newChannel}")
 	
 				bAlreadyExists = False
@@ -467,7 +470,7 @@ class Commander():
 			vMessage += f"\n\n*{botMessages.OpsAutoMoveWarn}*\n\n"
 
 
-		opRole: botData.operations.OpRoleData
+		opRole: OpRoleData
 		for opRole in self.vOpData.roles:
 			if len(opRole.players) < opRole.maxPositions and opRole.maxPositions > 0:
 				vMessage += f"**{opRole.roleName}** currently has **{opRole.maxPositions - len(opRole.players)}** available spaces!\n"
@@ -688,7 +691,7 @@ class Commander():
 
 			else:
 				BUPrint.Debug("	-> PS2 Character found!")
-				p_participant.libraryEntry = UserEntry(discordID=p_participant.discordID, ps2Name=charName)
+				p_participant.libraryEntry = User(discordID=p_participant.discordID, ps2Name=charName)
 				
 				if UserLib.bCommanderCanAutoCreate:
 					BUPrint.Debug("Saving new user Entry:")
@@ -785,7 +788,7 @@ class Commander():
 		vLimitedRoleCount = 0
 		vFilledLimitedRole = 0
 		vOpenRole = 0
-		role: botData.operations.OpRoleData
+		role: OpRoleData
 		for role in self.vOpData.roles:
 			vSignedUpCount += len(role.players)
 			if role.maxPositions > 0:
@@ -817,7 +820,7 @@ class Commander():
 
 
 		bFirstRole = self.vOpData.options.bUseReserve
-		role: botData.operations.OpRoleData
+		role: OpRoleData
 		for role in self.vOpData.roles:
 			
 			vUsersInRole = "*None*"
@@ -1142,7 +1145,7 @@ class Commander():
 		
 		Starts tracking, if enabled.
 		"""
-		if self.vOpData.status.value >= OpsData.status.started.value:
+		if self.vOpData.status.value >= OperationData.status.started.value:
 			BUPrint.Debug("Operation has already been started. Skipping.")
 			return
 
@@ -1170,7 +1173,7 @@ class Commander():
 			await self.MoveUsers(p_moveToStandby=True)
 
 		await self.SendAlertMessage(p_opStart=True)
-		self.vOpData.status = OpsData.status.started
+		self.vOpData.status = OperationData.status.started
 		vOpMan = opsManager.OperationManager()
 		await vOpMan.UpdateMessage(self.vOpData)
 		self.vCommanderStatus = CommanderStatus.Started
@@ -1184,7 +1187,8 @@ class Commander():
 		# SOFT END OPERATION
 		Performs minor cleanup, during debrief.
 		"""
-		await self.vAuraxClient.close()
+		if self.vOpData.options.bIsPS2Event:
+			await self.vAuraxClient.close()
 		self.scheduler.shutdown()
 
 		self.bHasSoftEnded = True

@@ -8,13 +8,11 @@ import datetime, dateutil.relativedelta
 import botUtils
 import botData.settings
 from botData.settings import NewUsers as NewUserSettings
+from botData.settings import CommandRestrictionLevels
 from botUtils import BotPrinter
 
-from botData.settings import CommandRestrictionLevels
-from botData.users import User as UserLibEntry
-
+from botData.dataObjects import User
 from userManager import UserLibrary
-
 from roleManager import RoleManager
 
 
@@ -548,7 +546,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 
 		# Create library entry, if enabled and user doesn't already have one:
 		if NewUserSettings.bCreateLibEntryOnAccept and not UserLibrary.HasEntry(self.userData.userObj.id):
-			vUserLibEntry = UserLibEntry(
+			vUserLibEntry = User(
 				discordID=self.userData.userObj.id,
 				ps2Name=self.userData.ps2CharName,
 				)

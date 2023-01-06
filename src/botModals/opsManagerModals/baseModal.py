@@ -1,11 +1,11 @@
 import discord
-import botData.operations as OpData
+from botData.dataObjects import OperationData
 from botUtils import BotPrinter as BUPrint
 
 class BaseModal(discord.ui.Modal):
-	def __init__(self, p_opData:OpData.OperationData, p_title:str):
+	def __init__(self, p_opData:OperationData, p_title:str):
 		super().__init__(title=p_title)
-		self.vOpData:OpData.OperationData = p_opData
+		self.vOpData:OperationData = p_opData
 		self.PresetFields()
 
 	async def on_error(self, pInteraction:discord.Interaction, error: Exception):

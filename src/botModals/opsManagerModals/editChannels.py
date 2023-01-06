@@ -1,5 +1,5 @@
 import discord
-import botData.operations as OpData
+from botData.dataObjects import OperationData
 from botUtils import BotPrinter as BUPrint
 import botModals.opsManagerModals.baseModal as baseModal
 import botUtils
@@ -26,7 +26,7 @@ class EditChannels(baseModal.BaseModal):
 	)
 
 
-	def __init__(self, *, p_OpData: OpData.OperationData):
+	def __init__(self, *, p_OpData: OperationData):
 		super().__init__(p_OpData, p_title="Edit Channel Info")
 
 	# Where the fun happens!

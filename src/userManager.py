@@ -22,10 +22,12 @@ from botUtils import DateFormatter, DateFormat, FilesAndFolders, GetGuild, UserH
 
 import botData.settings as settings
 from botData.settings import CommandRestrictionLevels
-from botData.users import User
-from botData.operations import UserSession
+from botData.dataObjects import User, UserSession, Session
 
-from OpCommander.dataObjects import Session
+# from botData.users import User
+# from botData.operations import UserSession
+
+# from OpCommander.dataObjects import Session
 
 
 class UserLibraryCog(commands.GroupCog, name="user_library"):

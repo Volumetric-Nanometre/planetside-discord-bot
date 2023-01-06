@@ -11,8 +11,8 @@ import botUtils
 from botUtils import BotPrinter as BUPrint
 
 import botData.settings as BotSettings
-import botData.operations
-from botData.operations import OperationData as OpsData
+
+from botData.dataObjects import OperationData
 
 import opsManager
 
@@ -54,9 +54,9 @@ class CommanderCommands(commands.Cog):
 		if not await botUtils.UserHasCommandPerms(p_interaction.user, (BotSettings.CommandRestrictionLevels.level2), p_interaction):
 			return
 
-		vOpData: botData.operations.OperationData
+		vOpData: OperationData
 		
-		opData: botData.operations.OperationData
+		opData: OperationData
 		for opData in opsManager.OperationManager.vLiveOps:
 			if opData.fileName == p_opFile:
 				vOpData = opData
@@ -71,7 +71,7 @@ class CommanderCommands(commands.Cog):
 		choices: list = []
 		availableOps:list = opsManager.OperationManager.vLiveOps
 
-		option: botData.operations.OperationData
+		option: OperationData
 		for option in availableOps:
 			if (p_typedStr.lower() in option.fileName.lower()):
 				choices.append(discord.app_commands.Choice(name=option.fileName.replace(".bin", ""), value=option.fileName))

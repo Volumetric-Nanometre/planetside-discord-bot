@@ -13,7 +13,8 @@ import apscheduler.jobstores.base
 from botData.settings import Messages as botMessages
 from botData import settings as botSettings
 import botData.settings
-import botData.operations as OpData
+# import botData.operations as OpData
+from botData.dataObjects import OperationData, OpRoleData, OpsStatus
 
 import OpCommander.commander
 import OpCommander.autoCommander
@@ -79,13 +80,13 @@ class Operations(commands.GroupCog):
 		vOpTypeStr = str(optype).replace("OpsType.", "")
 
 
-		newOpsData : OpData.OperationData = OpData.OperationData()
+		newOpsData : OperationData = OperationData()
 		vOpManager = OperationManager()
 		newOpsData.date = vDate
 
 		if vOpTypeStr not in OperationManager.GetDefaults():
 			# USER IS USING A NON-DEFAULT/CUSTOM
-			newOpsData.status = OpData.OpsStatus.editing
+			newOpsData.status = OpsStatus.editing
 
 			vEditor: OpsEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
 
@@ -158,18 +159,18 @@ class Operations(commands.GroupCog):
 			return
 
 		BUPrint.Info(f"**Editing Ops data for** *{pOpsToEdit}*")
-		vLiveOpData:OpData.OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
+		vLiveOpData:OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
 
 		if vLiveOpData != None:
 
 			# Prevent editing of an operation that's in progress.
-			if vLiveOpData.status.value >= OpData.OpsStatus.prestart.value:
+			if vLiveOpData.status.value >= OpsStatus.prestart.value:
 				await pInteraction.response.send_message("You cannot edit an operation that is in progress!", ephemeral=True)
 				return
 
 			vEditor = OpsEditor(pBot=self.bot, pOpsData=vLiveOpData)
 			vOpMan = OperationManager()
-			vLiveOpData.status = OpData.OpsStatus.editing
+			vLiveOpData.status = OpsStatus.editing
 			await vOpMan.UpdateMessage(vLiveOpData)
 
 			await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
@@ -220,7 +221,7 @@ class OperationManager():
 
 		Recursively 'updates' all active live Ops so that views are refreshed and usable again.
 		"""
-		vOpData : OpData.OperationData
+		vOpData : OperationData
 		for vOpData in self.vLiveOps:
 			await self.UpdateMessage(vOpData)
 			if botSettings.BotSettings.bDebugEnabled:
@@ -253,7 +254,7 @@ class OperationManager():
 		for currentFileName in OperationManager.GetOps():
 			BUPrint.Debug(f"Loading data from {currentFileName}")
 			vFullPath = f"{botSettings.Directories.liveOpsDir}{currentFileName}"
-			vFile: OpData.OperationData = OperationManager.LoadFromFile(vFullPath)
+			vFile: OperationData = OperationManager.LoadFromFile(vFullPath)
 			if vFile is not None:
 				self.vLiveOps.append(OperationManager.LoadFromFile(vFullPath))
 
@@ -270,7 +271,7 @@ class OperationManager():
 
 
 
-	async def RemoveOperation(self, p_opData: OpData.OperationData):
+	async def RemoveOperation(self, p_opData: OperationData):
 		"""
 		# REMOVE OPERATION:
 
@@ -315,7 +316,7 @@ class OperationManager():
 				self.vLiveOps.remove(p_opData)
 			except ValueError:
 				BUPrint.Debug("	-> Couldn't remove OpData from LiveList.  Trying manual recursive find...")
-				findData:OpData.OperationData
+				findData:OperationData
 				for findData in self.vLiveOps:
 					if findData.name == p_opData.name:
 						if findData.date == p_opData.date:
@@ -353,7 +354,7 @@ class OperationManager():
 
 
 	# Remove Autostart entry if op status is not started.
-		if p_opData.status.value < OpData.OpsStatus.started.value:
+		if p_opData.status.value < OpsStatus.started.value:
 			BUPrint.Debug("	-> Removing scheduled AutoStart.")
 			try:
 				autoComCog: OpCommander.autoCommander.AutoCommander = self.vBotRef.get_cog("AutoCommander")
@@ -369,13 +370,13 @@ class OperationManager():
 		return True
 
 
-	def FindOpData(self, p_opData:OpData.OperationData):
+	def FindOpData(self, p_opData:OperationData):
 		"""
 		# FIND OP DATA (Live only!)
 		Returns a matching opData from the Live ops.
 		If none are found, recursively searches through live ops and returns one with matching messageIDs.
 		"""
-		opData:OpData.OperationData
+		opData:OperationData
 		if p_opData in self.vLiveOps:
 			for opData in self.vLiveOps:
 				if opData == p_opData:
@@ -406,7 +407,7 @@ class OperationManager():
 		return vDataFiles
 
 	
-	def SaveToFile(p_opsData: OpData.OperationData):
+	def SaveToFile(p_opsData: OperationData):
 		"""
 		# SAVE TO FILE:
 		Saves the Operation Data to file.
@@ -459,7 +460,7 @@ class OperationManager():
 		try:
 			botUtils.FilesAndFolders.GetLock( f"{p_opFilePath}{botSettings.Directories.lockFileAffix}" )
 			with open(p_opFilePath, "rb") as vFile:
-				vLoadedOpData : OpData.OperationData = pickle.load(vFile)
+				vLoadedOpData : OperationData = pickle.load(vFile)
 			botUtils.FilesAndFolders.ReleaseLock(f"{p_opFilePath}{botSettings.Directories.lockFileAffix}")
 			BUPrint.Info(f"Operation: {vLoadedOpData.fileName} loaded sucessfully!")
 			return vLoadedOpData
@@ -476,7 +477,7 @@ class OperationManager():
 
 
 
-	async def AddNewLiveOp(self, p_opData: OpData.OperationData):
+	async def AddNewLiveOp(self, p_opData: OperationData):
 		"""
 		# ADD NEW LIVE OP:
 
@@ -508,7 +509,7 @@ class OperationManager():
 
 
 	
-	async def AddNewLive_PostOp(self, p_opData:OpData.OperationData):
+	async def AddNewLive_PostOp(self, p_opData:OperationData):
 		"""
 		# POST OP:  
 		A sub-function for AddNewLiveOp
@@ -548,7 +549,7 @@ class OperationManager():
 
 
 
-	async def AddNewLive_GetTargetChannel(self, p_opsData: OpData.OperationData):
+	async def AddNewLive_GetTargetChannel(self, p_opsData: OperationData):
 		"""
 		# GET TARGET CHANNEL:
 
@@ -604,7 +605,7 @@ class OperationManager():
 
 
 	
-	async def AddNewLive_GenerateEmbed(self, p_opsData: OpData.OperationData):
+	async def AddNewLive_GenerateEmbed(self, p_opsData: OperationData):
 		"""
 		# GENERATE EMBED
 		A sub function to AddNewLiveOps
@@ -623,15 +624,15 @@ class OperationManager():
 							)
 
 
-		if p_opsData.status == OpData.OperationData.status.prestart:
+		if p_opsData.status == OperationData.status.prestart:
 			vEmbed.title += f"\n\n**{botMessages.OpsStartSoon}**"
 			vEmbed.colour = botUtils.Colours.opsStarting.value
 
-		if p_opsData.status == OpData.OperationData.status.started:
+		if p_opsData.status == OperationData.status.started:
 			vEmbed.title += f"\n\n**{botMessages.OpsStarted}**"
 			vEmbed.colour = botUtils.Colours.opsStarted.value
 
-		if p_opsData.status == OpData.OperationData.status.editing:
+		if p_opsData.status == OperationData.status.editing:
 			vEmbed.title += f"\n\n**{botMessages.OpsBeingEdited}**"
 			vEmbed.colour = botUtils.Colours.editing.value
 
@@ -653,7 +654,7 @@ class OperationManager():
 			)
 
 		# Generate lists for roles:
-		role: OpData.OpRoleData
+		role: OpRoleData
 		for role in p_opsData.roles:
 
 			# Only display role if max position is not 0.
@@ -716,7 +717,7 @@ class OperationManager():
 
 
 
-	async def AddNewLive_GenerateView(self, p_opsData: OpData.OperationData):
+	async def AddNewLive_GenerateView(self, p_opsData: OperationData):
 		"""
 		# GENERATE VIEW
 		A subfunction of AddNewLive.
@@ -732,7 +733,7 @@ class OperationManager():
 		if p_opsData.options.bUseReserve:
 			vView.add_item( btnReserve )
 		
-		if p_opsData.status == OpData.OpsStatus.started or p_opsData.status == OpData.OpsStatus.editing:
+		if p_opsData.status == OpsStatus.started or p_opsData.status == OpsStatus.editing:
 			vRoleSelector.disabled = True
 			btnReserve.disabled = True
 
@@ -740,7 +741,7 @@ class OperationManager():
 
 
 
-	async def UpdateMessage(self, p_opData: OpData.OperationData):
+	async def UpdateMessage(self, p_opData: OperationData):
 		"""
 		# UPDATE MESSAGE:
 		The main function to call to post and update a message.
@@ -783,7 +784,7 @@ class OperationManager():
 		await vMessage.edit(embed=vNewEmbed, view=vView)
 
 
-		if p_opData.status == OpData.OpsStatus.prestart:
+		if p_opData.status == OpsStatus.prestart:
 			commander: OpCommander.commander.Commander = OperationManager.FindCommander(p_opData)
 			if commander == None:
 				BUPrint.Debug("Unable to get Commander for this event.")
@@ -793,7 +794,7 @@ class OperationManager():
 
 
 
-	def GetManagedBy(self, p_opData: OpData.OperationData):
+	def GetManagedBy(self, p_opData: OperationData):
 		"""
 		# GET MANAGED BY
 		Returns a mentionable of a user specified to be the person running the Op.
@@ -810,7 +811,7 @@ class OperationManager():
 		return None
 
 
-	def RemoveUser(p_opData:OpData.OperationData, p_userToRemove:str):
+	def RemoveUser(p_opData:OperationData, p_userToRemove:str):
 		"""
 		# REMOVE USER:
 		Iterates over all roles (including reserve) and removes the player ID if present.
@@ -824,7 +825,7 @@ class OperationManager():
 				return
 
 
-	def FindCommander(p_opdata:OpData.OperationData):
+	def FindCommander(p_opdata:OperationData):
 		"""
 		# FIND COMMANDER
 		Will iterate through the live commanders for a matching opdata and return the found commander.
@@ -858,12 +859,12 @@ class OperationManager():
 
 		autoCommanderCog.scheduler.remove_all_jobs()
 
-		opData : OpData.OperationData
+		opData : OperationData
 		for opData in self.vLiveOps:
 			self.AddNewAutoStart(opData)
 
 
-	def ReconfigureAutoStart(self, p_opData: OpData.OperationData):
+	def ReconfigureAutoStart(self, p_opData: OperationData):
 		"""
 		# RECONFIGURE AUTO START
 
@@ -906,7 +907,7 @@ class OperationManager():
 			return True
 
 
-	def AddNewAutoStart(self, p_opdata: OpData.OperationData):
+	def AddNewAutoStart(self, p_opdata: OperationData):
 		"""
 		# ADD NEW AUTO START
 
@@ -939,7 +940,7 @@ class OperationManager():
 # MESSAGES	
 
 class OpsRoleSelector(discord.ui.Select):
-	def __init__(self, p_opsData: OpData.OperationData):
+	def __init__(self, p_opsData: OperationData):
 		defaultOption = discord.SelectOption(label="Default", value="Default")
 		self.vOpsData = p_opsData
 		super().__init__(placeholder="Choose a role...", options=[defaultOption])
@@ -947,8 +948,8 @@ class OpsRoleSelector(discord.ui.Select):
 	async def callback(self, pInteraction: discord.Interaction):
 		botUtils.BotPrinter.Debug(f"User {pInteraction.user.name} has signed up to {self.vOpsData.fileName} with role: {self.values[0]}")
 		vOpMan = OperationManager()		
-		vSelectedRole: OpData.OpRoleData = None
-		role: OpData.OpRoleData
+		vSelectedRole: OpRoleData = None
+		role: OpRoleData
 		for role in self.vOpsData.roles:
 			if self.values[0] == role.roleName:
 				vSelectedRole = role
@@ -976,7 +977,7 @@ class OpsRoleSelector(discord.ui.Select):
 	
 	def UpdateOptions(self):
 		self.options.clear()
-		role: OpData.OpRoleData
+		role: OpRoleData
 
 		# Always add a default used to resign players.
 		self.add_option(label="Resign", value="Resign", emoji=botSettings.SignUps.resignIcon)
@@ -995,7 +996,7 @@ class OpsRoleSelector(discord.ui.Select):
 
 
 class OpsRoleReserve(discord.ui.Button):
-	def __init__(self, p_opsData : OpData.OperationData):
+	def __init__(self, p_opsData : OperationData):
 		self.vOpsData = p_opsData
 		super().__init__(label="Reserve", emoji=botSettings.SignUps.reserveIcon)
 
@@ -1020,7 +1021,7 @@ class OpsRoleReserve(discord.ui.Button):
 
 
 class OpsEditor(discord.ui.View):
-	def __init__(self, pBot: commands.Bot, pOpsData: OpData.OperationData):
+	def __init__(self, pBot: commands.Bot, pOpsData: OperationData):
 		self.vBot = pBot
 		self.vOpsData = pOpsData # Original data, not edited.
 		# Used to check if file renaming needs to occur.
@@ -1112,7 +1113,7 @@ class OpsEditor(discord.ui.View):
 
 
 				self.vOpsData.GenerateFileName()
-				self.vOpsData.status = OpData.OpsStatus.open
+				self.vOpsData.status = OpsStatus.open
 				await vOpManager.AddNewLiveOp(self.vOpsData)
 				
 				await pInteraction.response.send_message(f"Operation data for {self.vOldName} has been recreated with updated information", ephemeral=True)
@@ -1120,7 +1121,7 @@ class OpsEditor(discord.ui.View):
 			else:
 				BUPrint.Info(f"Saving updated data for {self.vOpsData.name}")
 
-				self.vOpsData.status = OpData.OperationData.status.open
+				self.vOpsData.status = OperationData.status.open
 				OperationManager.SaveToFile(self.vOpsData)
 				await pInteraction.response.send_message(f"Operation data for {self.vOpsData.name} saved! Updating signup message...\nMake sure to `Finish` before you dismiss the editor!", ephemeral=True)
 				await vOpManager.UpdateMessage(self.vOpsData)
@@ -1141,7 +1142,7 @@ class OpsEditor(discord.ui.View):
 	async def btnNewDefault(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		BUPrint.Info(f"Saving a new default! {self.vOpsData.name}")
 		# Set status of Ops back to OPEN.
-		self.vOpsData.status = OpData.OpsStatus.open
+		self.vOpsData.status = OpsStatus.open
 
 		vOldFilename = self.vOpsData.fileName
 		# Ensure fileName is empty so its saved as a default
@@ -1151,7 +1152,7 @@ class OpsEditor(discord.ui.View):
 		vOrigRoles = self.vOpsData.roles
 		vOrigReserves = self.vOpsData.reserves
 
-		role:OpData.OpRoleData
+		role:OpRoleData
 		for role in self.vOpsData.roles:
 			role.players.clear()
 		self.vOpsData.reserves.clear()
@@ -1213,7 +1214,7 @@ class OpsEditor(discord.ui.View):
 			vOpMan = OperationManager()
 
 			vOriginalData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath( self.vOpsData.fileName ) )
-			vOriginalData.status = OpData.OpsStatus.open
+			vOriginalData.status = OpsStatus.open
 			OperationManager.SaveToFile(vOriginalData)
 			await vOpMan.UpdateMessage(vOriginalData)
 

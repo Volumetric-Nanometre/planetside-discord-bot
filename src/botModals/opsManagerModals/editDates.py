@@ -1,5 +1,5 @@
 import discord
-import botData.operations as OpData
+from botData.dataObjects import OperationData
 from botData.settings import Directories
 from botUtils import BotPrinter as BUPrint
 import botModals.opsManagerModals.baseModal as baseModal
@@ -38,7 +38,7 @@ class EditDates(baseModal.BaseModal):
 		min_length=1, max_length=2,
 		required=False
 	)
-	def __init__(self, *, p_opData: OpData.OperationData):
+	def __init__(self, *, p_opData: OperationData):
 		super().__init__(p_opData=p_opData, p_title="Edit Dates")
 
 	# Where the fun happens!

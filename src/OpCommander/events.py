@@ -6,7 +6,7 @@ import auraxium
 from auraxium.event import EventClient, Trigger
 
 from botUtils import BotPrinter as BUPrint
-import OpCommander.dataObjects
+import botData.dataObjects
 
 class OpsEventTracker():
 	def __init__(self, p_aurClient: auraxium.EventClient) -> None:
