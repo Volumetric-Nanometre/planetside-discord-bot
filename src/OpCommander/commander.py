@@ -1044,7 +1044,7 @@ class Commander():
 		Sends/Updates the feedback message.
 		"""
 
-		vFeedbackEmbed = self.GenerateEmbed_Feedback()
+		# vFeedbackEmbed = self.GenerateEmbed_Feedback()
 		vFeedbackMsg = "**FEEDBACK:**\n"
 		for feedback in self.vFeedback.generic:
 			if feedback != "":
@@ -1069,7 +1069,6 @@ class Commander():
 		feedbackFile = discord.File( self.vFeedback.SaveToFile(self.vOpData.fileName) )
 
 		if self.vOpData.options.bUseSoberdogsFeedback:
-			vFilePath = self.vFeedback.SaveToFile(self.vOpData.fileName)
 			if self.soberdogFeedbackMsg == None:
 				# self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(embed=vFeedbackEmbed, file=feedbackFile)
 				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(content=vFeedbackMsg, file=feedbackFile)
