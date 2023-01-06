@@ -59,8 +59,10 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 
 		vReasonMsg = f"{p_interaction.user.display_name} used 'remove category' command."
 
-		# Remove voice channels, moving any connected users to fallback (if found)
+		# Remove voice channels, moving any connected users to fallback (if found).
+		# This is done first, since movin connected members should remove all the chat-linked text channels.
 		fallbackVC = p_interaction.guild.get_channel( Settings.BotSettings.fallbackVoiceChat )
+		vMessage += f"**Voice Channels: {len(p_category.voice_channels)}"
 		for voiceChan in p_category.voice_channels:
 			if fallbackVC != None:
 				for member in voiceChan.members:
@@ -78,18 +80,9 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 			except:
 				vMessage += f"Voice Channel: {voiceChan.name} not removed\n"
 
-		try:
-			await p_category.delete(vReasonMsg)
-		except:
-			vMessage += f"Category {p_category.name} not removed!\n"
 
-		try:
-			await p_interaction.response.send_message("Category has been removed!", ephemeral=True)
-		except discord.errors.NotFound:
-			BUPrint.Info("Response not found.  Command likely used in channel that was removed (or the operation took longer than discords time-out.)")
-
-
-		# Remove text channels second, since moving members will remove any text associated channels.
+		# Remove text channels second
+		vMessage += f"**Text Channels: {len(p_category.text_channels)}"
 		for textChan in p_category.text_channels:
 			try:
 				await textChan.delete(reason=vReasonMsg)
@@ -98,7 +91,19 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 				vMessage += f"Text Channel: {textChan.name} not removed\n"
 
 
+		# Finally, delete category
+		try:
+			await p_category.delete(vReasonMsg)
+		except:
+			vMessage += f"Category {p_category.name} not removed! If empty, remove it manually.\n"
 
+		try:
+			await p_interaction.response.send_message("Category has been removed!", ephemeral=True)
+		except discord.errors.NotFound:
+			BUPrint.Info("Response not found.  Command likely used in channel that was removed (or the operation took longer than discords time-out.)")
+
+
+		# Send administrative message if possible, else print to console
 		if vAdminChannel != None:
 			await vAdminChannel.send( vMessage )
 		else:

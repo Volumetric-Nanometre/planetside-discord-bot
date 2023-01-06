@@ -12,6 +12,7 @@ https://github.com/LCWilliams/planetside-discord-bot/wiki/Bot-Configuration/
 from discord import SelectOption
 from botData.users import AutoPromoteRule
 from dateutil.relativedelta import relativedelta
+from datetime import time, timezone
 import botData.envVars as Env
 from dataclasses import dataclass
 from enum import Enum
@@ -235,6 +236,9 @@ class Directories:
 	# File directory for saved user data.
 	userLibrary = f"{prefixDir}Users/"
 
+	# File directory for saved recruit user data.  Separated to make getting just recruits less intensive.
+	userLibraryRecruits = f"{userLibrary}Recruits"
+
 	# File directory for temporary files.
 	tempDir = f"{prefixDir}temp/"
 
@@ -313,7 +317,13 @@ class UserLib:
 	# Max Saved Events: The maximum number of saved events a users entry can hold.  -1 for no limit, or 0 to disable.
 	maxSavedEvents = -1
 
-	# Auto Promote Enabled: When true, after a user has met the requirements, they are promoted (if appropriate role found)
+	# Auto Query Recruit Time: The time(s) during the day in which all recruits are queried.
+	autoQueryRecruitTime = [
+		time(hour=10, minute=00, tzinfo=timezone.utc)
+	]
+
+	# Auto Promote Enabled: When true, after a user has met the requirements, they are promoted (if appropriate role found).
+	# If False, a validation request is sent to the admin channel instead.
 	bAutoPromoteEnabled = True
 
 	# Auto Promote Rules: A dataclass containing rules/conditions for auto promotion.
@@ -330,9 +340,6 @@ class UserLib:
 		bInDiscordForDuration = True,
 		discordDuration = relativedelta(days=7)
 	)
-
-	# Promotion Requires Validation: If true, a validation request is sent to the admin channel to be confirmed, otherwise they are promoted automatically.
-	bPromotionRequiresValidation = True
 
 	# Promotion Role ID: The ID of the role recruit users are promoted to.
 	promotionRoleID = 1050286811940921344 # DEV VALUE
@@ -356,7 +363,6 @@ class UserLib:
 		vString += f"	> Max Saved Events:	{self.maxSavedEvents}\n"
 		vString += f"	> AutoPromote Users:	{self.bAutoPromoteEnabled}\n"
 		vString += f"	> AutoPromote Rules:	{self.autoPromoteRules}\n"
-		vString += f"	> Validate AutoPromote:	{self.bPromotionRequiresValidation}\n"
 		vString += f"	> Max Session Previews:	{self.sessionPreviewMax}\n"
 		vString += f"	> Remove Entry/Special on leave: {self.bRemoveEntryOnLeave}/{self.bRemoveSpecialEntryOnLeave}\n"
 
@@ -425,6 +431,12 @@ class Messages:
 
 	# COMMANDER AutoStart: Displayed on the commander when autostart is enabled.
 	commanderAutoStart = "Auto-Start is enabled.\n> *This Commander will automatically start the operation.*\n> *To start the operation early, press* ***START***."
+
+	# No Library Entry- Shown when someone tries to view a users library entry and there is none.
+	noUserEntry = "This user has no library entry. :("
+	
+	# No User Entry Self: Shown when a user tries to view their own entry and userAutoCreate is disabled.
+	NoUserEntrySelf = "You have no entry.  Ask an administrator to make one for you."
 
 
 @dataclass(frozen=True)

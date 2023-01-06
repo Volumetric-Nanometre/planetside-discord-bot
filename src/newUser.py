@@ -558,6 +558,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 
 			if self.userData.ps2OutfitCharObj != None:
 				vUserLibEntry.ps2OutfitRank = self.userData.ps2OutfitCharObj.rank
+				vUserLibEntry.ps2OutfitJoinDate = datetime.datetime.fromtimestamp(self.userData.ps2OutfitCharObj.member_since, datetime.timezone.utc)
 
 			self.userData.bIsRecruit = vUserLibEntry.bIsRecruit
 
