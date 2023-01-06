@@ -1,4 +1,5 @@
 import discord
+import discord.ext
 from discord.ext import commands, tasks
 # from discord.ext.commands import Context
 from discord import app_commands
@@ -11,13 +12,13 @@ import os
 
 import pickle
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+from dateutil.relativedelta import relativedelta
 
 from enum import Enum
 
 from botUtils import BotPrinter as BUPrint
-from botUtils import UserHasCommandPerms
-from botUtils import DateFormatter, DateFormat, FilesAndFolders
+from botUtils import DateFormatter, DateFormat, FilesAndFolders, GetGuild, UserHasCommandPerms
 
 import botData.settings as settings
 from botData.settings import CommandRestrictionLevels
@@ -32,8 +33,6 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 	"""
 	def __init__(self, p_botRef):
 		self.botRef = p_botRef
-		UserLibrary.botRef = p_botRef
-		UserLib_RecruitValidationRequest.botRef = p_botRef
 		BUPrint.Info("COG: User Library loaded!")
 
 
@@ -58,7 +57,7 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 			await vLibViewer.SendViewer(p_interaction)
 	
 		elif not bViewingSelf:
-			await p_interaction.response.send_message("User has no library entry. :(", ephemeral=True)
+			await p_interaction.response.send_message(settings.Messages.noUserEntry, ephemeral=True)
 	
 		elif settings.UserLib.bUserCanSelfCreate:
 			newEntry = User(discordID=p_interaction.user.id)
@@ -68,7 +67,7 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 			await vLibViewer.SendViewer(p_interaction)
 		
 		else:
-			await p_interaction.response.send_message("You have no entry.  Ask an administrator to create one for you.")
+			await p_interaction.response.send_message(settings.Messages.NoUserEntrySelf)
 
 
 
@@ -80,13 +79,62 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 	"""
 	def __init__(self, p_botRef):
 		self.adminLevel = CommandRestrictionLevels.level1
-		self.botRef = p_botRef
-		UserLibrary.botRef = p_botRef
-		UserLib_RecruitValidationRequest.botRef = p_botRef
+		self.botRef:commands.Bot = p_botRef
+		self.contextMenu_setAsRecruit = app_commands.ContextMenu(
+			name="Set as Recruit",
+			callback=self.SetUserAsRecruit
+		)
+		self.botRef.tree.add_command(self.contextMenu_setAsRecruit)
 		BUPrint.Info("COG: User Library Admin loaded!")
 
+	async def cog_unload(self) -> None:
+		self.botRef.tree.remove_command(self.contextMenu_setAsRecruit)
+		return await super().cog_unload()
 
-	@app_commands.command(name="reconfigure_user", description="Opens the Edit modal for the specified user entry, if they have one.")
+
+	async def SetUserAsRecruit(self, p_interaction:discord.Interaction, p_User:discord.Member):
+		# HARDCODED ROLE USEAGE:
+		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
+			return		
+		
+		vRecruitRole = p_interaction.guild.get_role(settings.NewUsers.recruitRole)
+		vNormalRole = p_interaction.guild.get_role(settings.UserLib.promotionRoleID)
+		vUserEntry = UserLibrary.LoadEntry( p_User.id )
+		vResultMessage = ""
+
+		if vRecruitRole != None:
+			try:
+				await p_User.add_roles(vRecruitRole, reason=f"{p_interaction.user.display_name} set {p_User.display_name} to recruit.")
+				await p_User.remove_roles(vNormalRole, reason=f"{p_interaction.user.display_name} set {p_User.display_name} to recruit.")
+
+			except discord.Forbidden:
+				vResultMessage += "Bot has invalid permissions.\n"
+			except discord.HTTPException:
+				vResultMessage += "Discord failed to update roles.\n"
+
+		if vUserEntry == None:
+			vNewEntry = User(discordID=p_User.id)
+			vNewEntry.bIsRecruit = True
+			UserLibrary.SaveEntry(vNewEntry)
+			vResultMessage += "User had no library entry! Entry was created.\n"
+		
+		else:
+			vUserEntry.bIsRecruit = True
+			vResultMessage += "User library has been updated."
+
+		vAdminChn = p_interaction.guild.get_channel( settings.BotSettings.adminChannel )
+
+		if vAdminChn != None:
+			try:
+				await vAdminChn.send(vResultMessage)
+			except:
+				BUPrint.Info(vResultMessage)
+		else:
+			BUPrint.Info(vResultMessage)
+
+
+
+	@app_commands.command(name="edit_user", description="Opens the Edit modal for the specified user entry, if they have one.")
 	@app_commands.describe(p_userToEdit="Choose the user to edit.", p_createNew="If no entry exists, create a new entry (Default: True)")
 	@app_commands.rename(p_userToEdit="user", p_createNew="create_if_none")
 	async def ConfigureUser(self, p_interaction:discord.Interaction, p_userToEdit:discord.Member, p_createNew:bool = True):
@@ -112,17 +160,20 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 			await p_interaction.response.send_message("No entry was found. If you want to create a new one, ensure `Create_if_none` is true (default!)")
 
 
+
 	@app_commands.command(name="get_recruits", description="Returns a message containing recruits and their statistics.")
 	async def GetRecruits(self, p_interaction:discord.Interaction):
 		# HARDCODED ROLE USEAGE:
 		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
 			return
 
+		p_interaction.response.defer()
+
 		vUserEntries = UserLibrary.GetAllEntries()
 		vRecruitEntries = []
 
 		if vUserEntries == None:
-			p_interaction.response.send_message("No user entries are saved.", ephemeral=True)
+			await p_interaction.response.send_message("No user entries are saved.", ephemeral=True)
 			return
 
 		entry:User
@@ -131,15 +182,19 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 				vRecruitEntries.append(entry)
 
 		if len(vRecruitEntries) == 0:
-			p_interaction.response.send_message("No recruits found.", ephemeral=True)
+			await p_interaction.response.send_message("No recruits found.", ephemeral=True)
+			return
 
 		vMessage = f"**RECRUITS ({len(vRecruitEntries)})**"
 
 		for entry in vRecruitEntries:
 			vUser = p_interaction.guild.get_member( entry.discordID )
-			vMessage += f"{vUser.mention} : Participated in {entry.eventsAttended} events. Missed: {entry.eventsMissed}."
+			vMessage += f"{vUser.mention}\n:{UserLibrary.GetRecruitRequirements(entry)}"
+
+		await p_interaction.response.send_message(vMessage, ephemeral=True)
 
 	
+
 	@commands.Cog.listener("on_raw_member_remove")
 	async def UserLeft(self, p_Event:discord.RawMemberRemoveEvent):
 		"""
@@ -151,6 +206,12 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 		if settings.UserLib.bRemoveEntryOnLeave:
 			BUPrint.Info(f"User {p_Event.user.display_name} has left, removing their library entries.")
 			UserLibrary.RemoveEntry(p_Event.user.id, settings.UserLib.bRemoveSpecialEntryOnLeave)
+
+	
+	@tasks.loop(time=settings.UserLib.autoQueryRecruitTime)
+	async def AutoQueryRecruits(self):
+		BUPrint.Info("Automatic query of all recruits starting...")
+		await UserLibrary.QueryAllRecruits()
 
 
 
@@ -175,23 +236,43 @@ class UserLibrary():
 		"""
 		return f"{settings.Directories.userLibrary}{p_userID}.bin"
 
+	def GetRecruitEntryPath(p_userID:int):
+		"""
+		# GET ENTRY PATH: RECRUIT
+		Same as GetEntryPath, but for recruits.
+		"""
+		return f"{settings.Directories.userLibraryRecruits}{p_userID}.bin"
 
 
 	def HasEntry(p_UserID:int):
 		"""
 		# HAS LIBRARY ENTRY
-		Checks if an entry for the user ID exists.
+		Checks if an entry (both normal and recruits) for the user ID exists.
 
 		### RETURNS
 		`True` if an entry exists.
 
 		`False` if no entry exists.
 		"""
+		bPathExists = False
 		if os.path.exists(f"{UserLibrary.GetEntryPath(p_UserID)}"):
+			return True
+
+		if os.path.exists(f"{UserLibrary.GetRecruitEntryPath(p_UserID)}"):
+			return True
+
+		return False
+
+	def IsRecruitEntry(p_userID:int):
+		"""
+		# IS RECRUIT ENTRY
+		Checks if a file exists for a user in recruit directory.
+		Typically used after HasEntry to determine the entry type.
+		"""
+		if os.path.exists(f"{UserLibrary.GetRecruitEntryPath(p_userID)}"):
 			return True
 		else:
 			return False
-
 
 
 	def SaveEntry(p_entry:User):
@@ -199,7 +280,25 @@ class UserLibrary():
 		# SAVE LIBRARY ENTRY
 		Saves the passed entry to file.
 		"""
-		vFilePath = UserLibrary.GetEntryPath(p_entry.discordID)
+		vFilePath = ""
+		vLockFile = ""
+
+
+		# Recruits User entry is saved in wrong directory, remove it.
+		if p_entry.bIsRecruit and os.path.exists(UserLibrary.GetEntryPath(p_entry.discordID)):
+			try:
+				os.remove(vFilePath)
+			except OSError as vError:
+				BUPrint.LogErrorExc("Unable to remove recruit entry file from wrong directory!")
+
+
+		# Get appropriate path:
+		if p_entry.bIsRecruit:
+			vFilePath = UserLibrary.GetRecruitEntryPath(p_entry.discordID)
+		else:
+			vFilePath = UserLibrary.GetEntryPath(p_entry.discordID)
+
+
 		vLockFile = FilesAndFolders.GetLockPathGeneric(vFilePath)
 		FilesAndFolders.GetLock(vLockFile)
 
@@ -234,12 +333,20 @@ class UserLibrary():
 		### RETURNS:
 		`User` library entry, or `None` if not found.
 		"""
+
 		BUPrint.Debug(f"Loading Library Entry: {p_userID}")
 		if not UserLibrary.HasEntry(p_userID):
 			BUPrint.Debug(f"User with id {p_userID} has no library entry")
 			return None
 
-		vFilePath = UserLibrary.GetEntryPath(p_userID)
+		bIsRecruit = UserLibrary.IsRecruitEntry(p_userID)
+		vFilePath = ""
+
+		if bIsRecruit:
+			vFilePath = UserLibrary.GetRecruitEntryPath(p_userID)
+		else:
+			vFilePath = UserLibrary.GetEntryPath(p_userID)
+
 		vLockFile = FilesAndFolders.GetLockPathGeneric(vFilePath)
 		FilesAndFolders.GetLock(vLockFile)
 		vLibEntry:User = None
@@ -319,6 +426,7 @@ class UserLibrary():
 		vOutfit = await vOutfitChar.outfit()
 
 		p_entry.ps2Outfit = f"{vOutfit.name} {vOutfit.alias}"
+		p_entry.ps2OutfitJoinDate = datetime.fromtimestamp(vOutfitChar.member_since, tz=timezone.utc)
 		p_entry.ps2OutfitRank = vOutfitChar.rank
 
 		UserLibrary.SaveEntry(p_entry)
@@ -348,7 +456,178 @@ class UserLibrary():
 			os.remove(vPath)
 		except OSError as error:
 			BUPrint.LogErrorExc(f"Unable to remove file: {vPath}", error)
+
+
+	def GetRecruitRequirements(p_entry:User):
+		"""
+		# GET RECRUIT REQUIREMENTS
+		Almost functionally equivilant to QueryRecruit, except returns a string of the user requrements and doesn't do any modification.
+
+		### RETURN 
+		# `string` of the requirements; for human reading.
+		"""
+		if not p_entry.bIsRecruit:
+			return "User is not a recruit."
+
+		vRequirementsMsg = ""
+		vGuild = UserLibrary.botRef.get_guild(int(settings.BotSettings.discordGuild))
+		if vGuild == None:
+			BUPrint.Debug("Unable to get guild?")
+			return "*ERROR: Unable to get guild.*"
+		vDiscordUser = vGuild.get_member(p_entry.discordID)
+
+		if vDiscordUser == None:
+			BUPrint.Debug("User entry is for an invalid user.")
+			UserLibrary.RemoveEntry(p_entry)
+			return
+
+		bPromote = True
+		vPromoteRules = settings.UserLib.autoPromoteRules
+
+		if vPromoteRules.bAttendedMinimumEvents:
+			if p_entry.eventsAttended < vPromoteRules.minimumEvents:
+				BUPrint.Debug("User failed events attended requirement.")
+				vRequirementsMsg += f"Needs to attend {vPromoteRules.minimumEvents-p_entry.eventsAttended} more event(s).\n"
+				bPromote = False
 		
+		vDateNow = datetime.now(tz=timezone.utc)
+		if vPromoteRules.bInDiscordForDuration:
+			requiredDate = vDiscordUser.joined_at + vPromoteRules.discordDuration
+
+			if vDateNow < requiredDate:
+				vDifference:timedelta = requiredDate - vDateNow
+				vRequirementsMsg += f"Needs to be in the discord for {vDifference.days} more day(s)."
+				bPromote = False
+
+		if vPromoteRules.bInOutfitForDuration:
+			if p_entry.ps2Outfit == "":
+					vRequirementsMsg += f"Needs to join the outfit!"
+					bPromote = False
+			else:
+				requiredDate = p_entry.ps2OutfitJoinDate + vPromoteRules.discordDuration
+				if vDateNow < requiredDate:
+					vDifference:timedelta = requiredDate - vDateNow
+					vRequirementsMsg += f"Needs to be in the outfit for {vDifference.days} more day(s)."
+					bPromote = False
+
+
+		if not bPromote:
+			BUPrint.Debug("Not promoting user.")
+			return vRequirementsMsg
+		
+		return "Awaiting promotion!"
+
+
+
+	async def QueryRecruit(p_entry:User):
+		"""
+		# QUERY RECRUIT
+		Checks a recruits user entry.
+		If the user fulfils all the required criteria, they are promoted.
+
+		If validation is enabled, a request is sent to the admin chanel.
+
+		Returns a string to be used for administrative checking.
+		"""
+		if not settings.UserLib.bAutoPromoteEnabled:
+			BUPrint.Debug("Auto promotion is disabled.")
+			return ""
+
+		if not p_entry.bIsRecruit:
+			BUPrint.Debug("User is not a recruit.")
+			return
+
+		vGuild = UserLibrary.botRef.get_guild(int(settings.BotSettings.discordGuild))
+		vDiscordUser = vGuild.get_member(p_entry.discordID)
+
+		if vDiscordUser == None:
+			BUPrint.Debug("User entry is for an invalid user.")
+			UserLibrary.RemoveEntry(p_entry)
+			return
+
+		bPromote = True
+		vPromoteRules = settings.UserLib.autoPromoteRules
+
+		if vPromoteRules.bAttendedMinimumEvents:
+			if p_entry.eventsAttended < vPromoteRules.minimumEvents:
+				BUPrint.Debug("User failed events attended requirement.")
+				bPromote = False
+		
+		vDateNow = datetime.now(tz=timezone.utc)
+		if vPromoteRules.bInDiscordForDuration:
+			requiredDate = vDiscordUser.joined_at + vPromoteRules.discordDuration
+
+			if vDateNow < requiredDate:
+				BUPrint.Debug("User failed discord date requirement.")
+				bPromote = False
+
+		if vPromoteRules.bInOutfitForDuration:
+			if p_entry.ps2Outfit == "":
+				BUPrint.Debug("User failed Outfit date requiremnt: They're not in an outfit!")
+				bPromote = False
+			else:
+				requiredDate = p_entry.ps2OutfitJoinDate + vPromoteRules.discordDuration
+				if vDateNow < requiredDate:
+					BUPrint.Debug("User failed discord date requirement.")
+					bPromote = False
+
+		if not bPromote:
+			BUPrint.Debug("Not promoting user.")
+			return
+
+		if settings.UserLib.bAutoPromoteEnabled:
+			vRequest = UserLib_RecruitValidationRequest( p_entry )
+			await vRequest.SendRequest()
+		else:
+			await UserLibrary.PromoteUser(vDiscordUser)
+
+
+	async def QueryAllRecruits():
+		allEntries = UserLibrary.GetAllEntries()
+
+		entry: User
+		for entry in allEntries:
+			if entry.bIsRecruit:
+				await UserLibrary.QueryRecruit(entry)
+
+
+	async def PromoteUser(p_member:discord.Member):
+		"""
+		# PROMOTE USER
+		Applies the specified promotion role and removes the recruit role.
+		Quits
+		"""
+
+		vRecruitRole:discord.Role = None
+		vPromotionRole:discord.Role = None
+		vGuild = UserLibrary.botRef.get_guild(int(settings.BotSettings.discordGuild))
+		
+		for role in vGuild.roles:
+			if vRecruitRole != None and vPromotionRole != None:
+				break
+
+			if role.id == settings.NewUsers.recruitRole:
+				vRecruitRole = role
+				continue
+
+			if role.id == settings.UserLib.promotionRoleID:
+				vPromotionRole = role
+				continue
+
+
+		await p_member.remove_roles(vRecruitRole, reason="Promotion of user from recruit!")
+		await p_member.add_roles(vPromotionRole, reason="Promotion of user from recruit!")
+
+		# Update Library Entry:
+		userEntry = UserLibrary.LoadEntry(p_member.id)
+		userEntry.bIsRecruit = False
+		UserLibrary.SaveEntry(userEntry)
+
+		# Notify Admin channel:
+		vAdminChn = vGuild.get_channel( settings.BotSettings.adminChannel )
+		if vAdminChn != None:
+			vAdminChn.send(f"User {p_member.display_name} was promoted to {vPromotionRole.name} ({vRecruitRole.name} removed)")
+
 
 
 
@@ -386,6 +665,9 @@ class LibraryViewer():
 		self.viewerMsg:discord.Message = None
 		# Used to send the viewer controls
 		self.vewerConrolsMsg:discord.Message = None
+
+		# Stored to avoid unneeded repeated calls.
+		self.recruitRequirements:str = ""
 
 		self.page:LibraryViewPage = LibraryViewPage.general
 		self.multiPageNum = 0 # The number of the current page viewed.
@@ -517,9 +799,12 @@ class LibraryViewer():
 			)
 
 		if self.userEntry.bIsRecruit:
+			if self.recruitRequirements == "":
+				self.recruitRequirements = UserLibrary.GetRecruitRequirements(self.userEntry)
+
 			vEmbed.add_field(
 				name="Recruit!",
-				value=f"They need to attend {settings.UserLib.minAttendedEvents-self.userEntry.eventsAttended} more events.",
+				value=self.recruitRequirements,
 				inline=True
 			)
 
@@ -861,7 +1146,7 @@ class LibViewer_ConfigureModal(discord.ui.Modal):
 			self.vUserEntry.settings.bTrackHistory = False
 			self.vUserEntry.sessions.clear()
 	
-		BUPrint.Debug(f"Settings: {self.vUserEntry.settings}")
+		BUPrint.Debug(f"Settings: \n{self.vUserEntry.settings}")
 
 
 
@@ -901,33 +1186,13 @@ class UserLib_RecruitValidationRequest():
 class RecruitValidationReq_btnAccept(discord.ui.Button):
 	def __init__(self, p_parentRequest:UserLib_RecruitValidationRequest):
 		self.parent = p_parentRequest
-		super().__init__(label="Promote!")
+		super().__init__(label="Promote!", style=discord.ButtonStyle.green)
 
 	async def callback(self, p_interaction:discord.Interaction):
-		vRecruitRole:discord.Role = None
-		vPromotionRole:discord.Role = None
-
-		for role in p_interaction.guild.roles:
-			if vRecruitRole != None and vPromotionRole != None:
-				break
-
-			if role.id == settings.NewUsers.recruitRole:
-				vRecruitRole = role
-				continue
-
-			if role.id == settings.UserLib.promotionRoleID:
-				vPromotionRole = role
-				continue
-
-		vUserToPromote = p_interaction.guild.get_member(self.parent.userEntry.discordID)
-
-		if vUserToPromote == None:
-			await p_interaction.response.send_message("Failed to promote the user. Couldn't find them!")
-			return
-
-		await vUserToPromote.remove_roles(vRecruitRole, reason="Promotion of user from recruit!")
-		await vUserToPromote.add_roles(vPromotionRole, reason="Promotion of user from recruit!")
+		vUser = self.parent.botRef.get_user(self.parent.userEntry.discordID)
+		
+		await UserLibrary.PromoteUser( vUser )
 
 		await self.parent.requestMsg.delete()
 
-		await p_interaction.response.send_message(f"User {vUserToPromote.display_name} has been promoted to {vPromotionRole.name}!")
+		await p_interaction.response.send_message(f"Done!", ephemeral=True)

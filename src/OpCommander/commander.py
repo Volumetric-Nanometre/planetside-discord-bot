@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import discord
 import discord.ext
-from discord.ext import tasks, commands
+from discord.ext import commands
 import auraxium
 import re
 
@@ -154,9 +154,6 @@ class Commander():
 		if(self.vCommanderStatus == CommanderStatus.Init):
 			BUPrint.Info("Operation Commander first run setup...")
 			# Perform first run actions.
-			
-			# Get & set guild ref.
-			vGuild = await botUtils.GetGuild(self.vBotRef)
 
 			# Create category and channels.
 			await self.CreateCategory()

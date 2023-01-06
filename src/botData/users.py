@@ -29,6 +29,8 @@ class AutoPromoteRule():
 	"""
 	# AUTO PROMOTE RULE
 	Contains values pertaining to the rules a user must meet before auto-promotion from recruit.
+
+	This should be obtained from `botData.settings`!
 	"""
 	# Attended Minimum Events: the number of events a user must participate in
 	bAttendedMinimumEvents: bool
@@ -69,6 +71,8 @@ class User:
 	ps2Outfit: str = ""
 	# Users PS2 Char Outfit Rank, if applicable.
 	ps2OutfitRank: str = ""
+	# Joindate of Ps2 outfit
+	ps2OutfitJoinDate: datetime.datetime = None
 
 	# Used alongside auto-promote; this is set by newUser or manually.
 	bIsRecruit = False

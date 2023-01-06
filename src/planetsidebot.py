@@ -14,7 +14,7 @@ import opsManager
 from OpCommander.autoCommander import AutoCommander
 from OpCommander.autoCommander import CommanderCommands
 from OpCommander.commander import Commander
-from userManager import UserLibraryCog, UserLibraryAdminCog
+from userManager import UserLibraryCog, UserLibraryAdminCog, UserLibrary, UserLib_RecruitValidationRequest
 from chatUtility import ChatUtilityCog
 
 
@@ -26,12 +26,7 @@ class Bot(commands.Bot):
         BUPrint.Info(f"Starting bot with settings:\n{settings.BotSettings()}\n{settings.Directories()}\n{settings.SignUps()}\n{settings.NewUsers()}\n{settings.Commander()}\n{settings.UserLib()}\n")
 
         self.vGuildObj: discord.Guild
-
-		# Objects with BOT refs
         self.vOpsManager = opsManager.OperationManager()
-        opsManager.OperationManager.SetBotRef(self)
-        Commander.vBotRef = self
-
 
     async def setup_hook(self):
         BUPrint.Info("Setting up hooks...")
@@ -56,6 +51,12 @@ class Bot(commands.Bot):
         await botUtils.ChannelPermOverwrites.Setup(self)
         await botUtils.RoleDebug(self.vGuildObj, p_showOnLive=False)
         await self.vOpsManager.RefreshOps()
+ 
+ 		# Objects with BOT refs
+        opsManager.OperationManager.SetBotRef(self)
+        Commander.vBotRef = self
+        UserLibrary.botRef = self
+        UserLib_RecruitValidationRequest.botRef = self
 
         # Setup existing Ops auto-starts:
         if settings.Commander.bAutoAlertsEnabled:

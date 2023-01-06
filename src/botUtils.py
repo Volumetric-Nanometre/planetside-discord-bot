@@ -139,6 +139,8 @@ class Colours(enum.Enum):
 	userWarnOkay = discord.Colour.from_rgb(170, 255, 0)
 	userWarning = discord.Colour.from_rgb(255, 85, 0)
 
+
+
 class ConsoleStyles:
 	"""
 	# CONSOLE STYLES
@@ -228,11 +230,13 @@ class FilesAndFolders():
 			except:
 				BotPrinter.LogError("Failed to create folder for Live Op data!")
 
+
 	def GenerateUserLibraryFolder():
 		BotPrinter.Debug("Creating User Library folder (if non existant)")
 		if (not os.path.exists( Directories.userLibrary ) ):
 			try:
-				os.makedirs(f"{ Directories.userLibrary }")
+				os.makedirs(Directories.userLibrary)
+				os.makedirs(Directories.userLibraryRecruits)
 			except:
 				BotPrinter.LogError("Failed to create folder for User Library!")
 
