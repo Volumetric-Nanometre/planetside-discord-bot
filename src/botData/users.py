@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from dataclasses import dataclass, field
 import datetime
@@ -34,6 +36,7 @@ class AutoPromoteRule():
 	"""
 	# Attended Minimum Events: the number of events a user must participate in
 	bAttendedMinimumEvents: bool
+	bEventsMustBePS2: bool
 	minimumEvents: int
 
 	# Length of time a user must be in the outfit.
@@ -47,6 +50,7 @@ class AutoPromoteRule():
 
 	def __repr__(self) -> str:
 		vString = f"\n		> Attend Minimum Events: {self.bAttendedMinimumEvents} ({self.minimumEvents})\n"
+		vString += f"		> Events must be Planetside 2: {self.bEventsMustBePS2}\n"
 		vString += f"		> In Outfit for Duration: {self.bInOutfitForDuration} | {self.outfitDuration}\n"
 		vString += f"		> In Discord for Duration: {self.bInDiscordForDuration} | {self.discordDuration}\n"
 

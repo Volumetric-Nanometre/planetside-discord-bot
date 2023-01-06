@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 from dataclasses import dataclass, field
 from datetime import datetime, time, timedelta
@@ -129,11 +131,11 @@ class OpFeedback:
 	# OPS FEEDBACK
 	Class containing variable lists which hold user submitted feedback
 	"""
-	userID:list = field(default_factory=list) # Saved to allow users to edit their feedback.
-	generic:list = field(default_factory=list)
-	forSquadmates:list = field(default_factory=list)
-	forSquadLead:list = field(default_factory=list)
-	forPlatLead:list = field(default_factory=list)
+	userID:list[str] = field(default_factory=list) # Saved to allow users to edit their feedback.
+	generic:list[str] = field(default_factory=list)
+	forSquadmates:list[str] = field(default_factory=list)
+	forSquadLead:list[str] = field(default_factory=list)
+	forPlatLead:list[str] = field(default_factory=list)
 
 	def SaveToFile(self, p_eventName:str):
 		"""

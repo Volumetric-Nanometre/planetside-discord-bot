@@ -330,6 +330,9 @@ class UserLib:
 	autoPromoteRules = AutoPromoteRule(
 		# Attended Minimum Events: When true, a recruit must participate in the specified number of events.
 		bAttendedMinimumEvents = True,
+		# Whether Events MUST be PS2 to be considerd.
+		bEventsMustBePS2= True,
+		# The number of events a recruit must participate in.
 		minimumEvents = 4,
 		
 		# In Outfit For Duration: When true, a recruit must be in the ps2 outfit for the specified duration.

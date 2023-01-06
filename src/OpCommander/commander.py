@@ -94,7 +94,7 @@ class Commander():
 
 		# Alert & Autostart Scheduler
 		self.scheduler = AsyncIOScheduler()
-		self.alertTimes = [] # Saved to be displayed in Info embed
+		self.alertTimes:list[datetime.datetime] = [] # Saved to be displayed in Info embed
 
 		#DiscordElements:
 		self.commanderInfoMsg : discord.Message = None # Message object for the Info embed.
@@ -588,11 +588,11 @@ class Commander():
 		If enabled, recursively check participants and enable tracking depending on the setting.
 		"""
 
-		if not commanderSettings.trackEvent == PS2EventTrackOptions.Disabled and self.vOpData.options.bIsPS2Event:
+		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled and self.vOpData.options.bIsPS2Event:
+			BUPrint.Debug("Tracking Enabled: Event is PS2.")
 			for participantObj in self.participants:
-				participantObj: Participant
 
-				if participantObj.ps2Char == None:
+				if participantObj.ps2Char == None and commanderSettings.trackEvent.value >= PS2EventTrackOptions.InGameOnly.value:
 					participantObj.bIsTracking = False
 					continue
 				try:
@@ -603,9 +603,24 @@ class Commander():
 
 					elif commanderSettings.trackEvent == PS2EventTrackOptions.InGameAndDiscordVoice:
 						if await participantObj.ps2Char.is_online() and participantObj.discordUser.voice != None:
-							participantObj.bIsTracking = True
+							# Make sure user is in Op channel:
+							if participantObj.discordUser.voice.channel in self.vCategory.voice_channels:
+								participantObj.bIsTracking = True
+							else:
+								BUPrint.Debug(f"{participantObj.discordUser.display_name} User is in voice channel that is not related to the event.")
+								participantObj.bIsTracking = False
+
 				except auraxium.errors.AuraxiumException as vError:
 					BUPrint.LogErrorExc("Unable to determine if user is online.", vError)
+		
+		elif commanderSettings.trackEvent != PS2EventTrackOptions.Disabled and not self.vOpData.options.bIsPS2Event:
+			BUPrint.Debug("Tracking Enabled: Event is not PS2. Only checking if player is in voice channel...")
+			for participantObj in self.participants:
+				if participantObj.discordUser.voice != None:
+					if participantObj.discordUser.voice.channel in self.vCategory.voice_channels:
+						participantObj.bIsTracking = True
+					else:
+						participantObj.bIsTracking = False
 
 
 	async def LoadParticipantData(self):
@@ -628,7 +643,7 @@ class Commander():
 				BUPrint.Debug("	-> Library Entry not set. Loading...")
 				participantObj.LoadParticipant()
 
-			if participantObj.ps2Char == None:
+			if participantObj.ps2Char == None and self.vOpData.options.bIsPS2Event:
 				BUPrint.Debug("	-> PS2 Character not set, setting...")
 				participantObj.ps2Char = await self.GetParticipantPS2Char(participantObj)
 

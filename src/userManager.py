@@ -25,6 +25,8 @@ from botData.settings import CommandRestrictionLevels
 from botData.users import User
 from botData.operations import UserSession
 
+from OpCommander.dataObjects import Session
+
 
 class UserLibraryCog(commands.GroupCog, name="user_library"):
 	"""
@@ -485,12 +487,23 @@ class UserLibrary():
 		bPromote = True
 		vPromoteRules = settings.UserLib.autoPromoteRules
 
-		if vPromoteRules.bAttendedMinimumEvents:
+		if vPromoteRules.bAttendedMinimumEvents:			
 			if p_entry.eventsAttended < vPromoteRules.minimumEvents:
 				BUPrint.Debug("User failed events attended requirement.")
 				vRequirementsMsg += f"Needs to attend {vPromoteRules.minimumEvents-p_entry.eventsAttended} more event(s).\n"
 				bPromote = False
-		
+			elif p_entry.eventsAttended >= vPromoteRules.minimumEvents and vPromoteRules.bEventsMustBePS2:
+				ps2Events = 0
+
+				session : Session
+				for session in p_entry.sessions:
+					if session.bIsPS2Event:
+						ps2Events += 1
+				if ps2Events < vPromoteRules.minimumEvents:
+					vRequirementsMsg += f"Needs to attend {vPromoteRules.minimumEvents-ps2Events} more Planetside 2 event(s).\n"
+					bPromote = False
+
+
 		vDateNow = datetime.now(tz=timezone.utc)
 		if vPromoteRules.bInDiscordForDuration:
 			requiredDate = vDiscordUser.joined_at + vPromoteRules.discordDuration
@@ -550,9 +563,20 @@ class UserLibrary():
 		vPromoteRules = settings.UserLib.autoPromoteRules
 
 		if vPromoteRules.bAttendedMinimumEvents:
+			
 			if p_entry.eventsAttended < vPromoteRules.minimumEvents:
 				BUPrint.Debug("User failed events attended requirement.")
 				bPromote = False
+			elif p_entry.eventsAttended >= vPromoteRules.minimumEvents and vPromoteRules.bEventsMustBePS2:
+				ps2Events = 0
+
+				session : Session
+				for session in p_entry.sessions:
+					if session.bIsPS2Event:
+						ps2Events += 1
+				if ps2Events < vPromoteRules.minimumEvents:
+					bPromote = False
+					
 		
 		vDateNow = datetime.now(tz=timezone.utc)
 		if vPromoteRules.bInDiscordForDuration:
