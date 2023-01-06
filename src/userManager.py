@@ -1,9 +1,8 @@
 import discord
 import discord.ext
 from discord.ext import commands, tasks
-# from discord.ext.commands import Context
+
 from discord import app_commands
-from discord import SelectMenu, SelectOption
 
 from auraxium import Client as AuraxClient
 import auraxium.ps2 as AuraxPS2
@@ -13,21 +12,20 @@ import os
 import pickle
 
 from datetime import datetime, timezone, timedelta
-from dateutil.relativedelta import relativedelta
+
 
 from enum import Enum
 
 from botUtils import BotPrinter as BUPrint
-from botUtils import DateFormatter, DateFormat, FilesAndFolders, GetGuild, UserHasCommandPerms
+from botUtils import FilesAndFolders, GetDiscordTime, UserHasCommandPerms
+
+from botData.dataObjects import User, UserSession, Session
+
+from botData.utilityData import DateFormat
 
 import botData.settings as settings
 from botData.settings import CommandRestrictionLevels
-from botData.dataObjects import User, UserSession, Session
 
-# from botData.users import User
-# from botData.operations import UserSession
-
-# from OpCommander.dataObjects import Session
 
 
 class UserLibraryCog(commands.GroupCog, name="user_library"):
@@ -366,6 +364,9 @@ class UserLibrary():
 			BUPrint.LogErrorExc("Unable to load user entry", vError)
 			FilesAndFolders.ReleaseLock(vLockFile)
 			return None
+		except ModuleNotFoundError as vError:
+			BUPrint.LogErrorExc("Module Not Found! Most likely due to changing data structure.")
+			FilesAndFolders.ReleaseLock(vLockFile)
 
 		vSpecialPath = vFilePath.replace(".bin", ".txt")
 		if os.path.exists(vSpecialPath):
@@ -801,7 +802,7 @@ class LibraryViewer():
 		discordUser = vGuild.get_member(self.userID)
 		vEmbed = discord.Embed(
 			title=f"General Info for {discordUser.display_name}",
-			description=f"They joined the server {DateFormatter.GetDiscordTime(discordUser.joined_at, DateFormat.Dynamic)}!"
+			description=f"They joined the server {GetDiscordTime(discordUser.joined_at, DateFormat.Dynamic)}!"
 		)
 
 		if self.userEntry.specialAbout != "":

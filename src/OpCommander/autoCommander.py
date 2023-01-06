@@ -7,7 +7,7 @@ import discord
 import discord.ext
 from discord.ext import tasks, commands
 
-import botUtils
+from botUtils import UserHasCommandPerms
 from botUtils import BotPrinter as BUPrint
 
 import botData.settings as BotSettings
@@ -51,7 +51,7 @@ class CommanderCommands(commands.Cog):
 	@discord.app_commands.rename(p_opFile = "operation")
 	async def manualcommander(self, p_interaction: discord.Interaction, p_opFile: str):
 		# HARDCODED ROLE USEAGE:
-		if not await botUtils.UserHasCommandPerms(p_interaction.user, (BotSettings.CommandRestrictionLevels.level2), p_interaction):
+		if not await UserHasCommandPerms(p_interaction.user, (BotSettings.CommandRestrictionLevels.level2), p_interaction):
 			return
 
 		vOpData: OperationData

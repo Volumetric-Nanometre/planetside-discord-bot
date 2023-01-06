@@ -15,11 +15,13 @@ from botData import settings as botSettings
 import botData.settings
 # import botData.operations as OpData
 from botData.dataObjects import OperationData, OpRoleData, OpsStatus
+from botData.utilityData import Colours, DateFormat
 
 import OpCommander.commander
 import OpCommander.autoCommander
 
 import botUtils
+from botUtils import GetPOSIXTime, GetDiscordTime
 from botUtils import BotPrinter as BUPrint
 
 from botModals.opsManagerModals import *
@@ -616,25 +618,25 @@ class OperationManager():
 		`discord.Embed` with information from `p_opsData`.
 		"""
 		BUPrint.Debug("	-> Generating Embed...")
-		vTitleStr = f"{p_opsData.name.upper()} | {botUtils.DateFormatter.GetDiscordTime(p_opsData.date, botUtils.DateFormat.DateTimeLong)}"
+		vTitleStr = f"{p_opsData.name.upper()} | {GetDiscordTime(p_opsData.date, DateFormat.DateTimeLong)}"
 
-		vEmbed = discord.Embed(colour=botUtils.Colours.openSignup.value,
+		vEmbed = discord.Embed(colour=Colours.openSignup.value,
 								title=vTitleStr,
-								description=f"Starts {botUtils.DateFormatter.GetDiscordTime(p_opsData.date, botUtils.DateFormat.Dynamic)}"
+								description=f"Starts {GetDiscordTime(p_opsData.date, DateFormat.Dynamic)}"
 							)
 
 
 		if p_opsData.status == OperationData.status.prestart:
 			vEmbed.title += f"\n\n**{botMessages.OpsStartSoon}**"
-			vEmbed.colour = botUtils.Colours.opsStarting.value
+			vEmbed.colour = Colours.opsStarting.value
 
 		if p_opsData.status == OperationData.status.started:
 			vEmbed.title += f"\n\n**{botMessages.OpsStarted}**"
-			vEmbed.colour = botUtils.Colours.opsStarted.value
+			vEmbed.colour = Colours.opsStarted.value
 
 		if p_opsData.status == OperationData.status.editing:
 			vEmbed.title += f"\n\n**{botMessages.OpsBeingEdited}**"
-			vEmbed.colour = botUtils.Colours.editing.value
+			vEmbed.colour = Colours.editing.value
 
 
 		vEmbed.add_field(inline=False,
@@ -959,7 +961,7 @@ class OpsRoleSelector(discord.ui.Select):
 			OperationManager.RemoveUser(p_opData=self.vOpsData, p_userToRemove=pInteraction.user.id)
 			OperationManager.SaveToFile(self.vOpsData)
 			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
-			await pInteraction.response.send_message(f"You have resigned from {self.vOpsData.name}({botUtils.DateFormatter.GetDiscordTime(self.vOpsData.date, botUtils.DateFormat.DateShorthand)})!", ephemeral=True)
+			await pInteraction.response.send_message(f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!", ephemeral=True)
 			# No need to continue further.
 			return
 
@@ -969,9 +971,9 @@ class OpsRoleSelector(discord.ui.Select):
 			vSelectedRole.players.append( pInteraction.user.id )
 			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
 			OperationManager.SaveToFile(self.vOpsData)	
-			await pInteraction.response.send_message(f"You have signed up as {self.values[0]} for {self.vOpsData.name} on {botUtils.DateFormatter.GetDiscordTime(self.vOpsData.date, botUtils.DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.response.send_message(f"You have signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
 		else:
-			await pInteraction.response.send_message(f"You're already signed up as {self.values[0]} for {self.vOpsData.name} on {botUtils.DateFormatter.GetDiscordTime(self.vOpsData.date, botUtils.DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.response.send_message(f"You're already signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
 
 	
 	
@@ -1003,14 +1005,14 @@ class OpsRoleReserve(discord.ui.Button):
 	async def callback(self, pInteraction: discord.Interaction):
 		
 		if pInteraction.user.id not in self.vOpsData.reserves:
-			await pInteraction.response.send_message(content=f"You have signed up as a reserve for {self.vOpsData.name} on {botUtils.DateFormatter.GetDiscordTime(self.vOpsData.date, botUtils.DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.response.send_message(content=f"You have signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
 			OperationManager.RemoveUser(self.vOpsData, pInteraction.user.id)
 			self.vOpsData.reserves.append(pInteraction.user.id)
 
 			vOpMan = OperationManager()
 			await vOpMan.UpdateMessage(self.vOpsData)
 		else:
-			await pInteraction.response.send_message(f"You have already signed up as a reserve for {self.vOpsData.name} on {botUtils.DateFormatter.GetDiscordTime(self.vOpsData.date, botUtils.DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.response.send_message(f"You have already signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
 
 
 
@@ -1097,11 +1099,11 @@ class OpsEditor(discord.ui.View):
 			bSucsessfulOp = await vOpManager.AddNewLiveOp(self.vOpsData)
 			
 			if bSucsessfulOp:
-				await pInteraction.response.send_message("***SUCCESS!***\nYou may now dismiss the editor.", ephemeral=True)
+				await pInteraction.response.send_message(botMessages.dismissEditor, ephemeral=True)
 				OperationManager.SaveToFile(self.vOpsData)
 				BUPrint.Debug(f"	-> Message ID of Ops Editor opdata after send: {self.vOpsData.messageID}")
 			else:
-				await pInteraction.response.send_message("An error occured when posting the message.  Check console for more information.\n\nTry again, or close the editor.", ephemeral=True)
+				await pInteraction.response.send_message(botMessages.editorError, ephemeral=True)
 
 		else:
 			if not self.vOpsData.options.bUseReserve:
@@ -1123,7 +1125,7 @@ class OpsEditor(discord.ui.View):
 
 				self.vOpsData.status = OperationData.status.open
 				OperationManager.SaveToFile(self.vOpsData)
-				await pInteraction.response.send_message(f"Operation data for {self.vOpsData.name} saved! Updating signup message...\nMake sure to `Finish` before you dismiss the editor!", ephemeral=True)
+				await pInteraction.response.send_message(f"Operation data for {self.vOpsData.name} saved! Updating signup message...", ephemeral=True)
 				await vOpManager.UpdateMessage(self.vOpsData)
 
 		try:
@@ -1218,7 +1220,7 @@ class OpsEditor(discord.ui.View):
 			OperationManager.SaveToFile(vOriginalData)
 			await vOpMan.UpdateMessage(vOriginalData)
 
-		await pInteraction.response.send_message("You may now dismiss the editor if it hasn't automatically closed.", ephemeral=True)
+		await pInteraction.response.send_message(botMessages.dismissEditor, ephemeral=True)
 		await self.vEditorMsg.delete()
 
 

@@ -11,7 +11,6 @@ https://github.com/LCWilliams/planetside-discord-bot/wiki/Bot-Configuration/
 """
 from discord import SelectOption
 import botData.dataObjects
-# from botData.users import AutoPromoteRule
 from dateutil.relativedelta import relativedelta
 from datetime import time, timezone
 import botData.envVars as Env
@@ -412,6 +411,12 @@ class Messages:
 
 	# Op Being Edited: Message appended to ops signup messages when being edited.
 	OpsBeingEdited = "This event is currently being edited, please wait to sign up!"
+
+	# Dismiss Editor: Shown when a user sends/updates an operation.
+	dismissEditor = "You may now dismiss the editor, if it hasn't automatically closed."
+
+	# Editor Error: shown when an error occured while posting an operation.
+	editorError = "An error occured while posting the message. Check all modified entries and try again.\nHint: Use the Keyboard Up arrow to retype the command with all but the opType pre-filled."
 
 	# No Matching PS2 Character name found, sent as a single message tagging participants, telling them no matching PS2 Char name is present.
 	noMatchingPS2Char = """No matching Planetside 2 Character was found with your current discord name.

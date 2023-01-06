@@ -1,11 +1,8 @@
 import discord
 from botData.dataObjects import OperationData
-from botData.settings import Directories
 from botUtils import BotPrinter as BUPrint
 import botModals.opsManagerModals.baseModal as baseModal
-import botUtils
 import datetime
-import os
 
 class EditDates(baseModal.BaseModal):
 	txtYear = discord.ui.TextInput(
@@ -43,7 +40,7 @@ class EditDates(baseModal.BaseModal):
 
 	# Where the fun happens!
 	async def on_submit(self, pInteraction: discord.Interaction):
-		botUtils.BotPrinter.Debug("Edit Dates Modal submitted, creating new date...")
+		BUPrint.Debug("Edit Dates Modal submitted, creating new date...")
 
 		newDateTime = datetime.datetime(
 			year=int(self.txtYear.value),
@@ -61,7 +58,7 @@ class EditDates(baseModal.BaseModal):
 
 
 	def PresetFields(self):
-		botUtils.BotPrinter.Debug(f"Auto-filling modal (DATE) with existing data: {self.vOpData.date}")
+		BUPrint.Debug(f"Auto-filling modal (DATE) with existing data: {self.vOpData.date}")
 		self.txtYear.default = str(self.vOpData.date.year)
 		self.txtDay.default = str(self.vOpData.date.day)
 		self.txtMonth.default = str(self.vOpData.date.month)

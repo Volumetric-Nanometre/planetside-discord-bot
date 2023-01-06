@@ -1,8 +1,8 @@
 import discord
 from botData.dataObjects import OperationData, OpRoleData
 from botUtils import BotPrinter as BUPrint
+from botData.utilityData import EmojiLibrary
 import botModals.opsManagerModals.baseModal as baseModal
-import botUtils
 from botData.settings import Messages as botMessages
 
 class EditRoles(baseModal.BaseModal):
@@ -58,7 +58,7 @@ class EditRoles(baseModal.BaseModal):
 		vArraySize = len(vRoleNames)
 		madeReserve = 0
 
-		botUtils.BotPrinter.Debug(f"Size of array: {len(vRoleNames)}")
+		BUPrint.Debug(f"Size of array: {len(vRoleNames)}")
 		while vIndex < vArraySize:
 
 			vCurrentRole = OpRoleData(roleName=vRoleNames[vIndex], roleIcon=vRoleEmoji[vIndex], maxPositions=int(vRoleMax[vIndex]))
@@ -73,7 +73,7 @@ class EditRoles(baseModal.BaseModal):
 					# If using a shorthand, parse:
 					if vCurrentRole.roleIcon.startswith("ICON_"):
 						BUPrint.Debug("Icon library icon specified, parsing for result...")
-						self.vOpData.roles[vIndex].roleIcon = botUtils.EmojiLibrary.ParseStringToEmoji(vCurrentRole.roleIcon)
+						self.vOpData.roles[vIndex].roleIcon = EmojiLibrary.ParseStringToEmoji(vCurrentRole.roleIcon)
 					else:
 						self.vOpData.roles[vIndex].roleIcon = vCurrentRole.roleIcon
 
@@ -90,7 +90,7 @@ class EditRoles(baseModal.BaseModal):
 				# Index is a new role, append!
 				if vCurrentRole.roleIcon.startswith("ICON_"):
 					BUPrint.Debug("Icon library icon specified, parsing for result...")
-					botUtils.EmojiLibrary.ParseStringToEmoji(vCurrentRole.roleIcon)
+					EmojiLibrary.ParseStringToEmoji(vCurrentRole.roleIcon)
 				self.vOpData.roles.append(vCurrentRole)
 
 			vIndex += 1

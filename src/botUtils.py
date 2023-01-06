@@ -2,52 +2,12 @@ import os
 import sys
 import datetime
 import time
-from botData.settings import BotSettings
-from botData.settings import CommandRestrictionLevels
-from botData.settings import Directories
-from botData.settings import Roles
-from botData.settings import Messages
+from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Roles, Messages
+import botData.utilityData as UtilityData
 import traceback
-import enum
 import discord
 from discord.ext import commands
 # from botData import OperationData
-
-class EmojiLibrary(enum.Enum):
-	# Infantry Classes
-	ICON_LA  = "<:Icon_Light_Assault:795726936759468093>"
-	ICON_HA  = "<:Icon_Heavy_Assault:795726910344003605>"
-	ICON_ENG = "<:Icon_Engineer:795726888763916349>"
-	ICON_MED = "<:Icon_Combat_Medic:795726867960692806>"
-	ICON_INF = "<:Icon_Infiltrator:795726922264215612>"
-	ICON_MAX = "<:Icon_MAX:795726948365631559>"
-	# Ground Vehicles
-	ICON_ANT  = "<:Icon_ANT:795727784239824896>"
-	ICON_MBT  = "<:Icon_Vanguard:795727955896565781>"
-	ICON_TANK = "<:Icon_Lightning:795727852875677776>"
-	ICON_HAR  = "<:Icon_Harasser:795727814220840970>"
-	ICON_SUN  = "<:Icon_Sunderer:795727911549272104>"
-	# Air Vehicles
-	ICON_VAL = "<:Icon_Valkyrie:795727937735098388>"
-	ICON_GAL = "<:Icon_Galaxy:795727799591239760>"
-	ICON_LIB = "<:Icon_Liberator:795727831605837874>"
-	ICON_REA = "<:Icon_Reaver:795727893342846986>"
-	ICON_DER = "<:Icon_Dervish:861303237062950942>"
-	ICON_BAS = "<:Icon_Bastion:861304226957361162>"
-	# OTHER
-	ICON_GUNNER = "<:Icon_Infiltrator:795726922264215612>"
-
-	def ParseStringToEmoji(p_str:str):
-		"""
-		# PARSE STRING TO EMOJI
-		Returns the value of a given emoji name.
-		"""
-		for emote in EmojiLibrary:
-			if emote.name == p_str.upper():
-				BotPrinter.Debug(f"Emoji {p_str} found in library!")
-				return emote.value
-		BotPrinter.Debug(f"Name {p_str} does not match a emoji library entry.")
-		return "-" # Return the default "blank" so nothing breaks!
 
 
 
@@ -78,7 +38,7 @@ class BotPrinter():
 		Prints a pre-formatted message to console IF ShowDebug is enabled.
 		"""
 		if(BotSettings.bDebugEnabled):
-			print(f"{ConsoleStyles.timeStyle}[{datetime.datetime.now()}] {p_string}{ConsoleStyles.reset} ")
+			print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}] {p_string}{UtilityData.ConsoleStyles.reset} ")
 
 	@staticmethod
 	def Info(p_string):
@@ -87,7 +47,7 @@ class BotPrinter():
 		Similar to debug, but doesn't depend on ShowDebug to show.
 		Should ideally only be used for displaying status as to not flood the console.
 		"""
-		print(f"{ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{ConsoleStyles.reset} {p_string}")
+		print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{UtilityData.ConsoleStyles.reset} {p_string}")
 
 	# Convenience function to pretty print errors.
 	@staticmethod
@@ -99,73 +59,26 @@ class BotPrinter():
 		p_string : The message to show first.
 		p_tracebacks : The number of tracebacks. Default: 3.
 		"""
-		print(f"{ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{ConsoleStyles.reset} {ConsoleStyles.colourWarn}ERROR:{ConsoleStyles.reset} {ConsoleStyles.ColourInfo}{p_string}{ConsoleStyles.reset} | {traceback.print_tb(limit=p_tracebacks)}", file=sys.stderr)
+		print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.colourWarn}ERROR:{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.ColourInfo}{p_string}{UtilityData.ConsoleStyles.reset} | {traceback.print_tb(limit=p_tracebacks)}", file=sys.stderr)
 
 	@staticmethod
 	def LogErrorExc(p_string: str, p_exception: Exception):
 		"""
 		Same as LOG ERROR, with addition of Exception parameter.
 		"""
-		print(f"{ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{ConsoleStyles.reset} {ConsoleStyles.colourWarn}ERROR:{ConsoleStyles.reset} {ConsoleStyles.ColourInfo}{p_string} | {ConsoleStyles.reset}{traceback.print_tb(p_exception.__traceback__)}", file=sys.stderr)
-
-
-class DateFormat(enum.Enum):
-	"""
-	DATE FORMAT
-	Used within discord timeformat string to change how a POSIX datetime is displayed.
-	"""
-
-	Dynamic = ":R" # Dyanmically changes to most appropriate smallest stamp (in X days, in X hours, in x seconds)
-	DateShorthand = ":d" # dd/mm/year
-	DateLonghand = ":D" # 00 Month Year
-	TimeShorthand = ":t" # Hour:Minute
-	TimeLonghand = ":T" # Hour:Minute:Seconds
-	DateTimeShort = ":f" # Full date, no day.
-	DateTimeLong = ":F" # Full date, includes Day
-	Raw = "" # Raw POSIX.
-
-
-class Colours(enum.Enum):
-	"""
-	# COLOURS:
-	Enum class of colours for use with discord objects.
-	"""
-	openSignup = discord.Colour.from_rgb(0,244,0)
-	opsStarting = discord.Colour.from_rgb(150, 0, 0)
-	opsStarted = discord.Colour.from_rgb(255,0,0)
-	editing = discord.Colour.from_rgb(204, 102, 0)
-	commander = discord.Colour.from_rgb(0, 255, 360)
-	userRequest = discord.Colour.from_rgb(106, 77, 255)
-	userWarnOkay = discord.Colour.from_rgb(170, 255, 0)
-	userWarning = discord.Colour.from_rgb(255, 85, 0)
+		print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.colourWarn}ERROR:{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.ColourInfo}{p_string} | {UtilityData.ConsoleStyles.reset}{traceback.print_tb(p_exception.__traceback__)}", file=sys.stderr)
 
 
 
-class ConsoleStyles:
-	"""
-	# CONSOLE STYLES
-	Class specifically for holding values for setting console formatting & colours.
-	"""
-	reset = "\033[0m"
-	bold = "\033[1m"
-	dim = "\033[2m"
-	colourWarn = "\033[31m"
-	ColourInfo = "\033[37m"
-	timeStyle = dim + ColourInfo
 
 
+# Used to clear up repeating code
+def GetPOSIXTime( pDate: datetime.datetime ):
+	return pDate.strftime("%s")	
 
-class DateFormatter():
-
-	# Used to clear up repeating code
-	@staticmethod
-	def GetPOSIXTime( pDate: datetime.datetime ):
-		return pDate.strftime("%s")	
-
-	# Returns a specially formatted time for discord messages, defaults to dynamic type: "in X days. In 30 minutes" etc...
-	@staticmethod
-	def GetDiscordTime(pDate: datetime.datetime, pFormat: DateFormat = DateFormat.Dynamic):
-		return f"<t:{DateFormatter.GetPOSIXTime(pDate)}{pFormat.value}>"
+# Returns a specially formatted time for discord messages, defaults to dynamic type: "in X days. In 30 minutes" etc...
+def GetDiscordTime(pDate: datetime.datetime, pFormat: UtilityData.DateFormat = UtilityData.DateFormat.Dynamic):
+	return f"<t:{GetPOSIXTime(pDate)}{pFormat.value}>"
 
 
 class FilesAndFolders():
@@ -362,6 +275,29 @@ class FilesAndFolders():
 				return False
 		BotPrinter.Debug("	-> No lock file present")
 		return True
+
+
+def GetGuildNF(p_botRef: commands.Bot):
+	"""
+	# GET GUILD: No Fetch.
+	Similar to GetGuild, but does not fetch if no guild found.
+	
+	### RETURNS
+	The `discord.guild` using the id specified in settings or `none` if not found.
+	"""
+	BotPrinter.Debug("Getting Guild from ID.")
+	try:
+		guild = p_botRef.get_guild( int(BotSettings.discordGuild) )
+		if guild != None:
+			return guild
+
+	except discord.Forbidden as vError:
+		BotPrinter.LogErrorExc("Bot has no access to this guild!", p_exception=vError)
+		return None
+
+	except discord.HTTPException:
+		BotPrinter.LogErrorExc("Unable to get guild.", p_exception=vError)
+		return None
 
 
 async def GetGuild(p_BotRef : commands.Bot):

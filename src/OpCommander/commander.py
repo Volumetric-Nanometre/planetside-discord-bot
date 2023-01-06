@@ -27,9 +27,11 @@ import datetime, dateutil.relativedelta
 from OpCommander.events import OpsEventTracker
 from botData.dataObjects import CommanderStatus, Participant, Session, OpFeedback
 
-import botUtils
+# import botUtils
+from botUtils import GetGuild, GetDiscordTime
 from botUtils import BotPrinter as BUPrint
 from botUtils import ChannelPermOverwrites as ChanPermOverWrite
+from botData.utilityData import DateFormat, Colours
 
 from botData.settings import BotSettings as botSettings
 from botData.settings import Commander as commanderSettings
@@ -38,9 +40,6 @@ from botData.settings import Messages as botMessages
 from botData.settings import Directories
 from botData.settings import UserLib
 
-# import botData.operations
-# from botData.operations import OperationData as OperationData
-# from botData.users import User as UserEntry
 from botData.dataObjects import OperationData, User, OpRoleData, DefaultChannels
 
 from userManager import UserLibrary
@@ -231,7 +230,7 @@ class Commander():
 
 		## RETURN: `bool` True if successful.
 		"""
-		vGuild:discord.Guild = await botUtils.GetGuild(self.vBotRef)
+		vGuild:discord.Guild = await GetGuild(self.vBotRef)
 		
 		for category in vGuild.categories:
 			if category.name.lower() == self.vOpData.name.lower():
@@ -446,7 +445,7 @@ class Commander():
 		"""
 		vRoleMentionPing = ""
 		if len(self.vOpData.pingables) != 0:
-			vGuild:discord.Guild = await botUtils.GetGuild(self.vBotRef)
+			vGuild:discord.Guild = await GetGuild(self.vBotRef)
 
 			rolePing:str
 			for rolePing in self.vOpData.pingables:
@@ -454,7 +453,7 @@ class Commander():
 				if discordRole != None:
 					vRoleMentionPing += f"{discordRole.mention} "
 
-		vMessage = f"**REMINDER: {self.vOpData.name} STARTS {botUtils.DateFormatter.GetDiscordTime( self.vOpData.date, botUtils.DateFormat.Dynamic )}**\n"
+		vMessage = f"**REMINDER: {self.vOpData.name} STARTS {GetDiscordTime( self.vOpData.date, DateFormat.Dynamic )}**\n"
 
 		vMessage += f"{vRoleMentionPing}|{self.GetParticipantMentions()}"
 
@@ -632,7 +631,7 @@ class Commander():
 
 		Recursively checks all Participant objects and loads them if they're not already populated.
 		"""
-		vGuild = await botUtils.GetGuild(self.vBotRef)
+		vGuild = await GetGuild(self.vBotRef)
 
 		BUPrint.Debug("Loading participant data...")
 		for participantObj in self.participants:
@@ -713,7 +712,7 @@ class Commander():
 		Sends/Updates the Info embed.
 		"""	
 		if self.commanderInfoMsg == None:
-			vGuild = await botUtils.GetGuild(self.vBotRef)
+			vGuild = await GetGuild(self.vBotRef)
 
 			opString = f"*OPERATION INFORMATION for {self.vOpData.name}*"
 			managingUser = vGuild.get_member(self.vOpData.managedBy)
@@ -732,12 +731,12 @@ class Commander():
 
 		Creates an Embed for Operation Info.
 		"""
-		vEmbed = discord.Embed(colour=botUtils.Colours.commander.value, title=f"**OPERATION INFO** | {self.vOpData.name}")
+		vEmbed = discord.Embed(colour=Colours.commander.value, title=f"**OPERATION INFO** | {self.vOpData.name}")
 
 		# START | SIGNED UP
 		vEmbed.add_field(
-			name=f"Start {botUtils.DateFormatter.GetDiscordTime(self.vOpData.date, botUtils.DateFormat.Dynamic)}", 
-			value=f"{botUtils.DateFormatter.GetDiscordTime(self.vOpData.date, botUtils.DateFormat.DateTimeLong)}", 
+			name=f"Start {GetDiscordTime(self.vOpData.date, DateFormat.Dynamic)}", 
+			value=f"{GetDiscordTime(self.vOpData.date, DateFormat.DateTimeLong)}", 
 			inline=True
 		)
 
@@ -776,7 +775,7 @@ class Commander():
 			alertTime: datetime
 			iteration = 1
 			for alertTime in self.alertTimes:
-				vTempStr += f"**{iteration}**: {botUtils.DateFormatter.GetDiscordTime(alertTime, botUtils.DateFormat.Dynamic )}\n"
+				vTempStr += f"**{iteration}**: {GetDiscordTime(alertTime, DateFormat.Dynamic )}\n"
 				iteration += 1
 
 		vEmbed.add_field(
@@ -1246,7 +1245,7 @@ class Commander():
 			BUPrint.Debug("Auto move disabled.")
 			return
 		
-		vGuild:discord.Guild = await botUtils.GetGuild(self.vBotRef)
+		vGuild:discord.Guild = await GetGuild(self.vBotRef)
 
 		fallbackChannel = vGuild.get_channel(commanderSettings.autoMoveBackChannelID)
 

@@ -2,9 +2,7 @@ import discord
 from botData.dataObjects import OperationData
 from botUtils import BotPrinter as BUPrint
 import botModals.opsManagerModals.baseModal as baseModal
-import botUtils
 import os
-from botData.settings import Directories
 
 class EditInfo(baseModal.BaseModal):
 	txtName = discord.ui.TextInput(
@@ -41,7 +39,7 @@ class EditInfo(baseModal.BaseModal):
 
 	# Where the fun happens!
 	async def on_submit(self, pInteraction: discord.Interaction):
-		botUtils.BotPrinter.Debug("Edit Info Modal submitted...")
+		BUPrint.Debug("Edit Info Modal submitted...")
 
 		self.vOpData.name = self.txtName.value
 		self.vOpData.description = self.txtDescription.value
@@ -51,7 +49,7 @@ class EditInfo(baseModal.BaseModal):
 		await pInteraction.response.defer()
 
 	def PresetFields(self):
-		botUtils.BotPrinter.Debug("Auto-filling modal (INFO) with existing data.")
+		BUPrint.Debug("Auto-filling modal (INFO) with existing data.")
 		self.txtName.default = self.vOpData.name
 		self.txtMessage.default = self.vOpData.customMessage
 		self.txtDescription.default = self.vOpData.description

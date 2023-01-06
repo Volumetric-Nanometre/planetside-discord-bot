@@ -5,11 +5,11 @@ import auraxium
 import dataclasses
 import datetime, dateutil.relativedelta
 
-import botUtils
 import botData.settings
 from botData.settings import NewUsers as NewUserSettings
 from botData.settings import CommandRestrictionLevels
-from botUtils import BotPrinter
+from botUtils import BotPrinter, GetDiscordTime, UserHasCommandPerms, GetGuild
+from botData.utilityData import Colours, DateFormat
 
 from botData.dataObjects import User
 from userManager import UserLibrary
@@ -339,26 +339,26 @@ class NewUserRequest():
 		Creates and returns a list of embeds detailing the user who requested to join.
 		"""
 	# USER INFO EMBED
-		embed_userInfo = discord.Embed(colour=botUtils.Colours.userRequest.value, title=f"JOIN REQUEST: {self.userData.userObj.display_name}", description=f"User joined the server: {botUtils.DateFormatter.GetDiscordTime( pDate=self.userData.joinMessage.created_at, pFormat=botUtils.DateFormat.Dynamic)}")
+		embed_userInfo = discord.Embed(colour=Colours.userRequest.value, title=f"JOIN REQUEST: {self.userData.userObj.display_name}", description=f"User joined the server: {GetDiscordTime( pDate=self.userData.joinMessage.created_at, pFormat=DateFormat.Dynamic)}")
 		
 		embed_userInfo.add_field(name="User ID", value=f"`{self.userData.userObj.id}`")
 		embed_userInfo.add_field(name="User Name", value=f"{self.userData.userObj.name}")
 		embed_userInfo.add_field(name="Display Name", value=f"{self.userData.userObj.display_name}", inline=True)
-		embed_userInfo.add_field(name="Creation Date:", value=f"{ botUtils.DateFormatter.GetDiscordTime(self.userData.userObj.created_at, botUtils.DateFormat.DateTimeLong)}", inline=False)
+		embed_userInfo.add_field(name="Creation Date:", value=f"{GetDiscordTime(self.userData.userObj.created_at, DateFormat.DateTimeLong)}", inline=False)
 
 	# PS2 EMBED
 		if self.userData.ps2CharObj != None:
-			embed_ps2 = discord.Embed(color=botUtils.Colours.userRequest.value, title=f"PS2 CHARACTER")
+			embed_ps2 = discord.Embed(color=Colours.userRequest.value, title=f"PS2 CHARACTER")
 			embed_ps2.add_field(name="Character Name", value=f"{self.userData.ps2CharObj.data.name}")
 			embed_ps2.add_field(name="BattleRank", value=f"{self.userData.ps2CharObj.data.battle_rank.value}", inline=True)
 		if( self.userData.ps2OutfitCharObj != None ):
 			embed_ps2.add_field(name="Outfit", value=f"{self.userData.ps2OutfitName}", inline=True)
 			embed_ps2.add_field(name="Rank", value=f"{self.userData.ps2OutfitCharObj.rank}", inline=True)
 			joinDate = datetime.datetime.fromtimestamp(self.userData.ps2OutfitCharObj.member_since)
-			embed_ps2.add_field(name="Member Since", value=f"{botUtils.DateFormatter.GetDiscordTime(joinDate,botUtils.DateFormat.DateTimeShort)}", inline=True)
+			embed_ps2.add_field(name="Member Since", value=f"{GetDiscordTime(joinDate,DateFormat.DateTimeShort)}", inline=True)
 
 	# WARNINGS EMBED
-		embed_warnings = discord.Embed(colour=botUtils.Colours.userWarnOkay.value, title="WARNINGS & CHECKS", description="Detailed warning checks are listed below.\n\n")
+		embed_warnings = discord.Embed(colour=Colours.userWarnOkay.value, title="WARNINGS & CHECKS", description="Detailed warning checks are listed below.\n\n")
 
 		# Compiled string of warnings.
 		strWarnings: str = ""
@@ -369,21 +369,21 @@ class NewUserRequest():
 		vDateNow = datetime.datetime.now(tz=datetime.timezone.utc)
 		vWarnDate = vDateNow - dateutil.relativedelta.relativedelta(months=-3)
 		if self.userData.userObj.created_at < vWarnDate:
-			embed_warnings._colour = botUtils.Colours.userWarning.value
+			embed_warnings._colour = Colours.userWarning.value
 			strWarnings += f"DISCORD ACCOUNT AGE:\n> Account was created within the last {NewUserSettings.newAccntWarn} months!\n\n"
 		else:
 			strOkay += f"> Discord Account is over {NewUserSettings.newAccntWarn} months old.\n\n"
 
 		# PS2 Invalid Char Name
 		if self.userData.ps2CharObj == None:
-			embed_warnings._colour = botUtils.Colours.userWarning.value
+			embed_warnings._colour = Colours.userWarning.value
 			strWarnings += "NO VALID PS2 CHARACTER:\n> User has not provided a valid ps2 character\n\n"
 		else:
 			strOkay += "- Valid PS2 character provided\n\n"
 
 		# IMPERSONATION WARNING
 		if self.userData.ps2OutfitCharObj != None and self.userData.ps2OutfitCharObj.rank_ordinal < NewUserSettings.outfitRankWarn:
-			embed_warnings._colour = botUtils.Colours.userWarning.value
+			embed_warnings._colour = Colours.userWarning.value
 			strWarnings += f"HIGH RANK USER:\n> Claiming a character with a high *({self.userData.ps2OutfitCharObj.rank_ordinal})* Outfit *({self.userData.ps2OutfitName})* Rank *({self.userData.ps2OutfitCharObj.rank})!*"
 		elif self.userData.ps2CharObj != None:
 			strOkay += "- Users claimed character is not a high ranking outfit member.\n"
@@ -449,7 +449,7 @@ class NewUserRequest_btnReject(discord.ui.Button):
 
 	async def callback(self, pInteraction: discord.Interaction):
 		# HARDCODED ROLE USEAGE:
-		if not await botUtils.UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level1), pInteraction):
+		if not await UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level1), pInteraction):
 			return
 
 		await self.userData.userObj.kick(reason=f"User join request denied by {pInteraction.user.display_name}")
@@ -471,7 +471,7 @@ class NewUserRequest_btnBan(discord.ui.Button):
 		)
 
 	async def callback(self, pInteraction: discord.Interaction):
-		if not await botUtils.UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level1), pInteraction):
+		if not await UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level1), pInteraction):
 			return
 
 		await self.userData.userObj.ban(reason=f"User join request denied by {pInteraction.user.display_name}")
@@ -492,13 +492,13 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		) # END - Init
 
 	async def callback(self, pInteraction: discord.Interaction):
-		if not await botUtils.UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level1), pInteraction):
+		if not await UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level1), pInteraction):
 			return
 
 		vAssignedRoleName = ""
 
 		# Assign given role:
-		vGuild = await botUtils.GetGuild(pInteraction.client)
+		vGuild = await GetGuild(pInteraction.client)
 		vAllRoles = vGuild.roles
 		# vRole: discord.Role = None
 		rolesToAssign = []
