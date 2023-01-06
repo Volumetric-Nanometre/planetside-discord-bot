@@ -86,9 +86,10 @@ class Commander():
 		self.vFeedback = OpCommander.dataObjects.OpFeedback()
 		self.bFeedbackTooLarge = False # Set to true if feedback is too large for an embed.
 		self.bHasSoftEnded = False # Set to true if soft ended (debriefed.)
+		self.trueStartTime: datetime = None # Set when the event is started.
 
 		# Auraxium client & Op event tracker
-		self.vAuraxClient = auraxium.EventClient()
+		self.vAuraxClient = auraxium.EventClient(service_id=botSettings.ps2ServiceID)
 		self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
 
 		# Alert & Autostart Scheduler
@@ -385,11 +386,6 @@ class Commander():
 		"""
 		BUPrint.Debug("Removing Channels")
 
-		# Remove Text channels
-		for textChannel in self.vCategory.text_channels:
-			BUPrint.Debug(f"	-> Removing {textChannel.name}")
-			await textChannel.delete(reason="Op Commander ending & removing channels")
-
 		# Get all connected users.
 		userList = []
 		voiceChannel: discord.VoiceChannel
@@ -403,20 +399,40 @@ class Commander():
 		# Move connected users to fallback channel
 		for user in userList:
 			BUPrint.Debug(f"Attempting to move {user.display_name} to fallback channel.")
-			await user.move_to(channel=fallbackChannel, reason="Op Commander ending: moving user from Ops channel to fallback.")
+			try:
+				await user.move_to(channel=fallbackChannel, reason="Op Commander ending: moving user from Ops channel to fallback.")
+			except discord.Forbidden:
+				BUPrint.LogError(f"Invalid permission to move {user.display_name}!", 0)
+			except discord.HTTPException:
+				BUPrint.LogError(f"Discord failed to move {user.display_name}", 0)
 
 		# Remove channels
 		for voiceChannel in self.vCategory.voice_channels:
-			await voiceChannel.delete(reason="Op Commander Ending: removing voice channels.")
+			try:
+				await voiceChannel.delete(reason="Op Commander Ending: removing voice channels.")
+			except discord.Forbidden:
+				BUPrint.LogError("Invalid permission to remove voice channels!", 0)
+			except discord.HTTPException:
+				BUPrint.LogError(f"Discord failed to remove voice channel: {voiceChannel.name}")
+
 
 		for textChannel in self.vCategory.text_channels:
-			await textChannel.delete(reason="Op Commander ending: removing text channels.")
+			try:
+				await textChannel.delete(reason="Op Commander ending: removing text channels.")
+			except discord.Forbidden:
+				BUPrint.LogError("Invalid permission to remove text channels!", 0)
+			except discord.HTTPException:
+				BUPrint.LogError(f"Discord failed to remove text channel: {voiceChannel.name}")
+
 
 		# Remove empty category
-		await self.vCategory.delete(reason="Op Commander ending: removing category.")
+		try:
+			await self.vCategory.delete(reason="Op Commander ending: removing category.")
+		except discord.Forbidden:
+			BUPrint.LogError("Invalid permission to remove category!", 0)
+		except discord.HTTPException:
+			BUPrint.LogError(f"Discord failed to remove category: {self.vCategory.name}")
 
-		#removethisinamoment
-		await self.vAuraxClient.close()
 
 
 
@@ -1144,6 +1160,7 @@ class Commander():
 		await vOpMan.UpdateMessage(self.vOpData)
 		self.vCommanderStatus = CommanderStatus.Started
 		await self.GenerateCommander()
+		self.trueStartTime = datetime.datetime.now(tz=datetime.timezone.utc)
 
 
 
@@ -1157,13 +1174,16 @@ class Commander():
 
 		self.bHasSoftEnded = True
 
-		vDuration: datetime.timedelta = self.vOpData.date - datetime.datetime.now(tz=datetime.timezone.utc)
+		vDuration: datetime.timedelta = self.trueStartTime - datetime.datetime.now(tz=datetime.timezone.utc)
 
 		for participant in self.participants:
-			participant.userSession.duration = (vDuration / 60)
-			if participant.libraryEntry != None:
-				participant.libraryEntry.eventsAttended += 1
-				participant.libraryEntry.sessions.append(participant.userSession)
+			if participant.bIsTracking:
+				participant.userSession.duration = vDuration.seconds / 60
+				if participant.libraryEntry != None:
+					participant.libraryEntry.eventsAttended += 1
+					participant.libraryEntry.sessions.append(participant.userSession)
+			else:
+				BUPrint.Debug("Participant has tracking disabled.")
 	
 
 	async def EndOperation(self):
