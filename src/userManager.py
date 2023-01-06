@@ -962,7 +962,7 @@ class LibraryViewer():
 					)
 
 
-		if not Session.bIsPS2Event:
+		if not p_session.bIsPS2Event:
 			vEmbed.add_field(name="NOTE:",value="This event is not for PS2, and thus has no statistics to show.")
 			
 			return vEmbed

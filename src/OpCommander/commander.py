@@ -1272,7 +1272,8 @@ class Commander():
 			if participant.bIsTracking:
 				if participant.libraryEntry != None:
 					BUPrint.Info(f"Updating session information for: {participant.discordUser.display_name}")
-					participant.userSession.bIsPS2Event = self.vOpData.options.bIsPS2Event
+					if not self.vOpData.options.bIsPS2Event:
+						participant.userSession.bIsPS2Event = False
 					participant.userSession.duration = vDuration.seconds / 3600
 					participant.libraryEntry.eventsAttended += 1
 					participant.userSession.eventName = self.vOpData.name
