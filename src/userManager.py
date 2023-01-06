@@ -167,7 +167,8 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
 			return
 
-		await p_interaction.response.defer()
+		await p_interaction.response.defer(ephemeral=True, thinking=True)
+		
 
 		vUserEntries = UserLibrary.GetAllEntries()
 		vRecruitEntries = []
@@ -189,9 +190,9 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 
 		for entry in vRecruitEntries:
 			vUser = p_interaction.guild.get_member( entry.discordID )
-			vMessage += f"{vUser.mention}\n:{UserLibrary.GetRecruitRequirements(entry)}"
+			vMessage += f"\n\n{vUser.mention}:\n{UserLibrary.GetRecruitRequirements(entry)}"
 
-		await p_interaction.response.send_message(vMessage, ephemeral=True)
+		await p_interaction.edit_original_response(content=vMessage)
 
 	
 
