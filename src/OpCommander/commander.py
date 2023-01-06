@@ -1517,7 +1517,14 @@ class FeedbackModal(discord.ui.Modal):
 	def __init__(self, p_parentCommander:Commander , p_callingUser:discord.User):
 		self.parentCommander = p_parentCommander
 		self.foundUserID = -1
+		self.bIsPS2Event = self.parentCommander.vOpData.options.bIsPS2Event
 		self.PropogateFields(p_callingUser.id)
+
+		if self.bIsPS2Event:
+			self.remove_item(self.txt_squadLead)
+			self.remove_item(self.txt_squadMates)
+			self.remove_item(self.txt_platLead)
+
 		super().__init__(title="Feedback", timeout=None)
 
 	async def on_submit(self, pInteraction:discord.Interaction):
@@ -1525,16 +1532,18 @@ class FeedbackModal(discord.ui.Modal):
 			BUPrint.Debug("No user ID found; new feedback entry...")
 			self.parentCommander.vFeedback.userID.append(pInteraction.user.id)
 			self.parentCommander.vFeedback.generic.append(f"{self.txt_general.value}")
-			self.parentCommander.vFeedback.forSquadmates.append(f"{self.txt_squadMates.value}")
-			self.parentCommander.vFeedback.forSquadLead.append(f"{self.txt_squadLead.value}")
-			self.parentCommander.vFeedback.forPlatLead.append(f"{self.txt_platLead.value}")
+			if self.bIsPS2Event:
+				self.parentCommander.vFeedback.forSquadmates.append(f"{self.txt_squadMates.value}")
+				self.parentCommander.vFeedback.forSquadLead.append(f"{self.txt_squadLead.value}")
+				self.parentCommander.vFeedback.forPlatLead.append(f"{self.txt_platLead.value}")
 
 		else:
 			BUPrint.Debug(f"Found user ID at position {self.foundUserID}, updating entry...")
 			self.parentCommander.vFeedback.generic[self.foundUserID] = self.txt_general.value
-			self.parentCommander.vFeedback.forSquadmates[self.foundUserID] = self.txt_squadMates.value
-			self.parentCommander.vFeedback.forSquadLead[self.foundUserID] = self.txt_squadLead.value
-			self.parentCommander.vFeedback.forPlatLead[self.foundUserID] = self.txt_platLead.value
+			if self.bIsPS2Event:
+				self.parentCommander.vFeedback.forSquadmates[self.foundUserID] = self.txt_squadMates.value
+				self.parentCommander.vFeedback.forSquadLead[self.foundUserID] = self.txt_squadLead.value
+				self.parentCommander.vFeedback.forPlatLead[self.foundUserID] = self.txt_platLead.value
 
 		await self.parentCommander.GenerateFeedback()
 		await pInteraction.response.send_message("Thank you, your feedback has been submited!", ephemeral=True)
@@ -1558,6 +1567,7 @@ class FeedbackModal(discord.ui.Modal):
 
 		if self.foundUserID != -1:
 			self.txt_general.default = feedback.generic[index]
-			self.txt_squadMates.default = feedback.forSquadmates[index]
-			self.txt_squadLead.default = feedback.forSquadLead[index]
-			self.txt_platLead.default = feedback.forPlatLead[index]
+			if self.bIsPS2Event:
+				self.txt_squadMates.default = feedback.forSquadmates[index]
+				self.txt_squadLead.default = feedback.forSquadLead[index]
+				self.txt_platLead.default = feedback.forPlatLead[index]
