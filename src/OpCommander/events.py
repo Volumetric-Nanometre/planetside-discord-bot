@@ -20,3 +20,6 @@ class OpsEventTracker():
 		"""
 		pass
 		# self.auraxClient.add_trigger()
+
+	async def Stop(self):
+		await self.auraxClient.close()

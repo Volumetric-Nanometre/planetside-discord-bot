@@ -136,6 +136,7 @@ class Session:
 	# SESSION
 	Dataclass that represents a single user session.
 	"""
+	eventName: str = ""
 	bIsPS2Event: bool = True
 	date: datetime = None
 	duration: float = 0
@@ -163,7 +164,7 @@ class Participant:
 
 	# DATA
 	discordID : int = 0
-	bIsTracking : bool = False # Convenience bool, stays false if ps2Char is invalid/None.
+	bIsTracking : bool = True 
 	lastCheckedName : str = "" # Last Checked name: skips searching for a PS2 character if this is the same.
 
 	def __repr__(self) -> str:
@@ -180,31 +181,6 @@ class Participant:
 			vStr += f"	DISCORD USER SET :{self.discordUser.display_name}"
 
 		return vStr
-
-
-	def LoadParticipant(self):
-		"""
-		# LOAD PARTICIPANT
-		Loads and sets the `libraryEntry` data object representing the participant.
-		"""
-		dataFile = f"{Settings.Directories.userLibrary}{self.discordID}.bin"
-		lockFile = botUtils.FilesAndFolders.GetLockPathGeneric(dataFile)
-
-		
-		if os.path.exists(f"{Settings.Directories.userLibrary}{self.discordID}.bin"):
-			botUtils.BotPrinter.Debug(f"Found existing Library entry! \n{self.libraryEntry}")
-			botUtils.FilesAndFolders.GetLock(lockFile)
-			try:
-				with open(dataFile, "rb") as vFile:
-					self.libraryEntry = pickle.load(vFile)
-
-				botUtils.FilesAndFolders.ReleaseLock(lockFile)
-			except pickle.PickleError as vError:
-				botUtils.BotPrinter.LogErrorExc("Failed to load user library entry.", vError)
-				botUtils.FilesAndFolders.ReleaseLock(lockFile)				
-			
-		else:
-			botUtils.BotPrinter.Debug("No existing entry found...")
 
 
 
@@ -605,18 +581,3 @@ class DefaultChannels:
 	voiceChannels = ["Squad-Alpha", "Squad-Beta", "Squad-Charlie", "Squad-Delta"]
 	# Debrief: If not specified in Ops data, this is used instead
 	debriefChannel = "debrief"
-
-
-@dataclass
-class UserSession:
-	"""
-	# USER SESSION
-	Dataclass pertaining to a users session statistics.
-	"""
-	eventName: str = ""
-	eventDate: datetime = None
-	# Stats Tracked
-	kills: int = 0
-	deaths: int = 0
-	assists: int = 0
-	score: int = 0

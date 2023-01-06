@@ -25,7 +25,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime, dateutil.relativedelta
 
 from OpCommander.events import OpsEventTracker
-from botData.dataObjects import CommanderStatus, Participant, Session, OpFeedback
+from botData.dataObjects import CommanderStatus, OpsStatus, Participant, Session, OpFeedback
 
 # import botUtils
 from botUtils import GetGuild, GetDiscordTime
@@ -35,10 +35,8 @@ from botData.utilityData import DateFormat, Colours
 
 from botData.settings import BotSettings as botSettings
 from botData.settings import Commander as commanderSettings
-from botData.settings import PS2EventTrackOptions
 from botData.settings import Messages as botMessages
-from botData.settings import Directories
-from botData.settings import UserLib
+from botData.settings import Directories, UserLib, PS2EventTrackOptions, NewUsers
 
 from botData.dataObjects import OperationData, User, OpRoleData, DefaultChannels
 
@@ -61,6 +59,10 @@ async def StartCommander(p_opData: OperationData):
 
 	if len(p_opData.GetParticipantIDs()) == 0:
 		BUPrint.Info("Cannot start an event with 0 participants.  Not starting commander.")
+		return
+
+	if p_opData.status.value >= OpsStatus.prestart.value:
+		BUPrint.Info("Trying to start a commander for an event that is already started!")
 		return
 
 
@@ -219,7 +221,7 @@ class Commander():
 			self.vCommanderStatus = CommanderStatus.WarmingUp
 
 		else:
-			BUPrint.LogError("Commander has already been set up!")
+			BUPrint.Info("Commander has already been set up!")
 
 
 	async def CreateCategory(self):
@@ -403,37 +405,41 @@ class Commander():
 			BUPrint.Debug(f"Attempting to move {user.display_name} to fallback channel.")
 			try:
 				await user.move_to(channel=fallbackChannel, reason="Op Commander ending: moving user from Ops channel to fallback.")
-			except discord.Forbidden:
-				BUPrint.LogError(f"Invalid permission to move {user.display_name}!", 0)
-			except discord.HTTPException:
-				BUPrint.LogError(f"Discord failed to move {user.display_name}", 0)
+			except discord.errors.Forbidden:
+				BUPrint.Info(f"Invalid permission to move {user.display_name}!")
+			except discord.errors.HTTPException:
+				BUPrint.Info(f"Discord failed to move {user.display_name}")
 
 		# Remove channels
 		for voiceChannel in self.vCategory.voice_channels:
 			try:
 				await voiceChannel.delete(reason="Op Commander Ending: removing voice channels.")
-			except discord.Forbidden:
-				BUPrint.LogError("Invalid permission to remove voice channels!", 0)
-			except discord.HTTPException:
-				BUPrint.LogError(f"Discord failed to remove voice channel: {voiceChannel.name}")
+			except discord.errors.Forbidden:
+				BUPrint.Info("Invalid permission to remove voice channels!")
+			except discord.errors.NotFound:
+				BUPrint.Info("Voice channel not found.  Presumably already removed.")
+			except discord.errors.HTTPException:
+				BUPrint.Info(f"Discord failed to remove voice channel: {voiceChannel.name}")
 
 
 		for textChannel in self.vCategory.text_channels:
 			try:
 				await textChannel.delete(reason="Op Commander ending: removing text channels.")
 			except discord.Forbidden:
-				BUPrint.LogError("Invalid permission to remove text channels!", 0)
-			except discord.HTTPException:
-				BUPrint.LogError(f"Discord failed to remove text channel: {voiceChannel.name}")
+				BUPrint.Info("Invalid permission to remove text channels!")
+			except discord.errors.NotFound:
+				BUPrint.Info("Text channel not found.  Presumably already removed.")
+			except discord.errors.HTTPException:
+				BUPrint.Info(f"Discord failed to remove text channel: {voiceChannel.name}")
 
 
 		# Remove empty category
 		try:
 			await self.vCategory.delete(reason="Op Commander ending: removing category.")
-		except discord.Forbidden:
-			BUPrint.LogError("Invalid permission to remove category!", 0)
-		except discord.HTTPException:
-			BUPrint.LogError(f"Discord failed to remove category: {self.vCategory.name}")
+		except discord.errors.Forbidden:
+			BUPrint.Info("Invalid permission to remove category!")
+		except discord.errors.HTTPException:
+			BUPrint.Info(f"Discord failed to remove category: {self.vCategory.name}")
 
 
 
@@ -455,15 +461,19 @@ class Commander():
 
 		vMessage = f"**REMINDER: {self.vOpData.name} STARTS {GetDiscordTime( self.vOpData.date, DateFormat.Dynamic )}**\n"
 
-		vMessage += f"{vRoleMentionPing}|{self.GetParticipantMentions()}"
+		vMessage += f"{vRoleMentionPing}|{self.GetParticipantMentions()}\n\n"
 
 		notTrackedParticipants = ""
 		for participant in self.participants:
-			if participant.libraryEntry == None or participant.ps2Char == None:
+			BUPrint.Debug(participant)
+			if not participant.bIsTracking:
 				notTrackedParticipants += f"{participant.discordUser.mention} "
 
 		if notTrackedParticipants != "":
-			vMessage += f"**ATTENTION**\n{notTrackedParticipants}\n{botMessages.noMatchingPS2Char}\n\n"
+			if self.vOpData.options.bIsPS2Event:
+				vMessage += f"**ATTENTION**\n{notTrackedParticipants}\n{botMessages.noMatchingPS2Char}\n\n"
+			else:
+				vMessage += f"**ATTENTION**\n{notTrackedParticipants}\n{botMessages.nonPS2TrackReqsNotMet}\n\n"
 
 		if commanderSettings.bAutoMoveVCEnabled:
 			vMessage += f"\n\n*{botMessages.OpsAutoMoveWarn}*\n\n"
@@ -494,11 +504,15 @@ class Commander():
 		notTrackedParticipants = ""
 
 		for participant in self.participants:
-			if participant.libraryEntry == None or participant.ps2Char == None:
+			if not participant.bIsTracking:
 				notTrackedParticipants += f"{participant.discordUser.mention} "
 
 		if notTrackedParticipants != "":
-			vMessage += f"\n\n\n**ATTENTION**\n{notTrackedParticipants}\n{botMessages.noMatchingPS2Char}\n\n"
+			if self.vOpData.options.bIsPS2Event:
+				vMessage += f"\n\n\n**ATTENTION**\n{notTrackedParticipants}\n{botMessages.noMatchingPS2Char}\n\n"
+			else:
+				vMessage += f"\n\n\n**ATTENTION**\n{notTrackedParticipants}\n{botMessages.nonPS2TrackReqsNotMet}\n\n"
+
 
 		
 		return vMessage
@@ -581,6 +595,8 @@ class Commander():
 				participant.userSession.bIsPS2Event = self.vOpData.options.bIsPS2Event
 				participant.userSession.date = self.vOpData.date
 
+		await self.UpdateParticipantTracking()
+
 
 
 	async def UpdateParticipantTracking(self):
@@ -589,28 +605,33 @@ class Commander():
 
 		If enabled, recursively check participants and enable tracking depending on the setting.
 		"""
-
+		BUPrint.Debug("Updating user tracking...")
 		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled and self.vOpData.options.bIsPS2Event:
 			BUPrint.Debug("Tracking Enabled: Event is PS2.")
 			for participantObj in self.participants:
+				participantObj.bIsTracking = True
 
 				if participantObj.ps2Char == None and commanderSettings.trackEvent.value >= PS2EventTrackOptions.InGameOnly.value:
+					BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now disabled")
 					participantObj.bIsTracking = False
 					continue
+				
 				try:
 					if commanderSettings.trackEvent == PS2EventTrackOptions.InGameOnly:
 						
 						if await participantObj.ps2Char.is_online():
 							participantObj.bIsTracking = True
-
+							BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now Enabled")
 					elif commanderSettings.trackEvent == PS2EventTrackOptions.InGameAndDiscordVoice:
 						if await participantObj.ps2Char.is_online() and participantObj.discordUser.voice != None:
 							# Make sure user is in Op channel:
 							if participantObj.discordUser.voice.channel in self.vCategory.voice_channels:
 								participantObj.bIsTracking = True
+								BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now Enabled")
 							else:
 								BUPrint.Debug(f"{participantObj.discordUser.display_name} User is in voice channel that is not related to the event.")
 								participantObj.bIsTracking = False
+								BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now disabled")
 
 				except auraxium.errors.AuraxiumException as vError:
 					BUPrint.LogErrorExc("Unable to determine if user is online.", vError)
@@ -620,9 +641,20 @@ class Commander():
 			for participantObj in self.participants:
 				if participantObj.discordUser.voice != None:
 					if participantObj.discordUser.voice.channel in self.vCategory.voice_channels:
+						BUPrint.Debug("User in event voice chat!")
 						participantObj.bIsTracking = True
+						BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now ENABLED ({participantObj.bIsTracking})")
+
 					else:
+						BUPrint.Debug("User isn't in event voice chat! D:<")
 						participantObj.bIsTracking = False
+						BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now DISABLED ({participantObj.bIsTracking})")
+
+				else:
+					BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now DISABLED ({participantObj.bIsTracking})")
+					participantObj.bIsTracking = False
+
+
 
 
 	async def LoadParticipantData(self):
@@ -643,15 +675,32 @@ class Commander():
 
 			if participantObj.libraryEntry == None:
 				BUPrint.Debug("	-> Library Entry not set. Loading...")
-				participantObj.LoadParticipant()
+				participantObj.LibraryEntry = UserLibrary.LoadEntry(participantObj.discordID)
+
+
+			if participantObj.libraryEntry == None:
+				vNewEntry = User(discordID=participantObj.discordUser.id)
+				if UserLibrary.HasEntry(participantObj.discordID):
+					BUPrint.Debug("Loading Participant Data: Loading data.")
+					participantObj.libraryEntry = UserLibrary.LoadEntry(participantObj.discordID)
+
+				elif UserLib.bCommanderCanAutoCreate:
+					BUPrint.Debug("Load Participant Data: No entry, creating one...")
+					# Check if user has recruit role and apply isRecruit accordingly.
+					vRecruitRole = vGuild.get_role(NewUsers.recruitRole)
+
+					if vRecruitRole in participantObj.discordUser.roles:
+						vNewEntry.bIsRecruit = True
+
+					participantObj.LibraryEntry = vNewEntry
+					UserLibrary.SaveEntry(vNewEntry)
+				else:
+					BUPrint.Debug("LoadParticipantData: Autocreate is disabled.")
+					participantObj.bIsTracking = False
 
 			if participantObj.ps2Char == None and self.vOpData.options.bIsPS2Event:
 				BUPrint.Debug("	-> PS2 Character not set, setting...")
 				participantObj.ps2Char = await self.GetParticipantPS2Char(participantObj)
-
-				# If still none, set tracking to false:
-				if participantObj.ps2Char == None:
-					participantObj.bIsTracking = False
 
 
 	async def GetParticipantPS2Char(self, p_participant: Participant):
@@ -722,7 +771,11 @@ class Commander():
 	
 			self.commanderInfoMsg = await self.commanderChannel.send(content=opString, embed=self.GenerateEmbed_OpInfo() )
 		else:
-			await self.commanderInfoMsg.edit(embed=self.GenerateEmbed_OpInfo())
+			try:
+				await self.commanderInfoMsg.edit(embed=self.GenerateEmbed_OpInfo())
+			except discord.NotFound:
+				BUPrint.Info("Message not found but posted?  Reposting...")
+				self.commanderInfoMsg = await self.commanderChannel.send(embed=self.GenerateEmbed_OpInfo() )
 
 
 	def GenerateEmbed_OpInfo(self):
@@ -733,14 +786,7 @@ class Commander():
 		"""
 		vEmbed = discord.Embed(colour=Colours.commander.value, title=f"**OPERATION INFO** | {self.vOpData.name}")
 
-		# START | SIGNED UP
-		vEmbed.add_field(
-			name=f"Start {GetDiscordTime(self.vOpData.date, DateFormat.Dynamic)}", 
-			value=f"{GetDiscordTime(self.vOpData.date, DateFormat.DateTimeLong)}", 
-			inline=True
-		)
-
-		# DISPLAY OPTIONS & DATA
+		# OPTIONS & DATA
 		vTempStr = ""
 		if self.vOpData.options.bAutoStart:
 			vTempStr += "Autostart *Enabled*\n"
@@ -762,10 +808,17 @@ class Commander():
 		else:
 			vTempStr += "AutoVC Move: *Disabled*\n"
 
+		# START | SIGNED UP
 		vEmbed.add_field(
-			name="OPTIONS", 
-			value=vTempStr
+			name=f"Start {GetDiscordTime(self.vOpData.date, DateFormat.Dynamic)}", 
+			value=f"{GetDiscordTime(self.vOpData.date, DateFormat.DateTimeLong)}\n{vTempStr}", 
+			inline=True
 		)
+
+		# vEmbed.add_field(
+		# 	name="OPTIONS", 
+		# 	value=vTempStr
+		# )
 		
 		vTempStr = "Auto Alerts Disabled"
 		if commanderSettings.bAutoAlertsEnabled:
@@ -992,29 +1045,46 @@ class Commander():
 		"""
 
 		vFeedbackEmbed = self.GenerateEmbed_Feedback()
+		vFeedbackMsg = "**FEEDBACK:**\n"
+		for feedback in self.vFeedback.generic:
+			if feedback != "":
+				vFeedbackMsg += f"{feedback}\n"
+
+		if self.vOpData.options.bIsPS2Event:
+			vFeedbackMsg += "**FOR SQUADMATES:**\n"
+			for feedback in self.vFeedback.forSquadmates:
+				if feedback != "":
+					vFeedbackMsg += f"{feedback}\n"
+
+			vFeedbackMsg += "**FOR SQUAD LEAD:**\n"
+			for feedback in self.vFeedback.forSquadLead:
+				if feedback != "":
+					vFeedbackMsg += f"{feedback}\n"
+
+			vFeedbackMsg += "**FOR PLATOON LEAD:**\n"
+			for feedback in self.vFeedback.forPlatLead:
+				if feedback != "":
+					vFeedbackMsg += f"{feedback}\n"
+
 		feedbackFile = discord.File( self.vFeedback.SaveToFile(self.vOpData.fileName) )
 
 		if self.vOpData.options.bUseSoberdogsFeedback:
 			vFilePath = self.vFeedback.SaveToFile(self.vOpData.fileName)
 			if self.soberdogFeedbackMsg == None:
-				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(embed=vFeedbackEmbed, file=feedbackFile)
+				# self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(embed=vFeedbackEmbed, file=feedbackFile)
+				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(content=vFeedbackMsg, file=feedbackFile)
 
 			else:
-				if self.vCommanderStatus == CommanderStatus.Ended and self.bFeedbackTooLarge:
-					
-					if vFilePath != "":
-						await self.soberdogFeedbackMsg.edit(embed=vFeedbackEmbed, attachments=[feedbackFile])
+				await self.soberdogFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
 
-				else:
-					await self.soberdogFeedbackMsg.edit(embed=vFeedbackEmbed)
 
 		else:
 
 			if self.notifFeedbackMsg == None:
-				self.notifFeedbackMsg = await self.notifChn.send(embed=vFeedbackEmbed, file=feedbackFile)
+				self.notifFeedbackMsg = await self.notifChn.send(content=vFeedbackMsg, file=feedbackFile)
 			
 			else:
-				await self.notifFeedbackMsg.edit(embed=vFeedbackEmbed, attachments=[feedbackFile])
+				await self.notifFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
 
 
 		await self.GenerateCommander()
@@ -1066,7 +1136,7 @@ class Commander():
 														)
 
 			except discord.Forbidden:
-				BUPrint.LogError("Invalid permissions for posting threads! Falling back to default")
+				BUPrint.Info("Invalid permissions for posting threads! Falling back to default")
 				self.vOpData.options.bUseSoberdogsFeedback = False
 				return
 
@@ -1161,15 +1231,19 @@ class Commander():
 			self.scheduler.remove_job("CommanderAutoStart")
 
 
-		await self.UpdateParticipants()
-
-		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
-			await self.UpdateParticipantTracking()
-			self.vOpsEventTracker.Start()
 
 		if commanderSettings.bAutoMoveVCEnabled:
 			BUPrint.Debug("Moving VC connected participants")
 			await self.MoveUsers(p_moveToStandby=True)
+
+		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
+			await self.UpdateParticipantTracking()
+			if self.vOpData.options.bIsPS2Event:
+				self.vOpsEventTracker.Start()
+
+
+		await self.UpdateParticipants()
+
 
 		await self.SendAlertMessage(p_opStart=True)
 		self.vOpData.status = OperationData.status.started
@@ -1187,21 +1261,28 @@ class Commander():
 		Performs minor cleanup, during debrief.
 		"""
 		if self.vOpData.options.bIsPS2Event:
-			await self.vAuraxClient.close()
+			await self.vOpsEventTracker.Stop()
 		self.scheduler.shutdown()
 
 		self.bHasSoftEnded = True
 
-		vDuration: datetime.timedelta = self.trueStartTime - datetime.datetime.now(tz=datetime.timezone.utc)
+		vDuration: datetime.timedelta = datetime.datetime.now(tz=datetime.timezone.utc) - self.trueStartTime
 
 		for participant in self.participants:
 			if participant.bIsTracking:
-				participant.userSession.duration = vDuration.seconds / 60
 				if participant.libraryEntry != None:
+					BUPrint.Info(f"Updating session information for: {participant.discordUser.display_name}")
+					participant.userSession.bIsPS2Event = self.vOpData.options.bIsPS2Event
+					participant.userSession.duration = vDuration.seconds / 3600
 					participant.libraryEntry.eventsAttended += 1
+					participant.userSession.eventName = self.vOpData.name
+
 					participant.libraryEntry.sessions.append(participant.userSession)
+					UserLibrary.SaveEntry(participant.libraryEntry)
+				
+				else: BUPrint.Debug(f"{participant.discordUser.display_name} has no library entry!  Cannot update sessions.")
 			else:
-				BUPrint.Debug("Participant has tracking disabled.")
+				BUPrint.Debug(f"{participant.discordUser.display_name} has tracking disabled.")
 	
 
 	async def EndOperation(self):
@@ -1301,10 +1382,12 @@ class Commander_btnStart(discord.ui.Button):
 		super().__init__(label="START", emoji="🔘", row=0, style=discord.ButtonStyle.green)
 
 	async def callback(self, p_interaction:discord.Interaction):
+		await p_interaction.response.defer(ephemeral=True, thinking=True)
+		
 		await self.vCommander.StartOperation()
 
 		try:
-			await p_interaction.response.send_message("Starting the event!", ephemeral=True)
+			await p_interaction.edit_original_response(content="Event Started!")
 		except discord.errors.NotFound:
 			BUPrint.Info("Discord Error; took too long for a response. Safe to Ignore.")
 

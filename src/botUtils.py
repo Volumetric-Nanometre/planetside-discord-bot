@@ -66,7 +66,7 @@ class BotPrinter():
 		"""
 		Same as LOG ERROR, with addition of Exception parameter.
 		"""
-		print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.colourWarn}ERROR:{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.ColourInfo}{p_string} | {UtilityData.ConsoleStyles.reset}{traceback.print_tb(p_exception.__traceback__)}", file=sys.stderr)
+		print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.colourWarn}ERROR:{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.ColourInfo}{p_string} | {UtilityData.ConsoleStyles.reset}{traceback.print_tb(p_exception.y)}", file=sys.stderr)
 
 
 
@@ -149,9 +149,16 @@ class FilesAndFolders():
 		if (not os.path.exists( Directories.userLibrary ) ):
 			try:
 				os.makedirs(Directories.userLibrary)
+			except:
+				BotPrinter.LogError("Failed to create folder for User Library!")
+
+		BotPrinter.Debug("Creating User Library: Recruits folder (if non existant)")
+		if (not os.path.exists( Directories.userLibraryRecruits ) ):
+			try:
 				os.makedirs(Directories.userLibraryRecruits)
 			except:
 				BotPrinter.LogError("Failed to create folder for User Library!")
+
 
 
 	def GenerateTempFolder():
@@ -248,7 +255,7 @@ class FilesAndFolders():
 			return False
 
 
-	def ReleaseLock(p_fileToRelease:str):
+	def ReleaseLock(p_fileToRelease:str) -> discord.guild.Guild:
 		"""
 		RELEASE LOCK:
 
@@ -277,7 +284,7 @@ class FilesAndFolders():
 		return True
 
 
-def GetGuildNF(p_botRef: commands.Bot):
+def GetGuildNF(p_botRef: commands.Bot) -> discord.guild.Guild:
 	"""
 	# GET GUILD: No Fetch.
 	Similar to GetGuild, but does not fetch if no guild found.

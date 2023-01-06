@@ -9,7 +9,7 @@ from botData.settings import SignUps
 class EditRoles(baseModal.BaseModal):
 	txtPingables = discord.ui.TextInput(
 		label="Pingables",
-		placeholder="Roles to ping",
+		placeholder="Roles to mention in notifications",
 		style=discord.TextStyle.short,
 		required=False
 	)

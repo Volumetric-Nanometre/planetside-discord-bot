@@ -237,7 +237,7 @@ class Directories:
 	userLibrary = f"{prefixDir}Users/"
 
 	# File directory for saved recruit user data.  Separated to make getting just recruits less intensive.
-	userLibraryRecruits = f"{userLibrary}Recruits"
+	userLibraryRecruits = f"{userLibrary}Recruits/"
 
 	# File directory for temporary files.
 	tempDir = f"{prefixDir}temp/"
@@ -254,7 +254,8 @@ class Directories:
 		vString += f"	> Prefix Dir :	{self.prefixDir}\n"
 		vString += f"	> LiveOps Dir:	{self.liveOpsDir}\n" 
 		vString += f"	> DefaultsDir:	{self.savedDefaultsDir}\n" 
-		vString += f"	> UserLib Dir:	{self.userLibrary}\n" 
+		vString += f"	> UserLib Dir:	{self.userLibrary}\n"
+		vString += f"	> RecruitsDir:	{self.userLibraryRecruits}\n"
 		vString += f"	> LockFile Affix:	{self.lockFileAffix} | Retries: {self.lockFileRetry}\n" 
 		return vString
 
@@ -354,6 +355,9 @@ class UserLib:
 	# Session Preview Max: The number of saved sessions that are previewed in a libraryViewer general page.
 	sessionPreviewMax = 5
 
+	# Session Browser Max Per Page: Maximum number of sessions the browser page (and the dropdown) will show.  Cannot go above 25.
+	sessionMaxPerPage = 10
+
 	# Remove Entry On Leave: If true, a users entry is removed when they leave the server.
 	bRemoveEntryOnLeave = False
 
@@ -369,7 +373,9 @@ class UserLib:
 		vString += f"	> Max Saved Events:	{self.maxSavedEvents}\n"
 		vString += f"	> AutoPromote Users:	{self.bAutoPromoteEnabled}\n"
 		vString += f"	> AutoPromote Rules:	{self.autoPromoteRules}\n"
+		vString += f"	> AutoPromote Times:	{self.autoQueryRecruitTime}\n"
 		vString += f"	> Max Session Previews:	{self.sessionPreviewMax}\n"
+		vString += f"	> Max Sessions Browser:	{self.sessionMaxPerPage}\n"
 		vString += f"	> Remove Entry/Special on leave: {self.bRemoveEntryOnLeave}/{self.bRemoveSpecialEntryOnLeave}\n"
 
 		return vString
@@ -428,6 +434,9 @@ class Messages:
 	 - Use `!About` and press `Setup`.
 	Make sure you do this BEFORE the event starts, otherwise you will not be tracked!
 	"""
+
+	# Not Being Tracked: Shown when users aren't being tracked on a non-PS2 event.
+	nonPS2TrackReqsNotMet = "This session won't be added to your session history!\nMake sure to be in the events voice channels before it starts to have it added."
 	
 	# Invalid Command Permission : Displayed to users who don't have the required permissions to run a command.
 	invalidCommandPerms = "You do not have the required permission to use that command!"

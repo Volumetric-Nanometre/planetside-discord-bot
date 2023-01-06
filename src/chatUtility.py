@@ -200,7 +200,11 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 		vTextChan = self.GetTextChannel(p_guild, p_channel)
 
 		if len(p_channel.members) == 0:
-			await vTextChan.delete()
+			if vTextChan != None:
+				try:
+					await vTextChan.delete()
+				except discord.errors.NotFound:
+					BUPrint.Debug("Not found, presumably removed by Commander.")
 
 		else:
 			await vTextChan.set_permissions(p_member, read_messages=False, send_messages=False)

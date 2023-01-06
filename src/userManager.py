@@ -19,7 +19,7 @@ from enum import Enum
 from botUtils import BotPrinter as BUPrint
 from botUtils import FilesAndFolders, GetDiscordTime, UserHasCommandPerms
 
-from botData.dataObjects import User, UserSession, Session
+from botData.dataObjects import User, Session
 
 from botData.utilityData import DateFormat
 
@@ -117,13 +117,13 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 		if vUserEntry == None:
 			vNewEntry = User(discordID=p_User.id)
 			vNewEntry.bIsRecruit = True
-			UserLibrary.SaveEntry(vNewEntry)
 			vResultMessage += "User had no library entry! Entry was created.\n"
 		
 		else:
 			vUserEntry.bIsRecruit = True
 			vResultMessage += "User library has been updated."
 
+		UserLibrary.SaveEntry(vUserEntry)
 		vAdminChn = p_interaction.guild.get_channel( settings.BotSettings.adminChannel )
 
 		if vAdminChn != None:
@@ -133,6 +133,8 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 				BUPrint.Info(vResultMessage)
 		else:
 			BUPrint.Info(vResultMessage)
+
+		await p_interaction.response.send_message("Sucessfully made user a recruit!", ephemeral=True)
 
 
 
@@ -172,17 +174,12 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 		await p_interaction.response.defer(ephemeral=True, thinking=True)
 		
 
-		vUserEntries = UserLibrary.GetAllEntries()
-		vRecruitEntries = []
+		vRecruitEntries = UserLibrary.GetRecruitEntries()
 
-		if vUserEntries == None:
+		if vRecruitEntries == None:
 			await p_interaction.response.send_message("No user entries are saved.", ephemeral=True)
 			return
 
-		entry:User
-		for entry in vUserEntries:
-			if entry.bIsRecruit:
-				vRecruitEntries.append(entry)
 
 		if len(vRecruitEntries) == 0:
 			await p_interaction.response.send_message("No recruits found.", ephemeral=True)
@@ -285,20 +282,30 @@ class UserLibrary():
 		"""
 		vFilePath = ""
 		vLockFile = ""
+		bIsRecruit = False
 
 
 		# Recruits User entry is saved in wrong directory, remove it.
 		if p_entry.bIsRecruit and os.path.exists(UserLibrary.GetEntryPath(p_entry.discordID)):
 			try:
+				vFilePath = UserLibrary.GetEntryPath(p_entry.discordID)
 				os.remove(vFilePath)
 			except OSError as vError:
-				BUPrint.LogErrorExc("Unable to remove recruit entry file from wrong directory!")
+				BUPrint.LogError(f"Unable to remove recruit entry file from wrong directory! \n{vError.strerror}",0)
 
+			if os.path.exists(UserLibrary.GetEntryPath(p_entry.discordID).replace(".bin", ".txt")):
+				vSpecialPath = vFilePath.replace(".bin", ".txt")
+				try:
+					os.remove(vSpecialPath)
+				except OSError as vError:
+					BUPrint.LogError(f"Unable to remove recruit special entry file from wrong directory! \n{vError.strerror}",0)
 
 		# Get appropriate path:
 		if p_entry.bIsRecruit:
+			BUPrint.Debug("Saving recruit entry.")
 			vFilePath = UserLibrary.GetRecruitEntryPath(p_entry.discordID)
 		else:
+			BUPrint.Debug("Saving normal entry.")
 			vFilePath = UserLibrary.GetEntryPath(p_entry.discordID)
 
 
@@ -387,6 +394,24 @@ class UserLibrary():
 		"""
 		vEntryList = []
 		files = FilesAndFolders.GetFiles(settings.Directories.userLibrary, ".bin")
+		files += FilesAndFolders.GetFiles(settings.Directories.userLibraryRecruits, ".bin")
+
+		file:str
+		for file in files:
+			vEntryList.append( UserLibrary.LoadEntry(file.replace(".bin", "")) )
+
+		return vEntryList
+
+
+	def GetRecruitEntries():
+		"""
+		# GET RECRUIT ENTRIES
+		Similar to get all entries; returns a list of entries.  
+		The returned list of this function only includes recruits.
+		"""
+		vEntryList:list[User] = []
+
+		files = FilesAndFolders.GetFiles(settings.Directories.userLibraryRecruits, ".bin")
 
 		file:str
 		for file in files:
@@ -611,12 +636,11 @@ class UserLibrary():
 
 
 	async def QueryAllRecruits():
-		allEntries = UserLibrary.GetAllEntries()
+		recruitEntries = UserLibrary.GetRecruitEntries()
 
-		entry: User
-		for entry in allEntries:
-			if entry.bIsRecruit:
-				await UserLibrary.QueryRecruit(entry)
+		for entry in recruitEntries:
+			await UserLibrary.QueryRecruit(entry)
+
 
 
 	async def PromoteUser(p_member:discord.Member):
@@ -699,7 +723,7 @@ class LibraryViewer():
 
 		self.page:LibraryViewPage = LibraryViewPage.general
 		self.multiPageNum = 0 # The number of the current page viewed.
-		self.listSelectMultiplier = 0 # When there's more than 25, this multiplier is used to offset the options.
+		self.listSelectMultiplier = 0 # this multiplier is used to offset the options.
 
 		BUPrint.Debug(f"User is viewing self: {self.bIsViewingSelf}")
 
@@ -733,14 +757,13 @@ class LibraryViewer():
 		btn_sessions = LibViewerBtn_sessions(self)
 		btn_sessionPrev = LibViewerBtn_session_previous(self)
 		btn_sessionNext = LibViewerBtn_session_next(self)
+		btn_sessionSelect = LibViewerBtn_sessionSelector(self)
 
 		if self.bIsViewingSelf:
 			vView.add_item(btn_configure)
 		vView.add_item(btn_General)
 		vView.add_item(btn_Ps2)
 		vView.add_item(btn_sessions)
-		vView.add_item(btn_sessionPrev)
-		vView.add_item(btn_sessionNext)
 
 		if self.page == LibraryViewPage.general:
 			btn_General.disabled = True
@@ -753,25 +776,30 @@ class LibraryViewer():
 			btn_sessionPrev.disabled = True
 
 		elif self.page == LibraryViewPage.sessions:
-			btn_sessions.disabled = True
-			btn_sessionNext.disabled = True
-			btn_sessionPrev.disabled = True
+			vView.add_item(btn_sessionPrev)
+			vView.add_item(btn_sessionNext)
+			vView.add_item(btn_sessionSelect)
+
+			btn_sessionPrev.disabled = bool(self.listSelectMultiplier == 0)
+			btn_sessionNext.disabled = bool( len(self.userEntry.sessions) < settings.UserLib.sessionMaxPerPage and ((1+self.listSelectMultiplier)*settings.UserLib.sessionMaxPerPage) < len(self.userEntry.sessions) + settings.UserLib.sessionMaxPerPage)
 
 		elif self.page == LibraryViewPage.individualSession:
-			if self.multiPageNum == 0:
-				btn_sessionPrev.disabled = True
-			else:
-				btn_sessionPrev.disabled = False
-
-			if self.multiPageNum == len(self.userEntry.sessions):
-				btn_sessionNext.disabled = True
-			else:
-				btn_sessionNext.disabled = False
+			vView.add_item(btn_sessionPrev)
+			vView.add_item(btn_sessionNext)
+			vView.add_item(btn_sessionSelect)
+			btn_sessionPrev.disabled = bool( self.multiPageNum == 0 )
+			# Remember to account for arrays starting at 0.
+			btn_sessionNext.disabled = bool(self.multiPageNum == len(self.userEntry.sessions)-1)
 
 		if len(self.userEntry.sessions) == 0:
 			btn_sessions.disabled = True
 			btn_sessionNext.disabled = True
 			btn_sessionPrev.disabled = True
+			btn_sessionSelect.disabled = True
+
+		if self.userEntry.ps2Name == "" or self.userEntry.ps2Name == None:
+			btn_Ps2.disabled = True
+
 
 		return vView
 
@@ -787,6 +815,9 @@ class LibraryViewer():
 
 		if self.page == LibraryViewPage.ps2Info:
 			return self.GenerateEmbed_ps2()
+
+		if self.page == LibraryViewPage.sessions:
+			return self.GenerateEmbed_sessionBrowser()
 
 		if self.page == LibraryViewPage.individualSession:
 			try:
@@ -849,42 +880,49 @@ class LibraryViewer():
 	def GenerateEmbed_ps2(self):
 		vEmbed = discord.Embed(title="Planetside 2 Information")
 
-		if self.userEntry.ps2Name != "":
+		if self.userEntry.ps2Name != "" or self.userEntry.ps2Name != None:
+			BUPrint.Debug(f"PS2 Character Val: {self.userEntry.ps2Name}")
 			vEmbed.add_field(
 				name="PS2 Character",
 				value=self.userEntry.ps2Name,
 				inline=False
 			)
 
-		if self.userEntry.ps2Outfit != "":
-			vEmbed.add_field(
-				name="PS2 Outfit",
-				value=f"{self.userEntry.ps2Outfit}",
-				inline=False
+			if self.userEntry.ps2Outfit != "" or self.userEntry.ps2Outfit != None:
+				BUPrint.Debug(f"Outfit Val: {self.userEntry.ps2Outfit}")
+				vEmbed.add_field(
+					name="PS2 Outfit",
+					value=self.userEntry.ps2Outfit,
+					inline=False
+					)
+			
+			if self.userEntry.ps2OutfitRank != "" or self.userEntry.ps2OutfitRank != None:
+				BUPrint.Debug(f"Outfit Rank val: {self.userEntry.ps2OutfitRank}")
+				vEmbed.add_field(
+					name="Outfit Rank",
+					value=self.userEntry.ps2OutfitRank,
+					inline=False
 				)
-
-			vEmbed.add_field(
-				name="Outfit Rank",
-				value=f"{self.userEntry.ps2OutfitRank}",
-				inline=False
-			)
 
 		if len(self.userEntry.sessions) != 0:
 			displayStr = ""
-			session:UserSession
+			session:Session
 			vIteration = 0
 			for session in self.userEntry.sessions:
-				displayStr += f"{session.eventDate}|{session.eventDate}"
+				if session.bIsPS2Event:
+					displayStr += f"{session.date.day}/{session.date.month}/{session.date.year} | {session.eventName}\n"
+				
 				vIteration += 1
 
 				if vIteration >= settings.UserLib.sessionPreviewMax:
 					break
 			
-			vEmbed.add_field(
-				name="Tracked Sessions",
-				value=displayStr,
-				inline=False
-			)
+			if displayStr != "":
+				vEmbed.add_field(
+					name="Tracked Sessions",
+					value=displayStr,
+					inline=False
+				)
 
 		return vEmbed
 
@@ -899,17 +937,35 @@ class LibraryViewer():
 			description=f"This user has attended {self.userEntry.eventsAttended}, missed {self.userEntry.eventsMissed}, and has {len(self.userEntry.sessions)} tracked sessions saved!"
 		)
 
+		vDisplayStr = ""
+		vIteration = 0
+		for session in self.userEntry.sessions[int(self.listSelectMultiplier * settings.UserLib.sessionMaxPerPage) : int((1+self.listSelectMultiplier)* settings.UserLib.sessionMaxPerPage)]:
+			vDisplayStr += f"{vIteration+1} | {session.date.day}/{session.date.month}/{session.date.year} | {session.eventName}"
+			if not session.bIsPS2Event:
+				vDisplayStr += " (Not PS2)\n"
+			else: vDisplayStr += "\n"
+			vIteration += 1
+
+		vEmbed.add_field(name="Tracked Sessions", value=vDisplayStr)
+
+		return vEmbed
 
 
-	def GenerateEmbed_session(self, p_session:UserSession):
+	def GenerateEmbed_session(self, p_session:Session):
 		"""
 		# GENERATE EMBED: Session
 		Generates an embed showing the stats from a session.
 		"""
 		vEmbed = discord.Embed(
 					title=f"{p_session.eventName}",
-					description=f"{p_session.eventDate}"
+					description=f"{GetDiscordTime(p_session.date, DateFormat.DateLonghand)}\nEvent lasted for {p_session.duration:.2f} hours"
 					)
+
+
+		if not Session.bIsPS2Event:
+			vEmbed.add_field(name="NOTE:",value="This event is not for PS2, and thus has no statistics to show.")
+			
+			return vEmbed
 
 		vEmbed.add_field(
 			name="Kills",
@@ -930,6 +986,9 @@ class LibraryViewer():
 			name="Score",
 			value=str(p_session.score)
 		)
+
+		return vEmbed
+
 
 
 
@@ -985,7 +1044,8 @@ class LibViewerBtn_sessions(discord.ui.Button):
 		super().__init__(label="Sessions", row=1)
 
 	async def callback (self, p_interaction:discord.Interaction):
-		self.vViewer.page = LibraryViewPage.individualSession
+		self.vViewer.page = LibraryViewPage.sessions
+		self.vViewer.multiPageNum = 0
 		await self.vViewer.UpdateViewer()
 		await p_interaction.response.defer()
 
@@ -996,8 +1056,12 @@ class LibViewerBtn_session_next(discord.ui.Button):
 		super().__init__(label=">", row=1)
 
 	async def callback (self, p_interaction:discord.Interaction):
-		self.vViewer.page = LibraryViewPage.individualSession
-		self.vViewer.multiPageNum += 1
+		# self.vViewer.page = LibraryViewPage.individualSession
+		if self.vViewer.page == LibraryViewPage.sessions:
+			self.vViewer.listSelectMultiplier += 1
+		else:
+			self.vViewer.multiPageNum += 1
+		
 		await self.vViewer.UpdateViewer()
 		await p_interaction.response.defer()
 
@@ -1008,8 +1072,32 @@ class LibViewerBtn_session_previous(discord.ui.Button):
 		super().__init__(label="<", row=1)
 
 	async def callback (self, p_interaction:discord.Interaction):
+		# self.vViewer.page = LibraryViewPage.individualSession
+		if self.vViewer.page == LibraryViewPage.sessions:
+			self.vViewer.listSelectMultiplier -= 1
+		else:
+			self.vViewer.multiPageNum -= 1		
+		
+		await self.vViewer.UpdateViewer()
+		await p_interaction.response.defer()
+
+
+class LibViewerBtn_sessionSelector(discord.ui.Select):
+	def __init__(self, p_viewer:LibraryViewer):
+		self.vViewer = p_viewer
+		super().__init__(placeholder="Jump to a session page...")
+		vIteration = 0
+		for session in self.vViewer.userEntry.sessions[int(self.vViewer.listSelectMultiplier * settings.UserLib.sessionMaxPerPage) : int((1+self.vViewer.listSelectMultiplier)* settings.UserLib.sessionMaxPerPage)]:
+			self.add_option(
+				label=f"{vIteration+1} | {session.date.day}/{session.date.month}/{session.date.year} | {session.eventName}",
+				value=vIteration
+			)
+			vIteration += 1
+
+
+	async def callback (self, p_interaction:discord.Interaction):
 		self.vViewer.page = LibraryViewPage.individualSession
-		self.vViewer.multiPageNum -= 1
+		self.vViewer.multiPageNum = int(self.values[0])
 		await self.vViewer.UpdateViewer()
 		await p_interaction.response.defer()
 
