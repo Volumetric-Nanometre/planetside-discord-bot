@@ -532,7 +532,7 @@ class UserLibrary():
 		"""
 		if not settings.UserLib.bAutoPromoteEnabled:
 			BUPrint.Debug("Auto promotion is disabled.")
-			return ""
+			return
 
 		if not p_entry.bIsRecruit:
 			BUPrint.Debug("User is not a recruit.")

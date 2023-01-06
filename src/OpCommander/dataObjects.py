@@ -1,6 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass, field
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta
 from discord import Member
 from botData.users import User
 from botData.settings import Directories
@@ -27,6 +27,25 @@ class CommanderStatus(Enum):
 
 
 @dataclass
+class Session:
+	"""
+	# SESSION
+	Dataclass that represents a single user session.
+	"""
+	bIsPS2Event: bool = True
+	date: datetime = None
+	duration: float = 0
+	kills: int = 0
+	deaths:int = 0
+	assists:int = 0
+	revives:int = 0
+	heals:int = 0
+	repairs:int = 0
+	score: int = 0
+
+
+
+@dataclass
 class Participant:
 	"""
 	# PARTICIPANT
@@ -36,6 +55,7 @@ class Participant:
 	discordUser : Member = None
 	libraryEntry : User = None
 	ps2Char : PS2Character = None
+	userSession : Session = None
 
 	# DATA
 	discordID : int = 0

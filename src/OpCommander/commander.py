@@ -25,8 +25,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime, dateutil.relativedelta
 
 from OpCommander.events import OpsEventTracker
-from OpCommander.dataObjects import CommanderStatus
-from OpCommander.dataObjects import Participant
+from OpCommander.dataObjects import CommanderStatus, Participant, Session
 import OpCommander.dataObjects
 
 import botUtils
@@ -43,6 +42,8 @@ from botData.settings import UserLib
 import botData.operations
 from botData.operations import OperationData as OpsData
 from botData.users import User as UserEntry
+
+from userManager import UserLibrary
 
 import opsManager
 
@@ -374,7 +375,7 @@ class Commander():
 
 				if not bAlreadyExists:
 					BUPrint.Debug(f"No existing channel for {newChannel} found.  Creating new voice channel!")
-					channel = await self.vCategory.create_voice_channel(name=newChannel)
+					await self.vCategory.create_voice_channel(name=newChannel)
 	
 	
 	async def RemoveChannels(self):
@@ -555,6 +556,12 @@ class Commander():
 
 
 		await self.LoadParticipantData()
+
+		if self.vCommanderStatus == CommanderStatus.Started:
+			for participant in self.participants:
+				participant.userSession = Session()
+				participant.userSession.bIsPS2Event = self.vOpData.options.bIsPS2Event
+				participant.userSession.date = self.vOpData.date
 
 
 
@@ -969,7 +976,6 @@ class Commander():
 					await self.soberdogFeedbackMsg.edit(embed=vFeedbackEmbed)
 
 		else:
-			vFile = self.vFeedback.SaveToFile(self.vOpData.fileName)
 
 			if self.notifFeedbackMsg == None:
 				self.notifFeedbackMsg = await self.notifChn.send(embed=vFeedbackEmbed, file=feedbackFile)
@@ -1125,9 +1131,8 @@ class Commander():
 		await self.UpdateParticipants()
 
 		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
-			# TODO: start tracking here.
 			await self.UpdateParticipantTracking()
-			# self.vOpsEventTracker.start()
+			self.vOpsEventTracker.Start()
 
 		if commanderSettings.bAutoMoveVCEnabled:
 			BUPrint.Debug("Moving VC connected participants")
@@ -1151,6 +1156,14 @@ class Commander():
 		self.scheduler.shutdown()
 
 		self.bHasSoftEnded = True
+
+		vDuration: datetime.timedelta = self.vOpData.date - datetime.datetime.now(tz=datetime.timezone.utc)
+
+		for participant in self.participants:
+			participant.userSession.duration = (vDuration / 60)
+			if participant.libraryEntry != None:
+				participant.libraryEntry.eventsAttended += 1
+				participant.libraryEntry.sessions.append(participant.userSession)
 	
 
 	async def EndOperation(self):
@@ -1175,6 +1188,12 @@ class Commander():
 		await self.RemoveChannels()
 
 		BUPrint.Info(f"Operation {self.vOpData.name} has ended.")
+
+		# Query recruit participants.
+		for participant in self.participants:
+			if participant.libraryEntry != None:
+				if participant.libraryEntry.bIsRecruit:
+					await UserLibrary.QueryRecruit(participant.libraryEntry)
 
 
 
