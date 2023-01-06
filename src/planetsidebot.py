@@ -47,16 +47,18 @@ class Bot(commands.Bot):
 
 
     async def on_ready(self):
-        self.vGuildObj = await botUtils.GetGuild(self)
-        await botUtils.ChannelPermOverwrites.Setup(self)
-        await botUtils.RoleDebug(self.vGuildObj, p_showOnLive=False)
-        await self.vOpsManager.RefreshOps()
- 
  		# Objects with BOT refs
         opsManager.OperationManager.SetBotRef(self)
         Commander.vBotRef = self
         UserLibrary.botRef = self
         UserLib_RecruitValidationRequest.botRef = self
+
+
+        self.vGuildObj = await botUtils.GetGuild(self)
+        await botUtils.ChannelPermOverwrites.Setup(self)
+        await botUtils.RoleDebug(self.vGuildObj, p_showOnLive=False)
+        await self.vOpsManager.RefreshOps()
+ 
 
         # Setup existing Ops auto-starts:
         if settings.Commander.bAutoAlertsEnabled:
