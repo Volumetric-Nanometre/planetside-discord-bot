@@ -1,7 +1,7 @@
 # Ops Manager: Manages creating, editing and removing of Ops.
 # For live ops being started, see OpsCommander
 
-import os
+import os, copy
 import datetime, dateutil.relativedelta
 import pickle
 
@@ -984,16 +984,30 @@ class OpsRoleSelector(discord.ui.Select):
 		# Always add a default used to resign players.
 		self.add_option(label="Resign", value="Resign", emoji=botSettings.SignUps.resignIcon)
 		
-
 		for role in self.vOpsData.roles:
-			if( len(role.players) < int(role.maxPositions) and int(role.maxPositions) != 0 ):
-				# To ensure no errors, only use emoji if its specified
+			if len(self.options) == botSettings.SignUps.maxRoles:
+				BUPrint.Info("Maximum number of roles reached.")
+				return
 
-				if role.roleIcon == "-":
-					self.add_option(label=role.roleName, value=role.roleName)
-				else:
-					botUtils.BotPrinter.Debug(f"Icon ({role.roleIcon}) specified, using Icon...")
-					self.add_option(label=role.roleName, value=role.roleName, emoji=role.roleIcon)
+			# Unlimited positions:
+			if role.maxPositions < 0:
+				self.AddRoleOption(role)
+
+			elif (len(role.players) < int(role.maxPositions) and int(role.maxPositions) != 0):
+				self.AddRoleOption(role)
+
+
+
+	def AddRoleOption(self, p_role:OpRoleData):
+		"""
+		# Add Role Option
+		Convenience mini function to add a role to self.
+		"""
+		if p_role.roleIcon == "-":
+			self.add_option(label=p_role.roleName, value=p_role.roleName)
+		else:
+			botUtils.BotPrinter.Debug(f"Icon ({p_role.roleIcon}) specified, using Icon for role selector")
+			self.add_option(label=p_role.roleName, value=p_role.roleName, emoji=p_role.roleIcon)
 
 
 
@@ -1143,24 +1157,24 @@ class OpsEditor(discord.ui.View):
 						row=3)
 	async def btnNewDefault(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		BUPrint.Info(f"Saving a new default! {self.vOpsData.name}")
+		# Create copy
+		vCopy:OperationData = copy.copy(self.vOpsData)
+		
 		# Set status of Ops back to OPEN.
-		self.vOpsData.status = OpsStatus.open
+		vCopy.status = OpsStatus.open
 
-		vOldFilename = self.vOpsData.fileName
 		# Ensure fileName is empty so its saved as a default
-		self.vOpsData.fileName = ""
+		vCopy.fileName = ""
 
 		# Ensure roles is empty. 
-		vOrigRoles = self.vOpsData.roles
-		vOrigReserves = self.vOpsData.reserves
 
 		role:OpRoleData
-		for role in self.vOpsData.roles:
+		for role in vCopy.roles:
 			role.players.clear()
-		self.vOpsData.reserves.clear()
+		vCopy.reserves.clear()
 
 		# Save File
-		OperationManager.SaveToFile(self.vOpsData)
+		OperationManager.SaveToFile(vCopy)
 
 		# Check old name and rename if needed.
 		bWasRenamed = False
@@ -1180,11 +1194,6 @@ class OpsEditor(discord.ui.View):
 
 
 		BUPrint.Debug("	-> Saved!")
-
-		# Re-Add old data to Op Data.
-		self.vOpsData.roles = vOrigRoles
-		self.vOpsData.reserves = vOrigReserves
-		self.vOpsData.fileName = vOldFilename
 		
 		if bWasRenamed:
 			await pInteraction.response.send_message(f"Saved default: {self.vOpsData.name}\nOriginal Op was renamed:\nFrom:{vOriginal}\nTo:{vNew}")

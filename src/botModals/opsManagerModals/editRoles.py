@@ -4,6 +4,7 @@ from botUtils import BotPrinter as BUPrint
 from botData.utilityData import EmojiLibrary
 import botModals.opsManagerModals.baseModal as baseModal
 from botData.settings import Messages as botMessages
+from botData.settings import SignUps
 
 class EditRoles(baseModal.BaseModal):
 	txtPingables = discord.ui.TextInput(
@@ -57,6 +58,9 @@ class EditRoles(baseModal.BaseModal):
 		vIndex = 0
 		vArraySize = len(vRoleNames)
 		madeReserve = 0
+
+		if vArraySize > SignUps.maxRoles:
+			await pInteraction.response.send_message(f"Too many roles!\nThe max number of roles an event can have is: {SignUps.maxRoles}.")
 
 		BUPrint.Debug(f"Size of array: {len(vRoleNames)}")
 		while vIndex < vArraySize:

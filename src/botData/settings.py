@@ -286,6 +286,9 @@ class SignUps:
 	# "AS:E|UR:E|UC:D|SDF:D" - AutoStart: Enabled, Use Reserve: Enabled, Use Compact: Disabled, Soberdogs Feedback: Disabled 
 	bShowOptsInFooter = True
 
+	# The maximum number of roles a single event can have.
+	maxRoles = 20
+
 
 	def __repr__(self) -> str:
 		vString = "	SIGN UP SETTINGS\n"

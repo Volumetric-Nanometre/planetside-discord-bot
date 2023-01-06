@@ -2,7 +2,6 @@ import discord
 from botData.dataObjects import OperationData
 from botUtils import BotPrinter as BUPrint
 import botModals.opsManagerModals.baseModal as baseModal
-import botUtils
 
 class EditChannels(baseModal.BaseModal):
 	txtTargetChanel = discord.ui.TextInput(
@@ -31,7 +30,7 @@ class EditChannels(baseModal.BaseModal):
 
 	# Where the fun happens!
 	async def on_submit(self, pInteraction: discord.Interaction):
-		botUtils.BotPrinter.Debug("Edit Channel Modal submitted...")
+		BUPrint.Debug("Edit Channel Modal submitted...")
 
 		self.txtVoiceChannels.value.split("\n")
 		self.vOpData.voiceChannels = self.txtVoiceChannels.value.split("\n")
@@ -54,7 +53,7 @@ class EditChannels(baseModal.BaseModal):
 
 
 	def PresetFields(self):
-		botUtils.BotPrinter.Debug("Auto-filling modal (CHANNELS) with existing data.")
+		BUPrint.Debug("Auto-filling modal (CHANNELS) with existing data.")
 		vTempStr: str = ""
 		for channel in self.vOpData.voiceChannels:
 			vTempStr += f"{channel}\n"		
