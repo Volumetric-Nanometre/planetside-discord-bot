@@ -36,16 +36,12 @@ class AutoCommander(commands.Cog):
 
 
 
-
-class AutoCommanderInstance():
-	def __init__(self) -> None:
-		pass
-
 class CommanderCommands(commands.Cog):
 	def __init__(self, p_bot) -> None:
 		super().__init__()
 		self.botRef = p_bot
 		BUPrint.Info("COG: CommanderCommnads loaded!")
+
 
 	@discord.app_commands.command(name="open-commander", description="Starts an Ops commander for the specified operation.")
 	@discord.app_commands.rename(p_opFile = "operation")
@@ -66,6 +62,7 @@ class CommanderCommands(commands.Cog):
 		await p_interaction.response.send_message(f"Starting commander for {vOpData.name}!", ephemeral=True)
 		await OpCommander.commander.StartCommander(vOpData)
 
+
 	@manualcommander.autocomplete("p_opFile")
 	async def autocompleteOpFile(self, p_interaction: discord.Interaction, p_typedStr: str):
 		choices: list = []
@@ -76,6 +73,4 @@ class CommanderCommands(commands.Cog):
 			if (p_typedStr.lower() in option.fileName.lower()):
 				choices.append(discord.app_commands.Choice(name=option.fileName.replace(".bin", ""), value=option.fileName))
 		return choices
-
-
 

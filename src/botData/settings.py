@@ -4,11 +4,13 @@ SETTINGS
 All settings for the bot are listed below, split into classes which can act as headers for easier finding.
 These settings pertain to the overall behaviour of the bot, not individual items.
 
-If you're looking for Emoji Library, see `botUtils.EmojiLibrary`.
+If you're looking for Emoji Library, see `botData.utilityData.EmojiLibrary`.
 
 For more help:
 https://github.com/LCWilliams/planetside-discord-bot/wiki/Bot-Configuration/
 """
+from __future__ import annotations
+
 from discord import SelectOption
 import botData.dataObjects
 from dateutil.relativedelta import relativedelta
@@ -16,6 +18,7 @@ from datetime import time, timezone
 import botData.envVars as Env
 from dataclasses import dataclass
 from enum import Enum
+from sys import stderr
 
 
 @dataclass(frozen=True)
@@ -32,6 +35,9 @@ class BotSettings:
 
 	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
+
+	# Show Settings on Startup: When true, the bots settings are displayed in the console.
+	bShowSettingsOnStartup = True
 
 	# ID of a channel which users are moved to when their current one is removed; this value is used when otherwise specified channels are not found.
 	fallbackVoiceChat = 326783867036106752 # Dev value!
@@ -54,7 +60,24 @@ class BotSettings:
 
 	# Protected Categories: ID of categories that cannot be deleted by chatMonitor.remove_category
 	protectedCategories = [360823500711395328, 360823731804831756, 1037871280709443608, 1049415497621454929] # DEV VALUE
-	# protectedCategories = [] # LIVE VALUE
+	# protectedCategories = [744907524418961438, 710470871214587955, 818212652601966628, 710471344411770881, 734791662798241854, 1026549992829222952, 710470038968205393, 1042450013827117087, 796885440916488252] # LIVE VALUE
+
+	# Error Output: Where error output is sent; if not stderr, must be a file path.
+	errorOutput = stderr
+
+	# CHECK VALUES: When true, values are sanity checked on bot start, recommended to stay on.
+	# If Debug is enabled, this prints out any invalid entries.
+	bCheckValues = True
+
+	# Sanity Check Options: Enable/Disable sanity check for variables that may have been disabled
+	sanityCheckOpts = botData.dataObjects.SanityCheckOptions(
+		UsedByNewUser= True,
+		UsedByOperations= True,
+		UsedByCommander= True,
+		UsedByUserLibrary=True,
+		UsedByUserRoles= True,
+		RestrictLevels= True
+	)
 
 
 	# Collapse for ease of reading.
@@ -74,6 +97,13 @@ class BotSettings:
 		vString += f"	> Level 2:	{self.roleRestrict_level_2}\n"
 		vString += f"	> Level 3:	{self.roleRestrict_level_3}\n"
 		vString += f"	> Fallback VC:	{self.fallbackVoiceChat}\n"
+		if self.errorOutput == stderr:
+			vString += f"	> Error Output:	stderr\n"
+		else:
+			vString += f"	> Error Output:	{self.errorOutput}\n"
+		vString += f"	> Sanity Check Values: {self.bCheckValues}\n"
+		if self.bCheckValues:
+			vString += f"{self.sanityCheckOpts}"
 		return vString
 
 
@@ -116,6 +146,7 @@ class NewUsers:
 	# Show Add Roles Button: When true, a button to add roles is shown in the welcome message.
 	# It is advisable to ensure the message "NewUserWelcome" reflects the presence (or lack thereof) of this button.
 	bShowAddRolesBtn = True
+
 
 
 	def __repr__(self) -> str:
@@ -271,6 +302,7 @@ class SignUps:
 	"""
 
 	# The category name (results are searched in lower, so this is generally case insensitive.)
+	# If not found, this category is created.
 	signupCategory = "SIGN UP"
 
 	# Icon used for built in RESIGN role.
@@ -348,8 +380,8 @@ class UserLib:
 		discordDuration = relativedelta(days=7)
 	)
 
-	# Promotion Role ID: The ID of the role recruit users are promoted to.
-	promotionRoleID = 1050286811940921344 # DEV VALUE
+	# Promotion Role ID: Copies the value from newUser
+	promotionRoleID =  1050286811940921344 # DEV VALUE
 	# promotionRoleID = 710472193045299260 # LIVE VALUE
 
 	# Session Preview Max: The number of saved sessions that are previewed in a libraryViewer general page.
@@ -470,7 +502,7 @@ class Roles:
 			This is a discord imposed limit.
 	"""
 	# Provides a dropdown containing these roles for giving to new users.
-	newUser_roles = [ 
+	newUser_roles:list[SelectOption] = [ 
 		SelectOption(label="Recruit", value="780253442605842472"),
 		SelectOption(label="Test Recruit", value="1060009718837411962", description="DEV VALUE!"), # DEV VALUE!
 		# SelectOption(label="TDKD", value="1050286811940921344", description="DEV VALUE!"), # Dev server RoleID
@@ -480,7 +512,7 @@ class Roles:
 	]
 
 	# ADD ROLES - TDKD:  Roles used in the /roles command, "tdkd" role selector 
-	addRoles_TDKD = [
+	addRoles_TDKD:list[SelectOption] = [
 		SelectOption(label="Planetside Pings", value="977873609815105596", description="Non-major PS2 events/fellow\n drunken doggos looking for company"),
 		# SelectOption(label="Sober Dogs", value="1040751250163122176", description="DEV VALUE"), # Dev value!
 		SelectOption(label="Sober Dogs", value="745004244171620533", description="More serious, coordinated infantry events"), # Live value!
@@ -493,7 +525,7 @@ class Roles:
 	]
 
 	# ADD ROLES - GAMES : Role selectors used in the /roles command.
-	addRoles_games1 = [
+	addRoles_games1:list[SelectOption] = [
 		SelectOption(label="Post Scriptum", value="791308463241691146"),
 		SelectOption(label="Squad", value="808413252685529108"),
 		SelectOption(label="Space Engineers", value="805234496026050601"),
@@ -521,7 +553,7 @@ class Roles:
 		SelectOption(label="Gates of Hell", value="1000366778133774528")
 	]
 
-	addRoles_games2 = [
+	addRoles_games2:list[SelectOption] = [
 		SelectOption(label="Overwatch", value="1029138196518420531"),
 		SelectOption(label="World of Tanks", value="1038125253806788768"),
 		SelectOption(label="Star Citizen", value="1037797784566370318"),
@@ -549,7 +581,7 @@ class Roles:
 		# SelectOption(label="", value="")
 	]
 
-	addRoles_games3 = [
+	addRoles_games3:list[SelectOption] = [
 		# SelectOption(label="", value=""),
 		# SelectOption(label="", value=""),
 		# SelectOption(label="", value=""),

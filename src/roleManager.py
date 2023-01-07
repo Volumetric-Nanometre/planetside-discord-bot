@@ -90,6 +90,8 @@ class RoleManager(discord.ui.View):
 		if len(self.vGameRoles3.options):
 			self.add_item(self.vGameRoles3)
 
+
+
 	@discord.ui.button(label="Update", style=discord.ButtonStyle.primary, row=4)
 	async def btnUpdateRoles(self, pInteraction: discord.Interaction, vButton: discord.ui.button):
 		await self.UpateUserRoles()
@@ -122,19 +124,18 @@ class RoleManager(discord.ui.View):
 		# Roles To Use: list of role objects corresponding to user choices.
 		vRolesToUse = []
 
-		# Assign new:
-		for serverRoleIndex in vServerRoles:
-			BUPrint.Debug(f"Current Index- ID:Name : {serverRoleIndex.id} : {serverRoleIndex.name}")
-
-			# Only proceed if role is one a user can add/remove
-			if f"{serverRoleIndex.id}" in vUserRolesList:
-				if f"{serverRoleIndex.id}" in vUserSelectedRoles:
-					vRolesToUse.append(serverRoleIndex)
-			else:
-				BUPrint.Debug("Role is not user-assignable. Skipping...")
-
-
 		if len(vRolesToUse):
+			for serverRoleIndex in vServerRoles:
+				BUPrint.Debug(f"Current Index- ID:Name : {serverRoleIndex.id} : {serverRoleIndex.name}")
+
+				# Only proceed if role is one a user can add/remove
+				if f"{serverRoleIndex.id}" in vUserRolesList:
+					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
+						vRolesToUse.append(serverRoleIndex)
+				else:
+					BUPrint.Debug("Role is not user-assignable. Skipping...")
+
+
 			BUPrint.Debug("Modifying user roles...")
 			try:
 				if self.bAddRoles:

@@ -7,14 +7,32 @@ from enum import Enum
 from discord import Member
 from dataclasses import dataclass, field
 from datetime import datetime, time
-from dateutil.relativedelta import relativedelta
 import botData.settings as Settings
 import botUtils
 from auraxium.ps2 import Character as PS2Character
-import os
 import pickle
 
+@dataclass
+class SanityCheckOptions():
+	"""
+	# SANITY CHECK OPTIONS
+	Specifies what settings to check based on cog usage.
+	"""
+	UsedByNewUser: bool = True
+	UsedByOperations: bool = True
+	UsedByCommander : bool = True
+	UsedByUserLibrary : bool = True
+	RestrictLevels: bool = True
+	UsedByUserRoles: bool = True
 
+	def __repr__(self) -> str:
+		vString = f"	> Used By New user: {self.UsedByNewUser}\n"
+		vString += f"	> Used By Operations: {self.UsedByOperations}\n"
+		vString += f"	> Used By Commander: {self.UsedByCommander}\n"
+		vString += f"	> Used By User Library: {self.UsedByUserLibrary}\n"
+		vString += f"	> Used By User Roles: {self.UsedByUserRoles}\n"
+		vString += f"	> Command Retriction Levels: {self.RestrictLevels}\n"
+		return vString
 
 
 @dataclass

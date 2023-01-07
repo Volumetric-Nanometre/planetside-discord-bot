@@ -45,7 +45,6 @@ class DateFormat(Enum):
 	DATE FORMAT
 	Used within discord timeformat string to change how a POSIX datetime is displayed.
 	"""
-
 	Dynamic = ":R" # Dyanmically changes to most appropriate smallest stamp (in X days, in X hours, in x seconds)
 	DateShorthand = ":d" # dd/mm/year
 	DateLonghand = ":D" # 00 Month Year

@@ -23,8 +23,7 @@ class Singleton(type):
 			self._instances[self] = super().__call__(*arguments, **keywords)
 		return self._instances[self]
 
-# BotPrinter:
-# wraps printing around booleans.
+
 class BotPrinter():
 	"""
 	BOT PRINTER
@@ -40,6 +39,7 @@ class BotPrinter():
 		if(BotSettings.bDebugEnabled):
 			print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}] {p_string}{UtilityData.ConsoleStyles.reset} ")
 
+
 	@staticmethod
 	def Info(p_string):
 		"""
@@ -49,24 +49,25 @@ class BotPrinter():
 		"""
 		print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{UtilityData.ConsoleStyles.reset} {p_string}")
 
-	# Convenience function to pretty print errors.
+
 	@staticmethod
-	def LogError(p_string, p_tracebacks=3):
+	def LogError(p_string:str, p_titleStr:str = ""):
 		"""
 		LOG ERROR
-		Displays an error to console and includes a traceback.
+		Displays an error to console.
 
-		p_string : The message to show first.
-		p_tracebacks : The number of tracebacks. Default: 3.
+		p_titleString: String shown in alternate colour.
+		p_string : The message to show.
 		"""
-		print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.colourWarn}ERROR:{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.ColourInfo}{p_string}{UtilityData.ConsoleStyles.reset} | {traceback.print_tb(limit=p_tracebacks)}", file=sys.stderr)
+		print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.colourWarn}ERROR | {p_titleStr}{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.ColourInfo}{p_string}{UtilityData.ConsoleStyles.reset}", file=sys.stderr)
+
 
 	@staticmethod
 	def LogErrorExc(p_string: str, p_exception: Exception):
 		"""
 		Same as LOG ERROR, with addition of Exception parameter.
 		"""
-		print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.colourWarn}ERROR:{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.ColourInfo}{p_string} | {UtilityData.ConsoleStyles.reset}{traceback.print_tb(p_exception.y)}", file=sys.stderr)
+		print(f"{UtilityData.ConsoleStyles.timeStyle}[{datetime.datetime.now()}]{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.colourWarn}ERROR:{UtilityData.ConsoleStyles.reset} {UtilityData.ConsoleStyles.ColourInfo}{p_string} | {UtilityData.ConsoleStyles.reset}{traceback.print_tb(p_exception.with_traceback())}", file=sys.stderr)
 
 
 
@@ -397,10 +398,6 @@ async def RoleDebug(p_guild:discord.Guild, p_showOnLive=False):
 	for role in guildRoles:
 		guildRoleNames.append(role.name)
 		guildRoleIDs.append(role.id)
-
-	for roleNID in CommandRestrictionLevels.level3.value:
-		if roleNID not in guildRoleNames and roleNID not in guildRoleIDs:
-			vMessageStr += f"\nCOMMAND RESTRICT LEVEL | Invalid Value: {roleNID}"
 
 
 	vMessageStr += "\n"
