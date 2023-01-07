@@ -86,12 +86,13 @@ class CommanderCommands(commands.Cog):
 		if not await UserHasCommandPerms(p_interaction.user, (BotSettings.CommandRestrictionLevels.level2), p_interaction):
 			return
 
-		vFile = File( f"{BotSettings.Directories.tempDir}{p_typedStr}" )
-
-		if vFile == None:
+		try:
+			vFile = File( f"{BotSettings.Directories.tempDir}{p_typedStr}" )
+		except FileNotFoundError:
 			await p_interaction.response.send_message("Invalid file choice.", ephemeral=True)
-		else:
-			await p_interaction.response.send_message("Feedback File:", file=vFile, ephemeral=True)
+			return
+
+		await p_interaction.response.send_message("Feedback File:", file=vFile, ephemeral=True)
 
 
 	@GetFeedback.autocomplete("p_typedStr")
@@ -101,11 +102,11 @@ class CommanderCommands(commands.Cog):
 
 		file:str
 		for file in FilesAndFolders.GetFiles(f"{BotSettings.Directories.tempDir}", ".txt"):
-			if file.__contains__(BotSettings.Directories.feedbackPrefix):
+			if file.startswith(BotSettings.Directories.feedbackPrefix):
 				vFileList.append(file)
 
 		for file in vFileList:
-			if file.lower() == p_typedStr.lower():
-				returnChoices.append(file)
+			if file.lower().__contains__(p_typedStr.lower()):
+				returnChoices.append( app_commands.Choice(name=file.replace(".txt", "").replace(BotSettings.Directories.feedbackPrefix, ""), value=file) )
 
 		return returnChoices

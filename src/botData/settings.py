@@ -234,6 +234,9 @@ class Directories:
 	# Clean Temp Every: Interval for cleanup utility task.
 	cleanTempEvery = 120 #Hours.
 
+	# Clean Temp on Shutdown: When the bot is closed, if True the temp directory is cleared.
+	bCleanTempOnShutdown = False
+
 
 
 

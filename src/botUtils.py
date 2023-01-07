@@ -98,8 +98,11 @@ class FilesAndFolders():
 	def CleanupTemp():
 		"""
 		# CLEANUP TEMP
-		Removes the temp directory.
+		Removes the temp directory. Should only be called during shutdown.
 		"""
+		if not Directories.bCleanTempOnShutdown:
+			return
+
 		if os.path.exists(Directories.tempDir):
 			vFiles = FilesAndFolders.GetFiles(Directories.tempDir)
 			for fileName in vFiles:
@@ -522,6 +525,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> LockFile Affix:	{Directories.lockFileAffix} | Retries: {Directories.lockFileRetry}\n"
 	vString += f"	> Feedback Prefix:	{Directories.feedbackPrefix}\n"
 	vString += f"	> Clean Temp Every:	{Directories.cleanTempEvery} hours ({Directories.cleanTempEvery/24} days)\n"
+	vString += f"	> Clean Temp On Shutdown: {Directories.bCleanTempOnShutdown}\n"
 
 
 	vString += "	SIGN UP SETTINGS\n"
