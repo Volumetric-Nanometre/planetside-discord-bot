@@ -1062,7 +1062,7 @@ class Commander():
 				if feedback != "":
 					vFeedbackMsg += f"{feedback}\n"
 
-		feedbackFile = discord.File( self.vFeedback.SaveToFile(self.vOpData.fileName) )
+		feedbackFile = discord.File( self.vFeedback.SaveToFile(f"{Directories.feedbackPrefix}{self.vOpData.fileName}") )
 
 		if self.vOpData.options.bUseSoberdogsFeedback:
 			if self.soberdogFeedbackMsg == None:
