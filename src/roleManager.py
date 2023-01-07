@@ -94,9 +94,8 @@ class RoleManager(discord.ui.View):
 
 	@discord.ui.button(label="Update", style=discord.ButtonStyle.primary, row=4)
 	async def btnUpdateRoles(self, pInteraction: discord.Interaction, vButton: discord.ui.button):
-		await self.UpateUserRoles()
 		await self.vInteraction.delete_original_response()
-		# await self.vInteraction.response.send_message("Roles updated!") 
+		await self.UpateUserRoles()
 		await self.vInteraction.followup.send(content="Roles updated!", ephemeral=True)
 
 
@@ -118,22 +117,21 @@ class RoleManager(discord.ui.View):
 		# Ensure we're operating on TDKD server.
 		self.vGuild = await botUtils.GetGuild(self.bot)
 
-		# Get all the roles in the server.
-		vServerRoles = await self.vGuild.fetch_roles()
+		if len(self.vGuild.roles) == 0:
+			BUPrint.LogError(p_titleStr="NO ROLES", p_string="UserRoles guild object has no roles.")
+			return
 
 		# Roles To Use: list of role objects corresponding to user choices.
 		vRolesToUse = []
 
 		if len(vRolesToUse):
-			for serverRoleIndex in vServerRoles:
-				BUPrint.Debug(f"Current Index- ID:Name : {serverRoleIndex.id} : {serverRoleIndex.name}")
-
+			for serverRoleIndex in self.vGuild.roles:
 				# Only proceed if role is one a user can add/remove
 				if f"{serverRoleIndex.id}" in vUserRolesList:
 					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
 						vRolesToUse.append(serverRoleIndex)
 				else:
-					BUPrint.Debug("Role is not user-assignable. Skipping...")
+					BUPrint.Debug(f"Role: {serverRoleIndex.name} is not user-assignable. Skipping...")
 
 
 			BUPrint.Debug("Modifying user roles...")
@@ -148,8 +146,10 @@ class RoleManager(discord.ui.View):
 			except discord.HTTPException as vError:
 				BUPrint.LogErrorExc("Unable to modify user roles.", vError)
 			
-			BUPrint.Debug("	-> User roles modified!")
-
+			if self.bAddRoles:
+				BUPrint.Info(f"{self.vUser.display_name} added {len(vRolesToUse)} roles to themself.")
+			else:
+				BUPrint.Info(f"{self.vUser.display_name} removed {len(vRolesToUse)} roles to themself.")
 		else:
 			BUPrint.Debug("User chose no roles.")
 
