@@ -80,32 +80,6 @@ class BotSettings:
 	)
 
 
-	# Collapse for ease of reading.
-	def __repr__(self) -> str:
-		vString = "\n	GENERAL BOT SETTINGS\n"
-		vString += f"	> DebugEnabled: {self.bDebugEnabled}\n"
-		token = self.discordToken[:5] # Always hide most of the token; shows JUST the first 5 characters.
-		vString += f"	> DiscordToken:	{token}...\n"
-		vString += f"	> DiscordGuild:	{self.discordGuild}\n"
-		token = self.ps2ServiceID[:5]
-		vString += f"	> PS2ServiceID:	{token}\n"
-		vString += f"	> BotDirectory:	{self.botDir}\n"
-		vString += f"	> AdminChannel:	{self.adminChannel}\n"
-		vString += f"	> Force Role Restrictions: {self.bForceRoleRestrictions}\n"
-		vString += f"	> Level 0:	{self.roleRestrict_level_0}\n"
-		vString += f"	> Level 1:	{self.roleRestrict_level_1}\n"
-		vString += f"	> Level 2:	{self.roleRestrict_level_2}\n"
-		vString += f"	> Level 3:	{self.roleRestrict_level_3}\n"
-		vString += f"	> Fallback VC:	{self.fallbackVoiceChat}\n"
-		if self.errorOutput == stderr:
-			vString += f"	> Error Output:	stderr\n"
-		else:
-			vString += f"	> Error Output:	{self.errorOutput}\n"
-		vString += f"	> Sanity Check Values: {self.bCheckValues}\n"
-		if self.bCheckValues:
-			vString += f"{self.sanityCheckOpts}"
-		return vString
-
 
 @dataclass(frozen=True)
 class NewUsers:
@@ -149,20 +123,6 @@ class NewUsers:
 
 
 
-	def __repr__(self) -> str:
-		vString = "\n	NEW USER SETTINGS\n"
-		vString += f"	> Gate channel:		{self.gateChannelID}\n"
-		vString += f"	> General Channel:	{self.generalChanelID}\n"
-		vString += f"	> Rule Channel:		{self.ruleChnID}\n"
-		vString += f"	> Rule Message:		{self.ruleMsgID}\n"
-		vString += f"	> Recruit ID:		{self.recruitRole}\n"
-		vString += f"	> AutoAssign Roles:	{self.autoAssignRoles}\n"
-		vString += f"	> Show AddRoles Button:	{self.bShowAddRolesBtn}\n"
-		vString += f"	> Create Library Entry on Accept: {self.bCreateLibEntryOnAccept}\n"
-		vString += f"\n	> Warnings: Discord Account age: {self.newAccntWarn} months\n"
-		vString += f"	> Warnings: Outfit Rank (Ord): {self.outfitRankWarn}\n"
-		return vString
-
 
 class PS2EventTrackOptions(Enum):
 	"""
@@ -174,6 +134,8 @@ class PS2EventTrackOptions(Enum):
 	Disabled = 0
 	InGameOnly = 10
 	InGameAndDiscordVoice = 20
+
+
 
 
 @dataclass(frozen=True)
@@ -229,20 +191,7 @@ class Commander:
 	connIcon_ps2Online = "🟢"
 	connIcon_ps2Offline = "🔴"
 	connIcon_ps2Invalid = "❌" # Users who have an invalid/non-matching PS2 name
-
-	def __repr__(self) -> str:
-		vString = "\n	OP COMMANDER SETTINGS\n"
-		vString += f"	> Auto prestart:	{self.autoPrestart} minutes\n"
-		vString += f"	> Auto Start:		{self.bAutoStartEnabled}\n"
-		vString += f"	> Live Tracking:	{self.trackEvent.name}\n"
-		vString += f"	> Marked Present:	{self.markedPresent.name}\n"
-		vString += f"	> Auto Alerts:		{self.bAutoAlertsEnabled}\n"
-		vString += f"	> Auto Alert count:	{self.autoAlertCount}\n"
-		vString += f"	> Auto Move VC:		{self.bAutoMoveVCEnabled}\n"
-		vString += f"	> Automove VC ID:	{self.autoMoveBackChannelID}\n"
-		vString += f"	> Soberdogs Feedback:	{self.soberFeedbackID}\n"
-		vString += f"	> ConnectionsRefresh:	{self.connectionRefreshInterval} seconds\n"
-		return vString		
+	
 
 
 @dataclass(frozen=True)
@@ -285,18 +234,7 @@ class Directories:
 	# Clean Temp Every: Interval for cleanup utility task.
 	cleanTempEvery = 120 #Hours.
 
-	# Collapse for ease of reading.
-	def __repr__(self) -> str:
-		vString = "	BOT DIRECTORY SETTINGS\n"
-		vString += f"	> Prefix Dir :	{self.prefixDir}\n"
-		vString += f"	> LiveOps Dir:	{self.liveOpsDir}\n" 
-		vString += f"	> DefaultsDir:	{self.savedDefaultsDir}\n" 
-		vString += f"	> UserLib Dir:	{self.userLibrary}\n"
-		vString += f"	> RecruitsDir:	{self.userLibraryRecruits}\n"
-		vString += f"	> LockFile Affix:	{self.lockFileAffix} | Retries: {self.lockFileRetry}\n"
-		vString += f"	> Feedback Prefix:	{self.feedbackPrefix}\n"
-		vString += f"	> Clean Temp Every:	{self.cleanTempEvery} hours ({self.cleanTempEvery/24} days)\n"
-		return vString
+
 
 
 @dataclass(frozen=True)
@@ -330,15 +268,6 @@ class SignUps:
 	# The maximum number of roles a single event can have.
 	maxRoles = 20
 
-
-	def __repr__(self) -> str:
-		vString = "	SIGN UP SETTINGS\n"
-		vString += f"	> Signup Cat  : {self.signupCategory}\n"
-		vString += f"	> Resign Icon : {self.resignIcon}\n" 
-		vString += f"	> Reserve Icon: {self.reserveIcon}\n"
-		vString += f"	> Auto Prestart:{self.bAutoPrestartEnabled}\n"
-		vString += f"	> Show Opts in Footer: {self.bShowOptsInFooter}\n"
-		return vString
 
 
 
@@ -405,20 +334,6 @@ class UserLib:
 	# If enabled, requires `bRemoveEntryOnLeave` to also be TRUE.
 	bRemoveSpecialEntryOnLeave = False
 
-	def __repr__(self) -> str:
-		vString = "\n	USER LIBRARY SETTINGS\n"
-		vString += f"	> Special Users:	{self.bEnableSpecialUsers}\n"
-		vString += f"	> Commander Create Entry: {self.bCommanderCanAutoCreate}\n"
-		vString += f"	> User Self Create:	{self.bUserCanSelfCreate}\n"
-		vString += f"	> Max Saved Events:	{self.maxSavedEvents}\n"
-		vString += f"	> AutoPromote Users:	{self.bAutoPromoteEnabled}\n"
-		vString += f"	> AutoPromote Rules:	{self.autoPromoteRules}\n"
-		vString += f"	> AutoPromote Times:	{self.autoQueryRecruitTime}\n"
-		vString += f"	> Max Session Previews:	{self.sessionPreviewMax}\n"
-		vString += f"	> Max Sessions Browser:	{self.sessionMaxPerPage}\n"
-		vString += f"	> Remove Entry/Special on leave: {self.bRemoveEntryOnLeave}/{self.bRemoveSpecialEntryOnLeave}\n"
-
-		return vString
 
 
 @dataclass(frozen=True)
@@ -510,7 +425,7 @@ class Roles:
 			This is a discord imposed limit.
 	"""
 	# Provides a dropdown containing these roles for giving to new users.
-	newUser_roles:list[SelectOption] = [ 
+	newUser_roles = [ 
 		SelectOption(label="Recruit", value="780253442605842472"),
 		SelectOption(label="Test Recruit", value="1060009718837411962", description="DEV VALUE!"), # DEV VALUE!
 		# SelectOption(label="TDKD", value="1050286811940921344", description="DEV VALUE!"), # Dev server RoleID
@@ -520,7 +435,7 @@ class Roles:
 	]
 
 	# ADD ROLES - TDKD:  Roles used in the /roles command, "tdkd" role selector 
-	addRoles_TDKD:list[SelectOption] = [
+	addRoles_TDKD = [
 		SelectOption(label="Planetside Pings", value="977873609815105596", description="Non-major PS2 events/fellow\n drunken doggos looking for company"),
 		# SelectOption(label="Sober Dogs", value="1040751250163122176", description="DEV VALUE"), # Dev value!
 		SelectOption(label="Sober Dogs", value="745004244171620533", description="More serious, coordinated infantry events"), # Live value!
@@ -533,7 +448,7 @@ class Roles:
 	]
 
 	# ADD ROLES - GAMES : Role selectors used in the /roles command.
-	addRoles_games1:list[SelectOption] = [
+	addRoles_games1 = [
 		SelectOption(label="Post Scriptum", value="791308463241691146"),
 		SelectOption(label="Squad", value="808413252685529108"),
 		SelectOption(label="Space Engineers", value="805234496026050601"),
@@ -561,7 +476,7 @@ class Roles:
 		SelectOption(label="Gates of Hell", value="1000366778133774528")
 	]
 
-	addRoles_games2:list[SelectOption] = [
+	addRoles_games2 = [
 		SelectOption(label="Overwatch", value="1029138196518420531"),
 		SelectOption(label="World of Tanks", value="1038125253806788768"),
 		SelectOption(label="Star Citizen", value="1037797784566370318"),
@@ -589,7 +504,7 @@ class Roles:
 		# SelectOption(label="", value="")
 	]
 
-	addRoles_games3:list[SelectOption] = [
+	addRoles_games3 = [
 		# SelectOption(label="", value=""),
 		# SelectOption(label="", value=""),
 		# SelectOption(label="", value=""),

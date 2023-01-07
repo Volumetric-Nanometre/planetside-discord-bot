@@ -27,7 +27,7 @@ class Bot(commands.Bot):
         super().__init__(command_prefix=['!'], intents=discord.Intents.all())
         
         if settings.BotSettings.bShowSettingsOnStartup:
-            BUPrint.Info(f"Starting bot with settings:\n{botUtils.PrintSettings()}\n")
+            BUPrint.Info(f"Starting bot with settings:\n{botUtils.PrintSettings(True)}\n")
 
         self.vGuildObj: discord.Guild
         self.vOpsManager = opsManager.OperationManager()

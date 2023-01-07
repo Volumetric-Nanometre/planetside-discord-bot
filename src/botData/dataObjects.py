@@ -26,12 +26,12 @@ class SanityCheckOptions():
 	UsedByUserRoles: bool = True
 
 	def __repr__(self) -> str:
-		vString = f"	> Used By New user: {self.UsedByNewUser}\n"
-		vString += f"	> Used By Operations: {self.UsedByOperations}\n"
-		vString += f"	> Used By Commander: {self.UsedByCommander}\n"
-		vString += f"	> Used By User Library: {self.UsedByUserLibrary}\n"
-		vString += f"	> Used By User Roles: {self.UsedByUserRoles}\n"
-		vString += f"	> Command Retriction Levels: {self.RestrictLevels}\n"
+		vString = f"		>[{self.UsedByNewUser}] Used By New user\n"
+		vString += f"		>[{self.UsedByOperations}] Used By Operations\n"
+		vString += f"		>[{self.UsedByCommander}] Used By Commander\n"
+		vString += f"		>[{self.UsedByUserLibrary}] Used By User Library\n"
+		vString += f"		>[{self.UsedByUserRoles}] Used By User Roles\n"
+		vString += f"		>[{self.RestrictLevels}] Command Retriction Levels\n"
 		return vString
 
 

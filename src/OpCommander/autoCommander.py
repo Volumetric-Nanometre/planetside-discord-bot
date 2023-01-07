@@ -8,9 +8,6 @@ Classes related to the starting of an Operation Commander, whether via commands 
 from discord import app_commands, Interaction, File
 from discord.ext import tasks, commands
 
-from os import listdir
-
-
 from botUtils import UserHasCommandPerms, FilesAndFolders
 from botUtils import BotPrinter as BUPrint
 
