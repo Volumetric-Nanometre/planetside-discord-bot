@@ -376,60 +376,6 @@ def UserHasPerms(p_user:discord.Member, p_requiredLevel:CommandRestrictionLevels
 	return False
 
 	
-async def RoleDebug(p_guild:discord.Guild, p_showOnLive=False):
-	"""
-	# ROLE DEBUG
-	Goes through all editable roles.
-	If any are not matching, they're listed.
-
-	Returns immediately if Debug is not enabled.
-
-	Bypass this with `p_showOnLive=True`
-	"""
-	if not BotSettings.bDebugEnabled and not p_showOnLive:
-		return
-
-	guildRoles = await p_guild.fetch_roles()
-	guildRoleNames = []
-	guildRoleIDs = []
-	vMessageStr = "ROLE DEBUG:\n"
-
-	role: discord.Role
-	for role in guildRoles:
-		guildRoleNames.append(role.name)
-		guildRoleIDs.append(role.id)
-
-
-	vMessageStr += "\n"
-	option:discord.SelectOption
-	for option in Roles.addRoles_TDKD:
-		if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-			vMessageStr += f"\nTDKD ROLE SELECTOR | Invalid Value: {option.value} for {option.label}"
-
-	if len(Roles.addRoles_games1):
-		vMessageStr += "\n"
-		for option in Roles.addRoles_games1:
-			if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-				vMessageStr += f"\nGAME ROLES 1 | Invalid Value: {option.value} for {option.label}"
-
-	if len(Roles.addRoles_games2):
-		vMessageStr += "\n"
-		for option in Roles.addRoles_games2:
-			if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-				vMessageStr += f"\nnGAME ROLES 2 | Invalid Value: {option.value} for {option.label}"
-
-	if len(Roles.addRoles_games3):
-		vMessageStr += "\n"
-		for option in Roles.addRoles_games3:
-			if option.value not in guildRoleNames or option.value not in guildRoleIDs:
-				vMessageStr += f"\nGAME ROLES 3 | Invalid Value: {option.value} for {option.label}"
-
-	vMessageStr += "\n\n"
-
-	if not p_showOnLive:
-		BotPrinter.Debug(vMessageStr)
-	else:
-		BotPrinter.Info(vMessageStr)
 
 
 class ChannelPermOverwrites():
