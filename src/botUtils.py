@@ -3,7 +3,7 @@ import sys
 import datetime
 import time
 from sys import stderr
-from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Roles, Messages, Commander, NewUsers, SignUps, UserLib
+from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib
 import botData.utilityData as UtilityData
 import traceback
 import discord
@@ -455,12 +455,14 @@ class ChannelPermOverwrites():
 		BotPrinter.Info("ChannelPermOverwrites have been configured!")
 
 
-def PrintSettings():
+def PrintSettings(bGetOnly = False):
 	"""
 	# PRINT SETTINGS
 	To keep the settings file clean and easier to read, the printing is moved here.
+
+	Specify bGetOnly as TRUE to get the settings as a string instead.
 	"""
-	vString = ""
+	vString = "\n"
 
 	vString += "\n	GENERAL BOT SETTINGS\n"
 	vString += f"	> DebugEnabled: {BotSettings.bDebugEnabled}\n"
@@ -542,4 +544,7 @@ def PrintSettings():
 	vString += f"	> Max Sessions Browser:	{UserLib.sessionMaxPerPage}\n"
 	vString += f"	> Remove Entry/Special on leave: {UserLib.bRemoveEntryOnLeave}/{UserLib.bRemoveSpecialEntryOnLeave}\n"
 
-	BotPrinter.Info(vString)
+	if bGetOnly:
+		return vString
+	else:
+		BotPrinter.Info(vString)
