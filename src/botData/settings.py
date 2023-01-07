@@ -276,8 +276,14 @@ class Directories:
 	# Name used on lock files as an affix.
 	lockFileAffix = ".LOCK"
 
+	# Feedback Prefix: The string prefixed to a saved feedback file.
+	feedbackPrefix = "FEEDBACK_"
+
 	# Number of attempts to try obtaining a lock before returning.
 	lockFileRetry = 5
+
+	# Clean Temp Every: Interval for cleanup utility task.
+	cleanTempEvery = 120 #Hours.
 
 	# Collapse for ease of reading.
 	def __repr__(self) -> str:
@@ -287,7 +293,9 @@ class Directories:
 		vString += f"	> DefaultsDir:	{self.savedDefaultsDir}\n" 
 		vString += f"	> UserLib Dir:	{self.userLibrary}\n"
 		vString += f"	> RecruitsDir:	{self.userLibraryRecruits}\n"
-		vString += f"	> LockFile Affix:	{self.lockFileAffix} | Retries: {self.lockFileRetry}\n" 
+		vString += f"	> LockFile Affix:	{self.lockFileAffix} | Retries: {self.lockFileRetry}\n"
+		vString += f"	> Feedback Prefix:	{self.feedbackPrefix}\n"
+		vString += f"	> Clean Temp Every:	{self.cleanTempEvery} hours ({self.cleanTempEvery/24} days)\n"
 		return vString
 
 

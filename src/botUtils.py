@@ -2,7 +2,8 @@ import os
 import sys
 import datetime
 import time
-from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Roles, Messages
+from sys import stderr
+from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Roles, Messages, Commander, NewUsers, SignUps, UserLib
 import botData.utilityData as UtilityData
 import traceback
 import discord
@@ -452,3 +453,93 @@ class ChannelPermOverwrites():
 				)
 
 		BotPrinter.Info("ChannelPermOverwrites have been configured!")
+
+
+def PrintSettings():
+	"""
+	# PRINT SETTINGS
+	To keep the settings file clean and easier to read, the printing is moved here.
+	"""
+	vString = ""
+
+	vString += "\n	GENERAL BOT SETTINGS\n"
+	vString += f"	> DebugEnabled: {BotSettings.bDebugEnabled}\n"
+	token = BotSettings.discordToken[:5] # Always hide most of the token; shows JUST the first 5 characters.
+	vString += f"	> DiscordToken:	{token}...\n"
+	vString += f"	> DiscordGuild:	{BotSettings.discordGuild}\n"
+	token = BotSettings.ps2ServiceID[:5]
+	vString += f"	> PS2ServiceID:	{token}\n"
+	vString += f"	> BotDirectory:	{BotSettings.botDir}\n"
+	vString += f"	> AdminChannel:	{BotSettings.adminChannel}\n"
+	vString += f"	> Force Role Restrictions: {BotSettings.bForceRoleRestrictions}\n"
+	vString += f"	> Level 0:	{BotSettings.roleRestrict_level_0}\n"
+	vString += f"	> Level 1:	{BotSettings.roleRestrict_level_1}\n"
+	vString += f"	> Level 2:	{BotSettings.roleRestrict_level_2}\n"
+	vString += f"	> Level 3:	{BotSettings.roleRestrict_level_3}\n"
+	vString += f"	> Fallback VC:	{BotSettings.fallbackVoiceChat}\n"
+	if BotSettings.errorOutput == stderr:
+		vString += f"	> Error Output:	stderr\n"
+	else:
+		vString += f"	> Error Output:	{BotSettings.errorOutput}\n"
+	vString += f"	> Sanity Check Values: {BotSettings.bCheckValues}\n"
+	if BotSettings.bCheckValues:
+		vString += f"{BotSettings.sanityCheckOpts}"
+
+	vString += "\n	NEW USER SETTINGS\n"
+	vString += f"	> Gate channel:		{NewUsers.gateChannelID}\n"
+	vString += f"	> General Channel:	{NewUsers.generalChanelID}\n"
+	vString += f"	> Rule Channel:		{NewUsers.ruleChnID}\n"
+	vString += f"	> Rule Message:		{NewUsers.ruleMsgID}\n"
+	vString += f"	> Recruit ID:		{NewUsers.recruitRole}\n"
+	vString += f"	> AutoAssign Roles:	{NewUsers.autoAssignRoles}\n"
+	vString += f"	> Show AddRoles Button:	{NewUsers.bShowAddRolesBtn}\n"
+	vString += f"	> Create Library Entry on Accept: {NewUsers.bCreateLibEntryOnAccept}\n"
+	vString += f"\n	> Warnings: Discord Account age: {NewUsers.newAccntWarn} months\n"
+	vString += f"	> Warnings: Outfit Rank (Ord): {NewUsers.outfitRankWarn}\n"
+
+
+	vString += "\n	OP COMMANDER SETTINGS\n"
+	vString += f"	> Auto prestart:	{Commander.autoPrestart} minutes\n"
+	vString += f"	> Auto Start:		{Commander.bAutoStartEnabled}\n"
+	vString += f"	> Live Tracking:	{Commander.trackEvent.name}\n"
+	vString += f"	> Marked Present:	{Commander.markedPresent.name}\n"
+	vString += f"	> Auto Alerts:		{Commander.bAutoAlertsEnabled}\n"
+	vString += f"	> Auto Alert count:	{Commander.autoAlertCount}\n"
+	vString += f"	> Auto Move VC:		{Commander.bAutoMoveVCEnabled}\n"
+	vString += f"	> Automove VC ID:	{Commander.autoMoveBackChannelID}\n"
+	vString += f"	> Soberdogs Feedback:	{Commander.soberFeedbackID}\n"
+	vString += f"	> ConnectionsRefresh:	{Commander.connectionRefreshInterval} seconds\n"
+
+
+	vString += "	BOT DIRECTORY SETTINGS\n"
+	vString += f"	> Prefix Dir :	{Directories.prefixDir}\n"
+	vString += f"	> LiveOps Dir:	{Directories.liveOpsDir}\n" 
+	vString += f"	> DefaultsDir:	{Directories.savedDefaultsDir}\n" 
+	vString += f"	> UserLib Dir:	{Directories.userLibrary}\n"
+	vString += f"	> RecruitsDir:	{Directories.userLibraryRecruits}\n"
+	vString += f"	> LockFile Affix:	{Directories.lockFileAffix} | Retries: {Directories.lockFileRetry}\n"
+	vString += f"	> Feedback Prefix:	{Directories.feedbackPrefix}\n"
+	vString += f"	> Clean Temp Every:	{Directories.cleanTempEvery} hours ({Directories.cleanTempEvery/24} days)\n"
+
+
+	vString += "	SIGN UP SETTINGS\n"
+	vString += f"	> Signup Cat  : {SignUps.signupCategory}\n"
+	vString += f"	> Resign Icon : {SignUps.resignIcon}\n" 
+	vString += f"	> Reserve Icon: {SignUps.reserveIcon}\n"
+	vString += f"	> Auto Prestart:{SignUps.bAutoPrestartEnabled}\n"
+	vString += f"	> Show Opts in Footer: {SignUps.bShowOptsInFooter}\n"
+
+
+	vString += "\n	USER LIBRARY SETTINGS\n"
+	vString += f"	> Special Users:	{UserLib.bEnableSpecialUsers}\n"
+	vString += f"	> Commander Create Entry: {UserLib.bCommanderCanAutoCreate}\n"
+	vString += f"	> User Self Create:	{UserLib.bUserCanSelfCreate}\n"
+	vString += f"	> Max Saved Events:	{UserLib.maxSavedEvents}\n"
+	vString += f"	> AutoPromote Users:	{UserLib.bAutoPromoteEnabled}\n"
+	vString += f"	> AutoPromote Rules:	{UserLib.autoPromoteRules}\n"
+	vString += f"	> AutoPromote Times:	{UserLib.autoQueryRecruitTime}\n"
+	vString += f"	> Max Session Previews:	{UserLib.sessionPreviewMax}\n"
+	vString += f"	> Max Sessions Browser:	{UserLib.sessionMaxPerPage}\n"
+	vString += f"	> Remove Entry/Special on leave: {UserLib.bRemoveEntryOnLeave}/{UserLib.bRemoveSpecialEntryOnLeave}\n"
+
+	BotPrinter.Info(vString)
