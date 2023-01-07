@@ -1,19 +1,10 @@
-# OPS COMMANDER
-# Provides a simple interface that allows those with permissions to:
-# Alert -> Starts an alert coroutine, users signed up are pinged at 10 minute intervals.  Channels are created in prep.
-# Start Ops -> Self explanitory, starts an op event.
-# Debrief -> Begin a debrief process; after 5 minutes normal users are moved to 'planetside' channel, commanders are moved to 'command' channel, channels are cleaned up.
-#			 Users are offered the ability to provide anonymised feedback via the bot regarding the event.  This is fed to the command channel.
-# End Ops -> Removes the signup.
+"""
+COMMANDER:
+	The major classes for the Operation Commander and its operation.
+	Event tracking is handled seperately in events.py; and is only started/stopped by the commander.
+"""
 
-
-# EMBEDS:
-# 1. OpInfo Embed: show if any options applied, signed up users
-# 2. Connection Embed: Show status of signed up users (discord online|discord comms|Online Ingame)
-# 3. SessionStats Embed: Start time, end time, user stats, link to Honu.
-# 4. SessionFeedback: Place to store player feedback.
-
-from __future__ import annotations
+from __future__ import annotations # Backport of list hint typing.
 
 import discord
 import discord.ext
@@ -77,7 +68,12 @@ async def StartCommander(p_opData: OperationData):
 class Commander():
 	"""
 	# COMMANDER
-	Class containing functions and members used during a live, running Operation
+	Class containing functions and members used during a live, running Operation.
+	Instantiation requires an `OperationData` object, housing the information for the event.
+
+	Creating a commander does not automatically run any setup.
+
+	An Info Message must be created and set within the commander.
 	"""
 	vBotRef: commands.Bot
 	def __init__(self, p_opData: OperationData) -> None:
@@ -1078,7 +1074,6 @@ class Commander():
 
 
 		else:
-
 			if self.notifFeedbackMsg == None:
 				self.notifFeedbackMsg = await self.notifChn.send(content=vFeedbackMsg, file=feedbackFile)
 			
