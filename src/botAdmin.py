@@ -68,9 +68,9 @@ class BotAdminCog(GroupCog, name="admin", description="Administrative commands a
 		if vAdminChn != None:
 			await p_interaction.response.send_message("Posting settings...", ephemeral=True)
 			vSettingStr = PrintSettings(True)
-			splitString = [(vSettingStr[index:index+1995]) for index in range(0, len(vSettingStr), 1995)]
+			splitString = [(vSettingStr[index:index+1990]) for index in range(0, len(vSettingStr), 1990)]
 			for segment in splitString:
-				segment = segment.replace(">", "-")
+				segment = f"```{segment}```"
 				await vAdminChn.send( f"{segment}\n" )
 		else:
 			await p_interaction.response.send_message("Invalid ADMIN channel.", ephemeral=True)
