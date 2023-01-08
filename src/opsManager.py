@@ -226,11 +226,22 @@ class OperationManager():
 		"""
 		vOpData : OperationData
 		for vOpData in self.vLiveOps:
-			await self.UpdateMessage(vOpData)
-			if botSettings.BotSettings.bDebugEnabled:
-				BUPrint.Info(f"Refreshing {vOpData}\n")
+			bRemoveOp = False
+			if botSettings.SignUps.bAutoRemoveOutdated:
+				dateNow = datetime.datetime.now(tz=datetime.timezone.utc)
+				if dateNow > vOpData.date:
+					bRemoveOp = True
+
+			if bRemoveOp:
+				BUPrint.Info(f"OUTDATED EVENT: {vOpData.fileName}")
+				await self.RemoveOperation(vOpData)
+
 			else:
-				BUPrint.Info(f"Refreshing {vOpData.fileName}")
+				if botSettings.BotSettings.bDebugEnabled:
+					BUPrint.Info(f"Refreshing {vOpData}\n")
+				else:
+					BUPrint.Info(f"Refreshing {vOpData.fileName}")
+				await self.UpdateMessage(vOpData)
 
 
 	def SetBotRef(p_botRef):
@@ -366,8 +377,8 @@ class OperationManager():
 					pass
 				
 				autoComCog.scheduler.remove_job(p_opData.messageID)
-			except apscheduler.jobstores.base.JobLookupError as vError:
-				BUPrint.LogErrorExc("Unable to remove scheduled job.  No Matching ID found.", vError)
+			except apscheduler.jobstores.base.JobLookupError:
+				BUPrint.LogError(p_titleStr="Unable to remove scheduled event start", p_string="No matching ID found!")
 
 		BUPrint.Info("	-> OPERATION REMOVED!")
 		return True

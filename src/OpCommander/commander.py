@@ -32,7 +32,7 @@ from botData.settings import Directories, UserLib, NewUsers
 
 from botData.dataObjects import OperationData, User, OpRoleData, PS2EventTrackOptions
 
-from userManager import UserLibrary
+import userManager
 
 import opsManager
 
@@ -678,7 +678,7 @@ class Commander():
 
 					if participant.libraryEntry != None:
 						participant.libraryEntry.eventsMissed += 1
-						UserLibrary.SaveEntry(participant.libraryEntry)
+						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
 
 		elif not self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.Started and commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
 			BUPrint.Debug("Non PS2 Ops started, checking participant tracking status.")
@@ -690,7 +690,7 @@ class Commander():
 
 					if participant.libraryEntry != None:
 						participant.libraryEntry.eventsMissed += 1
-						UserLibrary.SaveEntry(participant.libraryEntry)
+						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
 
 
 
@@ -712,14 +712,14 @@ class Commander():
 
 			if participantObj.libraryEntry == None:
 				BUPrint.Debug("	-> Library Entry not set. Loading...")
-				participantObj.LibraryEntry = UserLibrary.LoadEntry(participantObj.discordID)
+				participantObj.LibraryEntry = userManager.UserLibrary.LoadEntry(participantObj.discordID)
 
 
 			if participantObj.libraryEntry == None:
 				vNewEntry = User(discordID=participantObj.discordUser.id)
-				if UserLibrary.HasEntry(participantObj.discordID):
+				if userManager.UserLibrary.HasEntry(participantObj.discordID):
 					BUPrint.Debug("Loading Participant Data: Loading data.")
-					participantObj.libraryEntry = UserLibrary.LoadEntry(participantObj.discordID)
+					participantObj.libraryEntry = userManager.UserLibrary.LoadEntry(participantObj.discordID)
 
 				elif UserLib.bCommanderCanAutoCreate:
 					BUPrint.Debug("Load Participant Data: No entry, creating one...")
@@ -730,7 +730,7 @@ class Commander():
 						vNewEntry.bIsRecruit = True
 
 					participantObj.LibraryEntry = vNewEntry
-					UserLibrary.SaveEntry(vNewEntry)
+					userManager.UserLibrary.SaveEntry(vNewEntry)
 				else:
 					BUPrint.Debug("LoadParticipantData: Autocreate is disabled.")
 					participantObj.bIsTracking = False
@@ -784,7 +784,7 @@ class Commander():
 
 				return playerChar
 
-		else: # Name already exists in userLibrary
+		else: # Name already exists in userManager.UserLibrary
 			BUPrint.Debug(f"	-> Character name is already set: {p_participant.libraryEntry.ps2Name}")
 			playerChar = await self.vAuraxClient.get_by_name(auraxium.ps2.Character, p_participant.libraryEntry.ps2Name)
 			if playerChar != None:
@@ -1325,7 +1325,7 @@ class Commander():
 					participant.userSession.eventName = self.vOpData.name
 
 					participant.libraryEntry.sessions.append(participant.userSession)
-					UserLibrary.SaveEntry(participant.libraryEntry)
+					userManager.UserLibrary.SaveEntry(participant.libraryEntry)
 				
 				else: BUPrint.Debug(f"{participant.discordUser.display_name} has no library entry!  Cannot update sessions.")
 			else:
@@ -1359,7 +1359,7 @@ class Commander():
 		for participant in self.participants:
 			if participant.libraryEntry != None:
 				if participant.libraryEntry.bIsRecruit:
-					await UserLibrary.QueryRecruit(participant.libraryEntry)
+					await userManager.UserLibrary.QueryRecruit(participant.libraryEntry)
 
 
 

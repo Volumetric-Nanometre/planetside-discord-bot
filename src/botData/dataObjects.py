@@ -413,7 +413,7 @@ class OperationData:
 	"""
 
 	# Op Details:
-	roles : list = field(default_factory=list) # List of OpRoleData objects
+	roles : list[OpRoleData] = field(default_factory=list) # List of OpRoleData objects
 	reserves : list = field(default_factory=list) # Since there's no need for special data for reserves, they just have a simple UserID list.
 	name : str = ""
 	fileName: str = ""
@@ -421,7 +421,7 @@ class OperationData:
 	description : str = ""
 	customMessage : str = ""
 	managedBy:str = ""
-	pingables : list = field(default_factory=list) # roles to mention/ping in relation to this ops.
+	pingables : list[str] = field(default_factory=list) # roles to mention/ping in relation to this ops.
 
 	# Backend variables
 	messageID : str = "" 
@@ -431,8 +431,8 @@ class OperationData:
 	jumpURL: str = ""
 
 	# Factory fields
-	voiceChannels: list = field(default_factory=list)
-	arguments: list = field(default_factory=list)
+	voiceChannels: list[str] = field(default_factory=list)
+	arguments: list[str] = field(default_factory=list)
 
 
 	def GenerateFileName(self):
@@ -453,18 +453,24 @@ class OperationData:
 		return f"{Settings.Directories.liveOpsDir}{self.fileName}.bin"
 
 
-	def GetRoleByName(self, p_roleName):
+	def PlayerInOps(self, p_playerID:int):
 		"""
-		# GET ROLE BY NAME
+		# PLAYER IN OPS
 		### RETURN: 
-		`OpRoleData` matching `p_roleName`
+		`str`- "" when not in ops, else string of role name.
 
 		Convenience function to avoid repetition.
 		"""
-		role: OpRoleData
+		if self.options.bUseReserve:
+			if p_playerID in self.reserves:
+				return "Reserve"
+
 		for role in self.roles:
-			if role.roleName == p_roleName:
-				return role
+			if p_playerID in role.players:
+				return role.roleName
+
+		return ""
+
 
 
 	def ArgStringToList(self, p_string:str, p_deliminator:str = " "):

@@ -321,7 +321,9 @@ class SignUps:
 
 	NOTE:  These are NOT settings for individual signups! See `botData.operations.operationOptions` for those.
 	"""
-
+	# Auto Remove Outdated: On startup (or any call to Refresh Ops), if the event date is before the current date, remove the event. 
+	bAutoRemoveOutdated = True
+	
 	# The category name (results are searched in lower, so this is generally case insensitive.)
 	# If not found, this category is created.
 	signupCategory = "SIGN UP"
@@ -490,6 +492,8 @@ class Messages:
 	# No User Entry Self: Shown when a user tries to view their own entry and userAutoCreate is disabled.
 	NoUserEntrySelf = "You have no entry.  Ask an administrator to make one for you."
 
+	# No signed up Events: Shown to user when they use "show_events" and they're not in any.
+	noSignedUpEvents = f"You're not signed up to any events!  Check the {SignUps.signupCategory} category for active events."
 
 
 

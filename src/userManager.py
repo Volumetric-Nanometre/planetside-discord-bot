@@ -13,7 +13,6 @@ import pickle
 
 from datetime import datetime, timezone, timedelta
 
-
 from enum import Enum
 
 from botUtils import BotPrinter as BUPrint
@@ -24,7 +23,7 @@ from botData.dataObjects import User, Session
 from botData.utilityData import DateFormat
 
 import botData.settings as settings
-from botData.settings import CommandLimit
+import opsManager
 
 
 
@@ -70,6 +69,31 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 		
 		else:
 			await p_interaction.response.send_message(settings.Messages.NoUserEntrySelf)
+
+	
+	@app_commands.command(name="my_events", description="List all the events you are signed up to.")
+	async def GetMyEvents(self, p_interaction:discord.Interaction):
+		""" # GET MY EVENTS
+		App Command to get users signed up events.
+		"""
+
+		# HARDCODED ROLE USEAGE:
+		if not await UserHasCommandPerms(p_interaction.user, (settings.CommandLimit.userLibrary), p_interaction):
+			return
+
+		await p_interaction.response.defer(thinking=True, ephemeral=True)
+		vMessage = ""
+
+		for liveEvent in opsManager.OperationManager.vLiveOps:
+			signedUpRole = liveEvent.PlayerInOps(p_interaction.user.id)
+			if signedUpRole != "":
+				vMessage += f"- {liveEvent.name}, Starts {GetDiscordTime(liveEvent.date)}, signed up as: {signedUpRole}!"
+
+		
+		if vMessage == "":
+			await p_interaction.edit_original_response(content=settings.Messages.noSignedUpEvents)
+		else:
+			await p_interaction.edit_original_response(content=f"**Your Events:**\n{vMessage}")
 
 
 
