@@ -14,6 +14,7 @@ import re
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import datetime, dateutil.relativedelta
+from datetime import timedelta
 
 from OpCommander.events import OpsEventTracker
 from botData.dataObjects import CommanderStatus, OpsStatus, Participant, Session, OpFeedback
@@ -27,9 +28,9 @@ from botData.utilityData import DateFormat, Colours
 from botData.settings import BotSettings as botSettings
 from botData.settings import Commander as commanderSettings
 from botData.settings import Messages as botMessages
-from botData.settings import Directories, UserLib, PS2EventTrackOptions, NewUsers
+from botData.settings import Directories, UserLib, NewUsers
 
-from botData.dataObjects import OperationData, User, OpRoleData, DefaultChannels
+from botData.dataObjects import OperationData, User, OpRoleData, PS2EventTrackOptions
 
 from userManager import UserLibrary
 
@@ -166,17 +167,27 @@ class Commander():
 			BUPrint.Debug("Configuring Scheduler...")
 
 			if commanderSettings.bAutoAlertsEnabled:
-				intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
-				setIntervals = 0
+				intervalTime = 0
+				if commanderSettings.bAutoStartEnabled:
+					intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
+				else:
+					# Event started manually, set interval from time now; if event isn't in the past.
+					timeUntilOps:timedelta = datetime.datetime.now(tz=datetime.timezone.utc) - self.vOpData.date
+					if timeUntilOps > 0:
+						intervalTime = timeUntilOps.seconds * 60
+				
+				# Set last interval as op start datetime; so that first interval is subtracted from it
 				lastInterval = self.vOpData.date
-			
-				while setIntervals < commanderSettings.autoAlertCount:
-					lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
 
-					self.alertTimes.append(lastInterval)
-					BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
-					self.scheduler.add_job( Commander.SendAlertMessage, 'date', run_date=lastInterval, args=[self] )
-					setIntervals += 1
+				setIntervals = 0
+				if intervalTime != 0:
+					while setIntervals < commanderSettings.autoAlertCount:
+						lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
+
+						self.alertTimes.append(lastInterval)
+						BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
+						self.scheduler.add_job( Commander.SendAlertMessage, 'date', run_date=lastInterval, args=[self] )
+						setIntervals += 1
 			
 			
 			# Setup AutoStart
@@ -265,17 +276,18 @@ class Commander():
 		Creates text channels used for the Operation.
 		If existing channels are found, they are used instead.
 		"""
+		
 		bFoundCommander = False
 		bFoundNotif = False
 		# Find existing Commander & Notif channels
 		for txtChannel in self.vCategory.text_channels:
-			if txtChannel.name.lower() == DefaultChannels.opCommander.lower():
+			if txtChannel.name.lower() == commanderSettings.defaultChannels.opCommander.lower():
 				BUPrint.Debug("Existing op commander channel found in category, using that instead.")
 				self.commanderChannel = txtChannel
 				await self.commanderChannel.purge()
 				bFoundCommander = True
 
-			if txtChannel.name.lower() == DefaultChannels.notifChannel.lower():
+			if txtChannel.name.lower() == commanderSettings.defaultChannels.notifChannel.lower():
 				BUPrint.Debug("Existing notification channel found in category, using that instead.")
 				self.notifChn = txtChannel
 				await self.notifChn.purge()
@@ -288,20 +300,20 @@ class Commander():
 		# Manually create Commander & Notif channel if not already present
 		if self.commanderChannel == None:
 			self.commanderChannel = await self.vCategory.create_text_channel(
-				name=DefaultChannels.opCommander,
+				name=commanderSettings.defaultChannels.opCommander,
 				overwrites=ChanPermOverWrite.level2
 			)
 
 		if self.notifChn == None:
 			self.notifChn = await self.vCategory.create_text_channel(
-				name=DefaultChannels.notifChannel,
+				name=commanderSettings.defaultChannels.notifChannel,
 				overwrites=ChanPermOverWrite.level3_readOnly
 			)
 
 		# Add non-existing channels for custom text channels
 		txtChannelName:str
-		for txtChannelName in DefaultChannels.textChannels:
-			if txtChannelName.lower() not in self.vCategory.text_channels:
+		for txtChannelName in commanderSettings.defaultChannels.textChannels:
+			if txtChannelName != "" and txtChannelName.lower() not in self.vCategory.text_channels:
 				await self.vCategory.create_text_channel(
 					name=txtChannelName,
 					overwrites=ChanPermOverWrite.level3
@@ -317,18 +329,20 @@ class Commander():
 		# Create always present voice channels:
 		bAlreadyExists = False
 		for existingChannel in self.vCategory.voice_channels:
-			if existingChannel.name.lower() == DefaultChannels.standByChannel.lower():
+			if existingChannel.name.lower() == commanderSettings.defaultChannels.standByChannel.lower():
 				bAlreadyExists = True
 				BUPrint.Debug("Existing standby channel found.")
 				self.standbyChn = existingChannel
 				break
 
 		if self.standbyChn == None:
-			self.standbyChn = await self.vCategory.create_voice_channel(name=DefaultChannels.standByChannel)
+			self.standbyChn = await self.vCategory.create_voice_channel(name=commanderSettings.defaultChannels.standByChannel)
 
 		BUPrint.Debug("	-> Creating default chanels")
-		if len(DefaultChannels.persistentVoice) != 0:
-			for newChannel in DefaultChannels.persistentVoice:
+		if len(commanderSettings.defaultChannels.persistentVoice) != 0:
+			for newChannel in commanderSettings.defaultChannels.persistentVoice:
+				if newChannel == "":
+					return
 
 				bAlreadyExists = False
 				for existingChannel in self.vCategory.voice_channels:
@@ -364,7 +378,7 @@ class Commander():
 		else: # No custom voice channels given, use default
 		
 			BUPrint.Debug("	-> No voice channels specified, using defaults...")
-			for newChannel in DefaultChannels.voiceChannels:
+			for newChannel in commanderSettings.defaultChannels.voiceChannels:
 				BUPrint.Debug(f"	-> Adding channel: {newChannel}")
 	
 				bAlreadyExists = False
@@ -600,6 +614,8 @@ class Commander():
 		# UPDATE PARTICIPANT TRACKING
 
 		If enabled, recursively check participants and enable tracking depending on the setting.
+
+		If tracking is enabled event has started and tracking is disabled for the user, they are considered non-attended.
 		"""
 		BUPrint.Debug("Updating user tracking...")
 		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled and self.vOpData.options.bIsPS2Event:
@@ -650,6 +666,31 @@ class Commander():
 					BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now DISABLED ({participantObj.bIsTracking})")
 					participantObj.bIsTracking = False
 
+
+		# REMOVE NON TRACKED ("unattended/late") PARTICIPANTS 
+		if self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.Started and commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
+			BUPrint.Debug("Ops started, checking participant tracking status.")
+
+			for participant in self.participants:
+				if participant.bIsTracking == False:
+					BUPrint.Debug(f"Participant: {participant.discordUser.display_name} was untracked and thus marked as not participating.")
+					self.participants.remove(participant)
+
+					if participant.libraryEntry != None:
+						participant.libraryEntry.eventsMissed += 1
+						UserLibrary.SaveEntry(participant.libraryEntry)
+
+		elif not self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.Started and commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
+			BUPrint.Debug("Non PS2 Ops started, checking participant tracking status.")
+
+			for participant in self.participants:
+				if participant.bIsTracking == False:
+					BUPrint.Debug(f"Participant: {participant.discordUser.display_name} was untracked and thus marked as not participating.")
+					self.participants.remove(participant)
+
+					if participant.libraryEntry != None:
+						participant.libraryEntry.eventsMissed += 1
+						UserLibrary.SaveEntry(participant.libraryEntry)
 
 
 
@@ -1213,16 +1254,23 @@ class Commander():
 			return
 
 		# If early start; stop connection refresh & autostart
-		vSchedJob = self.scheduler.get_job("ConnectionRefresh")
-		if vSchedJob != None:
-			BUPrint.Debug("Event started early; stopping `ConnectionRefresh` job.")
-			self.scheduler.remove_job("ConnectionRefresh")
+		self.scheduler.remove_all_jobs()
+
+		# Add UpdateParticipant refresh after grace period
+		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
+			gracePeriodTime = self.vOpData.date + dateutil.relativedelta.relativedelta(minutes= commanderSettings.gracePeriod)
+			self.scheduler.add_job( Commander.UpdateParticipantTracking, 'date', run_date=gracePeriodTime, args=[self] )
+
+		# vSchedJob = self.scheduler.get_job("ConnectionRefresh")
+		# if vSchedJob != None:
+		# 	BUPrint.Debug("Event started early; stopping `ConnectionRefresh` job.")
+		# 	self.scheduler.remove_job("ConnectionRefresh")
 
 
-		vSchedJob = self.scheduler.get_job("CommanderAutoStart")
-		if vSchedJob != None:
-			BUPrint.Debug("Event started early; stopping `CommanderAutoStart` job.")
-			self.scheduler.remove_job("CommanderAutoStart")
+		# vSchedJob = self.scheduler.get_job("CommanderAutoStart")
+		# if vSchedJob != None:
+		# 	BUPrint.Debug("Event started early; stopping `CommanderAutoStart` job.")
+		# 	self.scheduler.remove_job("CommanderAutoStart")
 
 
 
@@ -1261,6 +1309,10 @@ class Commander():
 		self.bHasSoftEnded = True
 
 		vDuration: datetime.timedelta = datetime.datetime.now(tz=datetime.timezone.utc) - self.trueStartTime
+
+		if bool(not commanderSettings.bSaveNonPS2ToSessions and not self.vOpData.options.bIsPS2Event) or commanderSettings.trackEvent == PS2EventTrackOptions.Disabled:
+			return
+
 
 		for participant in self.participants:
 			if participant.bIsTracking:

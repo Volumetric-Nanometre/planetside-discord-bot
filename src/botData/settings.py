@@ -51,7 +51,9 @@ class BotSettings:
 	roleRestrict_level_2 = ["Sergeant", "Corporal", "Lance-Corporal"]
 
 	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
-
+	# A special role restrict reserved specifically for those entrusted with BotAdmin. While named roleRestrict, only User IDs should be used.
+	roleRestrict_ADMIN = [182664228107321344] # DEV VALUE
+	# roleRestrict_ADMIN = [182933627242283008] # LIVE VALUE
 	"""
 	Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles in roleRestrict variables.
 	users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.
@@ -124,19 +126,6 @@ class NewUsers:
 
 
 
-class PS2EventTrackOptions(Enum):
-	"""
-	EVENT TRACKING OPTIONS:
-	Sets the requirements for when to enable tracking a ps2 event.
-
-	NOTE: To change the setting, See `botData.settings.Commander.trackEvent`.
-	"""
-	Disabled = 0
-	InGameOnly = 10
-	InGameAndDiscordVoice = 20
-
-
-
 
 @dataclass(frozen=True)
 class Commander:
@@ -145,10 +134,18 @@ class Commander:
 	Settings used by Op Commanders.
 	"""
 	# Track Event: Setting to determine which participants of a ps2 event are tracked
-	trackEvent = PS2EventTrackOptions.InGameOnly
+	trackEvent = botData.dataObjects.PS2EventTrackOptions.InGameOnly
 
 	# Marked Present: Setting to determine when a participant is considered part of the event and their userLib entry is updated
-	markedPresent = PS2EventTrackOptions.InGameAndDiscordVoice
+	markedPresent = botData.dataObjects.PS2EventTrackOptions.InGameAndDiscordVoice
+
+	# Save Non PS2 Events to Sessions: When true, an entry for non-PS2 events is added to a users session history.
+	# Because there's no stats to show, only the date, duration and a message informing it isn't for ps2 are shown.
+	bSaveNonPS2ToSessions = True
+
+	# Grace Period: The time after an ops has started before participants are re-evaluated and marked non attending if they fail the requirements for markedPresent.
+	# Event tracking starts after this time.
+	gracePeriod = 10 # Minutes
 
 	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
 	bAutoStartEnabled = True
@@ -157,7 +154,7 @@ class Commander:
 	bAutoAlertsEnabled = True
 
 	# Commander Auto Alert Count: The number of automatic alerts a commander will send. These are distributed throughout the pre-start time.
-	autoAlertCount = 2
+	autoAlertCount = 3
 
 	# Commander- Auto Move Voice Channel: If enabled, participating users are moved to the standby channel on Ops start if they're in a voice channel.
 	bAutoMoveVCEnabled = True
@@ -168,14 +165,35 @@ class Commander:
 
 	# Number of minutes before an ops scheduled start the bot prestarts AutoStart enabled Ops (Non AutoStart enabled Ops require a user to use `/ops-commander` command)
 	# A buffer of 5 minutes is added to this time to ensure sufficient time for alerts.
-	autoPrestart = 30
+	autoPrestart = 45
 
 	# Sober Feedback ID: The ID of the forum to post a new SoberDogs Debrief message into.
 	soberFeedbackID = 1042463290472800317
 
 	# Connection Refresh Interval: time in seconds the connection embed is refreshed. (0 = disabled)
-	# For sub-65 seconds, a valid ps2 service id is needed.
+	# A valid ps2 service id is needed.
 	connectionRefreshInterval = 30
+
+	# These channels are created for EVERY event, inside its own category, which are then removed when the event ends.
+	defaultChannels = botData.dataObjects.DefaultChannels(
+		# Text Channels: Persistent text channels that are always created.
+		textChannels= [],
+
+		# The Name of the channel the COMMANDER is in.
+		opCommander = "Commander",
+
+		# Notifications: Name of the channel notifications & feedback messages are sent to.
+		notifChannel = "Notifications",
+
+		# Standby Voice Channel: Name of channel users are automatically moved into (if enabled) when ops starts.
+		standByChannel= "Standby",
+
+		# Persistent Voice: Same as Text Channels- always created voice channels.
+		persistentVoice= [],
+		
+		# Voice Channels: If custom channels are not specified in the Op Data, these are used instead.
+		voiceChannels= ["Squad-Alpha", "Squad-Beta", "Squad-Charlie", "Squad-Delta"]
+	)
 
 	# Icons for the CONNECTIONS embed.
 		# Discord
@@ -333,7 +351,7 @@ class UserLib:
 	# Remove Entry On Leave: If true, a users entry is removed when they leave the server.
 	bRemoveEntryOnLeave = False
 
-	# Remove Special Entry on Leave: If true, a users special entry is remove when they leave the server.
+	# Remove Special Entry on Leave: If true, a users special entry is removed when they leave the server.
 	# If enabled, requires `bRemoveEntryOnLeave` to also be TRUE.
 	bRemoveSpecialEntryOnLeave = False
 

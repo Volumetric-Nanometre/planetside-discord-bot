@@ -12,6 +12,7 @@ import atexit
 from botUtils import FilesAndFolders
 from botUtils import BotPrinter as BUPrint
 from botData.settings import BotSettings
+import signal
 
 FilesAndFolders.SetupFolders()
 
@@ -27,5 +28,7 @@ except KeyboardInterrupt:
 	BUPrint.Info("Keyboard interrupt detected.")
 finally:
 	mainLoop.close()
+
+BUPrint.Info("Bot shutdown complete.")
 
 # asyncio.run( ps2Bot.run(BotSettings.discordToken), debug=BotSettings.bDebugEnabled)

@@ -987,6 +987,16 @@ class LibraryViewer():
 			value=str(p_session.score)
 		)
 
+		if len(p_session.funEvents) != 0:
+			vEventString = ""
+			for event in p_session.funEvents:
+				vEventString += f"{event}\n"
+			vEmbed.add_field(
+				name="Fun Events",
+				value=vEventString,
+				inline=False
+			)
+
 		return vEmbed
 
 

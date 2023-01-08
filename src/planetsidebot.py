@@ -16,6 +16,7 @@ from OpCommander.autoCommander import CommanderCommands
 from OpCommander.commander import Commander
 from userManager import UserLibraryCog, UserLibraryAdminCog, UserLibrary, UserLib_RecruitValidationRequest
 from chatUtility import ChatUtilityCog
+from botAdmin import BotAdminCog
 
 from botData.sanityChecker import SanityCheck
 
@@ -45,6 +46,7 @@ class Bot(commands.Bot):
         await self.add_cog(UserLibraryCog(self))
         await self.add_cog(UserLibraryAdminCog(self))
         await self.add_cog(ChatUtilityCog(self))
+        await self.add_cog(BotAdminCog(self))
 
         self.tree.copy_global_to(guild=self.vGuildObj)
         await self.tree.sync(guild=self.vGuildObj)

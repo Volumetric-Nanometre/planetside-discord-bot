@@ -148,6 +148,58 @@ class CommanderStatus(Enum):
 	Ended = 40		# Ended: User has ended Ops,  auto-cleanup.
 
 
+class PS2EventTrackOptions(Enum):
+	"""
+	EVENT TRACKING OPTIONS:
+	Sets the requirements for when to enable tracking a ps2 event.
+	This enum is also used for marking present, where `InGameOnDisVDAndDuration` may be used.
+
+	NOTE: To change the setting, See `botData.settings.Commander.trackEvent`.
+	NOTE: In Game, On Discord Voice And Duration; the value is the time in minutes to be used.
+	"""
+	Disabled = 0
+	InGameOnly = 10
+	InGameAndDiscordVoice = 20
+	InGameOnDisVCAndDuration = 30
+
+
+
+
+# SESSION SUB OBJECTS
+@dataclass
+class PS2SessionKDA:
+	""" # PS2 SESSION: KILLS ASSISTS AND DEATHS
+	Data object containing KDA information for a session.
+	"""
+	kills = 0
+	killedAllies = 0
+	killedSquad = 0
+	assists = 0
+	vehiclesDestroyed = 0
+
+	deathTotal = 0
+	deathByEnemies = 0
+	deathByAllies = 0
+	deathBySquad = 0
+
+
+class PS2SessionEngineer:
+	"""
+	# PS2 SESSION : ENGINEER SPECIFIC DATA
+	Role specific data 
+	"""
+	repairScore = 0
+	resupplyScore = 0
+
+
+class PS2SessionMedic:
+	"""
+	# PS2 SESSION : MEDIC SPECIFIC DATA
+	"""
+	revives = 0
+	heals = 0
+
+
 @dataclass
 class Session:
 	"""
@@ -158,13 +210,11 @@ class Session:
 	bIsPS2Event: bool = True
 	date: datetime = None
 	duration: float = 0
-	kills: int = 0
-	deaths:int = 0
-	assists:int = 0
-	revives:int = 0
-	heals:int = 0
-	repairs:int = 0
+	kda = None
+	medicData = None
+	engineerData = None
 	score: int = 0
+	funEvents:list[str] = field(default_factory=list)
 
 
 
@@ -586,16 +636,24 @@ class DefaultChannels:
 	Name of channels used during Operations.
 	"""
 	# Text chanels created for every Op
-	textChannels = []
+	textChannels:list
 	# Op Commander Channel: Name of the channel used for the Ops Commander
-	opCommander = "Commander"
+	opCommander:str
 	# Notification Channel: Name of channel used to send op auto alerts and interactive debrief messages.
-	notifChannel = "Notifications"
+	notifChannel:str
 	# Standby channel- the channel(name) users are moved into if they are connected during Ops soft start
-	standByChannel = "Standby"
+	standByChannel:str
 	# Persistent Voice channels are channels that are ALWAYS created for every operation
-	persistentVoice = []
+	persistentVoice:list
 	# If voice channels are not specified in the ops data, these are used instead
-	voiceChannels = ["Squad-Alpha", "Squad-Beta", "Squad-Charlie", "Squad-Delta"]
-	# Debrief: If not specified in Ops data, this is used instead
-	debriefChannel = "debrief"
+	voiceChannels:list
+
+	def __repr__(self) -> str:
+		vString = "\n"
+		vString += f"		> Text Channels: {self.textChannels}\n"
+		vString += f"		> Voice Channels: {self.voiceChannels}\n"
+		vString += f"		> Persistent Voice: {self.persistentVoice}\n"
+		vString += f"		> Commander Channel: {self.opCommander}\n"
+		vString += f"		> Notifications Channel: {self.notifChannel}\n"
+		vString += f"		> Standby Channel: {self.standByChannel}\n"
+		return vString		

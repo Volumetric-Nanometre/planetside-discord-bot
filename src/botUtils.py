@@ -514,9 +514,10 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Automove VC ID:	{Commander.autoMoveBackChannelID}\n"
 	vString += f"	> Soberdogs Feedback:	{Commander.soberFeedbackID}\n"
 	vString += f"	> ConnectionsRefresh:	{Commander.connectionRefreshInterval} seconds\n"
+	vString += f"	> Default Channels: {Commander.defaultChannels}\n"
 
 
-	vString += "	BOT DIRECTORY SETTINGS\n"
+	vString += "\n	BOT DIRECTORY SETTINGS\n"
 	vString += f"	> Prefix Dir :	{Directories.prefixDir}\n"
 	vString += f"	> LiveOps Dir:	{Directories.liveOpsDir}\n" 
 	vString += f"	> DefaultsDir:	{Directories.savedDefaultsDir}\n" 
@@ -528,7 +529,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Clean Temp On Shutdown: {Directories.bCleanTempOnShutdown}\n"
 
 
-	vString += "	SIGN UP SETTINGS\n"
+	vString += "\n	SIGN UP SETTINGS\n"
 	vString += f"	> Signup Cat  : {SignUps.signupCategory}\n"
 	vString += f"	> Resign Icon : {SignUps.resignIcon}\n" 
 	vString += f"	> Reserve Icon: {SignUps.reserveIcon}\n"
