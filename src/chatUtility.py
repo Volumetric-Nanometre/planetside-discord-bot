@@ -14,7 +14,7 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 	"""
 	def __init__(self, p_botRef):
 		self.botRef:commands.Bot = p_botRef
-		self.adminLevel = Settings.CommandRestrictionLevels.level0
+		self.adminLevel = Settings.CommandLimit.chatUtilities
 		BUPrint.Info("COG: Chat Monitor loaded!")
 
 	@app_commands.command(name="move", description="Move all users from one channel to another.")

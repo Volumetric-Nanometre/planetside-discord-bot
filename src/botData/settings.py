@@ -21,6 +21,7 @@ from enum import Enum
 from sys import stderr
 
 
+
 @dataclass(frozen=True)
 class BotSettings:
 	# TOKENS LOADED FROM .ENV FILE
@@ -54,6 +55,8 @@ class BotSettings:
 	# A special role restrict reserved specifically for those entrusted with BotAdmin. While named roleRestrict, only User IDs should be used.
 	roleRestrict_ADMIN = [182664228107321344] # DEV VALUE
 	# roleRestrict_ADMIN = [182933627242283008] # LIVE VALUE
+
+
 	"""
 	Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles in roleRestrict variables.
 	users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.
@@ -81,6 +84,56 @@ class BotSettings:
 		RestrictLevels= True
 	)
 
+
+
+
+class CommandRestrictionLevels(Enum):
+	"""
+	# COMMAND RESTRICTION LEVELS
+	Convenience Enum for setting levels, or to get a list of roles.
+
+	Should almost always be used instead of raw roleRestrict_level_n
+
+	Use `botUtils.UserHasCommandPerms` to check if a calling user has valid permissions.
+
+	NOTE: Not to be edited: for changing values, edit `BotSettings.roleRestrict_level_x`
+	"""
+	level0 = BotSettings.roleRestrict_level_0
+	level1 = level0 + BotSettings.roleRestrict_level_1
+	level2 = level1 + BotSettings.roleRestrict_level_2
+	level3 = level2 + BotSettings.roleRestrict_level_3
+
+
+
+
+@dataclass(frozen=True)
+class CommandLimit:
+	"""
+	# COMMAND LIMIT
+	Settings pertaining to each command and certain button usage in the bot;
+	Stored here to avoid needing to hunt down individual files and commands.
+	"""
+	# New Users (Admin Buttons)
+	validateNewuser = CommandRestrictionLevels.level1
+
+	# General User role add/remove (user assignable roles: Commands)
+	userRoles = CommandRestrictionLevels.level3
+
+	# Op Commander Start/Feedback (Commands)
+	opCommander = CommandRestrictionLevels.level2
+
+	# User Library: General users (Commands)
+	userLibrary = CommandRestrictionLevels.level3
+
+	# Administrative User Library (Commands)
+	userLibraryAdmin = CommandRestrictionLevels.level1
+
+	# Chat Utilities - Administrative (Commands)
+	chatUtilities = CommandRestrictionLevels.level1
+
+	# Admin cog has no CommandLimit entry, because it uses the direct roleRestrict_ADMIN value.
+
+	
 
 
 @dataclass(frozen=True)
@@ -210,6 +263,7 @@ class Commander:
 	connIcon_ps2Offline = "🔴"
 	connIcon_ps2Invalid = "❌" # Users who have an invalid/non-matching PS2 name
 	
+
 
 
 @dataclass(frozen=True)
@@ -357,6 +411,7 @@ class UserLib:
 
 
 
+
 @dataclass(frozen=True)
 class Messages:
 	"""
@@ -434,6 +489,8 @@ class Messages:
 	
 	# No User Entry Self: Shown when a user tries to view their own entry and userAutoCreate is disabled.
 	NoUserEntrySelf = "You have no entry.  Ask an administrator to make one for you."
+
+
 
 
 @dataclass(frozen=True)
@@ -552,21 +609,3 @@ class Roles:
 		# SelectOption(label="", value=""),
 		# SelectOption(label="", value="")
 	]
-
-
-
-class CommandRestrictionLevels(Enum):
-	"""
-	# COMMAND RESTRICTION LEVELS
-	Convenience Enum for setting levels, or to get a list of roles.
-
-	Should almost always be used instead of raw roleRestrict_level_n
-
-	Use `botUtils.UserHasCommandPerms` to check if a calling user has valid permissions.
-	"""
-	level0 = BotSettings.roleRestrict_level_0
-	level1 = level0 + BotSettings.roleRestrict_level_1
-	level2 = level1 + BotSettings.roleRestrict_level_2
-	level3 = level2 + BotSettings.roleRestrict_level_3
-
-

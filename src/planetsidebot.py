@@ -76,11 +76,12 @@ class Bot(commands.Bot):
 
 
 
-    def ExitCalled(self):
+    async def ExitCalled(self):
         """
 		# EXIT CALLED
 		Called when an exit signal is sent.
 		"""
         BUPrint.Info("Bot shutting down. Performing cleanup...")
         botUtils.FilesAndFolders.CleanupTemp()
-
+        for liveOp in self.vOpsManager.vLiveCommanders:
+            await liveOp.EndOperation()

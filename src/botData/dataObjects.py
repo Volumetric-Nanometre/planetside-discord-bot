@@ -12,6 +12,8 @@ import botUtils
 from auraxium.ps2 import Character as PS2Character
 import pickle
 
+
+
 @dataclass
 class SanityCheckOptions():
 	"""

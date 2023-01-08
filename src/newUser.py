@@ -7,7 +7,7 @@ import datetime, dateutil.relativedelta
 
 import botData.settings
 from botData.settings import NewUsers as NewUserSettings
-from botData.settings import CommandRestrictionLevels
+from botData.settings import CommandLimit
 from botUtils import BotPrinter, GetDiscordTime, UserHasCommandPerms, GetGuild
 from botData.utilityData import Colours, DateFormat
 
@@ -449,7 +449,7 @@ class NewUserRequest_btnReject(discord.ui.Button):
 
 	async def callback(self, pInteraction: discord.Interaction):
 		# HARDCODED ROLE USEAGE:
-		if not await UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level1), pInteraction):
+		if not await UserHasCommandPerms(pInteraction.user, (CommandLimit.validateNewuser), pInteraction):
 			return
 
 		await self.userData.userObj.kick(reason=f"User join request denied by {pInteraction.user.display_name}")
@@ -471,7 +471,7 @@ class NewUserRequest_btnBan(discord.ui.Button):
 		)
 
 	async def callback(self, pInteraction: discord.Interaction):
-		if not await UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level1), pInteraction):
+		if not await UserHasCommandPerms(pInteraction.user, (CommandLimit.validateNewuser), pInteraction):
 			return
 
 		await self.userData.userObj.ban(reason=f"User join request denied by {pInteraction.user.display_name}")
@@ -492,7 +492,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		) # END - Init
 
 	async def callback(self, pInteraction: discord.Interaction):
-		if not await UserHasCommandPerms(pInteraction.user, (CommandRestrictionLevels.level1), pInteraction):
+		if not await UserHasCommandPerms(pInteraction.user, (CommandLimit.validateNewuser), pInteraction):
 			return
 
 		vAssignedRoleName = ""

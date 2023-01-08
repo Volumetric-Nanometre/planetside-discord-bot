@@ -3,7 +3,7 @@ import sys
 import datetime
 import time
 from sys import stderr
-from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib
+from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib, CommandLimit
 import botData.utilityData as UtilityData
 import traceback
 import discord
@@ -489,6 +489,17 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Sanity Check Values: {BotSettings.bCheckValues}\n"
 	if BotSettings.bCheckValues:
 		vString += f"{BotSettings.sanityCheckOpts}"
+
+
+	vString += f"	COMMAND LIMITS\n"
+	vString += f"	> Validate New User: {CommandLimit.validateNewuser.name}\n"
+	vString += f"	> User Roles: {CommandLimit.userRoles.name}\n"
+	vString += f"	> Op Commander: {CommandLimit.opCommander.name}\n"
+	vString += f"	> User Library: {CommandLimit.userLibrary.name}\n"
+	vString += f"	> User Library Admin: {CommandLimit.userLibraryAdmin.name}\n"
+	vString += f"	> Chat Utilities: {CommandLimit.chatUtilities.name}\n"
+
+
 
 	vString += "\n	NEW USER SETTINGS\n"
 	vString += f"	> Gate channel:		{NewUsers.gateChannelID}\n"

@@ -12,7 +12,7 @@ from botUtils import UserHasCommandPerms, FilesAndFolders
 from botUtils import BotPrinter as BUPrint
 
 import botData.settings as BotSettings
-
+from botData.settings import CommandLimit
 from botData.dataObjects import OperationData
 
 import opsManager
@@ -48,7 +48,7 @@ class CommanderCommands(commands.Cog):
 	@app_commands.rename(p_opFile = "operation")
 	async def manualcommander(self, p_interaction: Interaction, p_opFile: str):
 		# HARDCODED ROLE USEAGE:
-		if not await UserHasCommandPerms(p_interaction.user, (BotSettings.CommandRestrictionLevels.level2), p_interaction):
+		if not await UserHasCommandPerms(p_interaction.user, (BotSettings.CommandLimit.opCommander), p_interaction):
 			return
 
 		vOpData: OperationData
@@ -83,7 +83,7 @@ class CommanderCommands(commands.Cog):
 		# Sends a message containing the feedback of an event.
 		"""
 		# HARDCODED ROLE USEAGE:
-		if not await UserHasCommandPerms(p_interaction.user, (BotSettings.CommandRestrictionLevels.level2), p_interaction):
+		if not await UserHasCommandPerms(p_interaction.user, (BotSettings.CommandLimit.opCommander), p_interaction):
 			return
 
 		try:

@@ -24,7 +24,7 @@ from botData.dataObjects import User, Session
 from botData.utilityData import DateFormat
 
 import botData.settings as settings
-from botData.settings import CommandRestrictionLevels
+from botData.settings import CommandLimit
 
 
 
@@ -43,7 +43,7 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 	@app_commands.rename(p_userToFind="user")
 	async def AboutUser(self, p_interaction:discord.Interaction, p_userToFind:discord.Member = None):
 		# HARDCODED ROLE USEAGE:
-		if not await UserHasCommandPerms(p_interaction.user, (settings.CommandRestrictionLevels.level3), p_interaction):
+		if not await UserHasCommandPerms(p_interaction.user, (settings.CommandLimit.userLibrary), p_interaction):
 			return
 		userID = -1
 
@@ -80,7 +80,7 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 	Administrative commands and listeners for managing the user library.
 	"""
 	def __init__(self, p_botRef):
-		self.adminLevel = CommandRestrictionLevels.level1
+		self.adminLevel = settings.CommandLimit.userLibraryAdmin
 		self.botRef:commands.Bot = p_botRef
 		self.contextMenu_setAsRecruit = app_commands.ContextMenu(
 			name="Set as Recruit",

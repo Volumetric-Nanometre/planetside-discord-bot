@@ -7,20 +7,17 @@ https://github.com/LCWilliams/planetside-discord-bot
 
 from planetsidebot import Bot
 import asyncio
-import atexit
+import atexit, asyncio_atexit
 
 from botUtils import FilesAndFolders
 from botUtils import BotPrinter as BUPrint
 from botData.settings import BotSettings
-import signal
 
 FilesAndFolders.SetupFolders()
 
 ps2Bot = Bot()
-atexit.register(ps2Bot.ExitCalled)
-
-
 mainLoop = asyncio.get_event_loop()
+asyncio_atexit.register(callback=ps2Bot.ExitCalled, loop=mainLoop)
 
 try:
 	mainLoop.run_until_complete(ps2Bot.start(BotSettings.discordToken))
@@ -28,7 +25,7 @@ except KeyboardInterrupt:
 	BUPrint.Info("Keyboard interrupt detected.")
 finally:
 	mainLoop.close()
+	BUPrint.Info("Bot shutdown complete.")
 
-BUPrint.Info("Bot shutdown complete.")
 
 # asyncio.run( ps2Bot.run(BotSettings.discordToken), debug=BotSettings.bDebugEnabled)

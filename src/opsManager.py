@@ -1,5 +1,6 @@
 # Ops Manager: Manages creating, editing and removing of Ops.
 # For live ops being started, see OpsCommander
+from __future__ import annotations
 
 import os, copy
 import datetime, dateutil.relativedelta
@@ -207,8 +208,8 @@ class OperationManager():
 	Holds list of saved op file names, and their corresponding opData object.
 	Should be used to manage Op related messages, including creation, deletion and editing.
 	"""
-	vLiveOps: list = [] # List of Live Ops (botData.OperationData)
-	vLiveCommanders = []
+	vLiveOps: list[OperationData] = [] # List of Live Ops (botData.OperationData)
+	vLiveCommanders:list [OpCommander.commander.Commander] = []
 	vBotRef: commands.Bot = None
 	
 	def __init__(self):
