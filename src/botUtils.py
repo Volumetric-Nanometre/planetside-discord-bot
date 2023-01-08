@@ -467,6 +467,15 @@ def PrintSettings(bGetOnly = False):
 	"""
 	vString = "\n"
 
+	vString += "\n	FEATURES\n"
+	vString += f"	> [{BotSettings.botFeatures.BotAdmin}] Bot Admin\n"
+	vString += f"	> [{BotSettings.botFeatures.NewUser}] New User\n"
+	vString += f"	> [{BotSettings.botFeatures.Operations}] Operations\n"
+	vString += f"	> [{BotSettings.botFeatures.UserLibrary} User Library]\n"
+	vString += f"	> [{BotSettings.botFeatures.UserRoles}] User Roles\n"
+	vString += f"	> [{BotSettings.botFeatures.chatUtility}]  Chat Utility\n"
+
+
 	vString += "\n	GENERAL BOT SETTINGS\n"
 	vString += f"	> DebugEnabled: {BotSettings.bDebugEnabled}\n"
 	token = BotSettings.discordToken[:5] # Always hide most of the token; shows JUST the first 5 characters.
