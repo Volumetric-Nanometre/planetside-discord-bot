@@ -66,7 +66,7 @@ class BotAdminCog(GroupCog, name="admin", description="Administrative commands a
 				return
 
 		if vAdminChn != None:
-			await p_interaction.response.send_message("Posting settings...")
+			await p_interaction.response.send_message("Posting settings...", ephemeral=True)
 			vSettingStr = PrintSettings(True)
 			splitString = [(vSettingStr[index:index+1995]) for index in range(0, len(vSettingStr), 1995)]
 			for segment in splitString:
