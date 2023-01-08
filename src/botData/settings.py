@@ -30,6 +30,29 @@ class BotSettings:
 	ps2ServiceID = Env.PS2_SVS_ID
 	botDir		 = Env.BOT_DIR
 
+	# BOT FEATURES:  Convenience function to Enable or Disable functionality.  Any co-dependnacy will behave based on these settings.
+	botFeatures = botData.dataObjects.BotFeatures(
+		# Bot Admin: Enables commands specifically for administrative bot tasks (currently, just show config & shutdown)
+		BotAdmin= True,
+
+		# New User: Enables a feature that monitors for new users, who are presented with a dialog to enter their PS2 name, read the rules and request access.
+		# On requesting access, a request is sent to the bot-admin channel for an admin to review & assign role, or kick/ban the user.  
+		NewUser= True,
+
+		# User Library: Cog which saves specific data about users to file, including their PS2 name, birthdate (if provided), a mini about, any saved sessions, and admin messages.
+		# There is an administative cog associated with the user library, containing administrative commands.
+		UserLibrary= True,
+
+		# Operations:  Cog which contains commands to create, edit and delete operations (live and defaults), and operation commanders.
+		Operations= True,
+
+		# Chat Utility: Cog with administrative commands for chats & category manipulation, and linking voice-chat to text-chat channels.
+		chatUtility= True,
+
+		# User Roles: Cog which enables users to self-assign roles using a command (or button on newUser, if enabled)
+		UserRoles= True,
+	)
+
 	# Admin Chanel: The chanel admin related features are directed to.
 	adminChannel = 1049424595750506527 # DEV VALUE
 	# adminChannel = -1 # LIVE VALUE
@@ -56,7 +79,6 @@ class BotSettings:
 	# ROLE RESTRICT: ADMIN	A special role restrict reserved specifically for those entrusted with BotAdmin. While named roleRestrict, only User IDs should be used.
 	roleRestrict_ADMIN = [182664228107321344] # DEV VALUE
 	# roleRestrict_ADMIN = [182933627242283008] # LIVE VALUE
-
 
 	"""
 	Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles in roleRestrict variables.
@@ -225,7 +247,7 @@ class Commander:
 	soberFeedbackID = 1042463290472800317
 
 	# Connection Refresh Interval: time in seconds the connection embed is refreshed. (0 = disabled)
-	# A valid ps2 service id is needed.
+	# This stops being refreshed once the event starts.
 	connectionRefreshInterval = 30
 
 	# These channels are created for EVERY event, inside its own category, which are then removed when the event ends.
@@ -359,7 +381,7 @@ class UserLib:
 	# The contents of this file are added to the General page; only admins are able to modify this text.
 	bEnableSpecialUsers = True
 
-	# Commander can Auto Create: When true, new user library entries are created for non-existant entries if a valid ps2 name is found from their username.
+	# Commander can Auto Create: When true, new user library entries are created for non-existant entries if a valid ps2 name is found from their username during a live operation.
 	bCommanderCanAutoCreate = True
 
 	# User Can Self Create: When true, if an entry doesn't exist for a user and its themself, a new entry is created.
@@ -495,6 +517,9 @@ class Messages:
 
 	# No signed up Events: Shown to user when they use "show_events" and they're not in any.
 	noSignedUpEvents = f"You're not signed up to any events!  Check the {SignUps.signupCategory} category for active events."
+
+	# Feature Disabled: Shown when a command that depends on another feature is disabled.
+	featureDisabled = "That feature has been disabled."
 
 
 

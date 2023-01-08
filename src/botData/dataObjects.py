@@ -37,6 +37,22 @@ class SanityCheckOptions():
 		return vString
 
 
+@dataclass(frozen=True)
+class BotFeatures:
+	"""
+	# BOT FEATURES
+	A class pertaining to overall features, allowing things to be disabled more gracefully (since some items may tie into one another)
+	"""
+	BotAdmin:bool
+	NewUser: bool
+	UserLibrary: bool
+	Operations: bool
+	chatUtility: bool
+	UserRoles: bool
+
+
+
+
 @dataclass
 class UserSettings:
 	"""

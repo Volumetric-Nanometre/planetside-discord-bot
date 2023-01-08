@@ -596,7 +596,7 @@ class Commander():
 					newParticipant = Participant(discordID=participantID)
 					self.participants.append(newParticipant)
 
-
+	
 		await self.LoadParticipantData()
 
 		if self.vCommanderStatus == CommanderStatus.Started:
@@ -676,7 +676,7 @@ class Commander():
 					BUPrint.Debug(f"Participant: {participant.discordUser.display_name} was untracked and thus marked as not participating.")
 					self.participants.remove(participant)
 
-					if participant.libraryEntry != None:
+					if botSettings.botFeatures.UserLibrary and participant.libraryEntry != None:
 						participant.libraryEntry.eventsMissed += 1
 						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
 
@@ -688,7 +688,7 @@ class Commander():
 					BUPrint.Debug(f"Participant: {participant.discordUser.display_name} was untracked and thus marked as not participating.")
 					self.participants.remove(participant)
 
-					if participant.libraryEntry != None:
+					if botSettings.botFeatures.UserLibrary and participant.libraryEntry != None:
 						participant.libraryEntry.eventsMissed += 1
 						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
 
@@ -710,12 +710,12 @@ class Commander():
 				BUPrint.Debug("	-> Discord User not set, getting...")
 				participantObj.discordUser = vGuild.get_member(participantObj.discordID)
 
-			if participantObj.libraryEntry == None:
+			if participantObj.libraryEntry == None and botSettings.botFeatures.UserLibrary:
 				BUPrint.Debug("	-> Library Entry not set. Loading...")
 				participantObj.LibraryEntry = userManager.UserLibrary.LoadEntry(participantObj.discordID)
 
 
-			if participantObj.libraryEntry == None:
+			if participantObj.libraryEntry == None and botSettings.botFeatures.UserLibrary:
 				vNewEntry = User(discordID=participantObj.discordUser.id)
 				if userManager.UserLibrary.HasEntry(participantObj.discordID):
 					BUPrint.Debug("Loading Participant Data: Loading data.")
@@ -1313,23 +1313,23 @@ class Commander():
 		if bool(not commanderSettings.bSaveNonPS2ToSessions and not self.vOpData.options.bIsPS2Event) or commanderSettings.trackEvent == PS2EventTrackOptions.Disabled:
 			return
 
+		if botSettings.botFeatures.UserLibrary:
+			for participant in self.participants:
+				if participant.bIsTracking:
+					if participant.libraryEntry != None:
+						BUPrint.Info(f"Updating session information for: {participant.discordUser.display_name}")
+						if not self.vOpData.options.bIsPS2Event:
+							participant.userSession.bIsPS2Event = False
+						participant.userSession.duration = vDuration.seconds / 3600
+						participant.libraryEntry.eventsAttended += 1
+						participant.userSession.eventName = self.vOpData.name
 
-		for participant in self.participants:
-			if participant.bIsTracking:
-				if participant.libraryEntry != None:
-					BUPrint.Info(f"Updating session information for: {participant.discordUser.display_name}")
-					if not self.vOpData.options.bIsPS2Event:
-						participant.userSession.bIsPS2Event = False
-					participant.userSession.duration = vDuration.seconds / 3600
-					participant.libraryEntry.eventsAttended += 1
-					participant.userSession.eventName = self.vOpData.name
-
-					participant.libraryEntry.sessions.append(participant.userSession)
-					userManager.UserLibrary.SaveEntry(participant.libraryEntry)
-				
-				else: BUPrint.Debug(f"{participant.discordUser.display_name} has no library entry!  Cannot update sessions.")
-			else:
-				BUPrint.Debug(f"{participant.discordUser.display_name} has tracking disabled.")
+						participant.libraryEntry.sessions.append(participant.userSession)
+						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
+					
+					else: BUPrint.Debug(f"{participant.discordUser.display_name} has no library entry!  Cannot update sessions.")
+				else:
+					BUPrint.Debug(f"{participant.discordUser.display_name} has tracking disabled.")
 	
 
 	async def EndOperation(self):
@@ -1355,11 +1355,12 @@ class Commander():
 
 		BUPrint.Info(f"Operation {self.vOpData.name} has ended.")
 
-		# Query recruit participants.
-		for participant in self.participants:
-			if participant.libraryEntry != None:
-				if participant.libraryEntry.bIsRecruit:
-					await userManager.UserLibrary.QueryRecruit(participant.libraryEntry)
+		if botSettings.botFeatures.UserLibrary:
+			# Query recruit participants.
+			for participant in self.participants:
+				if participant.libraryEntry != None:
+					if participant.libraryEntry.bIsRecruit:
+						await userManager.UserLibrary.QueryRecruit(participant.libraryEntry)
 
 
 

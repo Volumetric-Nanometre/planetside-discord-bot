@@ -198,6 +198,34 @@ class Operations(commands.GroupCog):
 				# Allows bypassing discords max 25 item limit on dropdown lists.
 				choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option.replace(".bin", "")))
 		return choices
+
+
+
+	@app_commands.command(name="my_events", description="List all the events you are signed up to.")
+	async def GetMyEvents(self, p_interaction:discord.Interaction):
+		""" # GET MY EVENTS
+		App Command to get users signed up events.
+		"""
+
+		# HARDCODED ROLE USEAGE:
+		if not await botUtils.UserHasCommandPerms(p_interaction.user, (botSettings.CommandLimit.userLibrary), p_interaction):
+			return
+
+		await p_interaction.response.defer(thinking=True, ephemeral=True)
+		vMessage = ""
+
+		for liveEvent in OperationManager.vLiveOps:
+			signedUpRole = liveEvent.PlayerInOps(p_interaction.user.id)
+			if signedUpRole != "":
+				vMessage += f"- {liveEvent.name}, Starts {GetDiscordTime(liveEvent.date)}, signed up as: {signedUpRole}!"
+
+		
+		if vMessage == "":
+			await p_interaction.edit_original_response(content=botSettings.Messages.noSignedUpEvents)
+		else:
+			await p_interaction.edit_original_response(content=f"**Your Events:**\n{vMessage}")
+
+
 # END- Commands.CogGroup
 
 

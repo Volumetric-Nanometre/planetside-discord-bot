@@ -81,6 +81,10 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 		if not await UserHasCommandPerms(p_interaction.user, (settings.CommandLimit.userLibrary), p_interaction):
 			return
 
+		if not settings.BotSettings.botFeatures.Operations:
+			await p_interaction.response.send_message(settings.Messages.featureDisabled, ephemeral=True)
+			return
+
 		await p_interaction.response.defer(thinking=True, ephemeral=True)
 		vMessage = ""
 
@@ -106,19 +110,29 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 	def __init__(self, p_botRef):
 		self.adminLevel = settings.CommandLimit.userLibraryAdmin
 		self.botRef:commands.Bot = p_botRef
-		self.contextMenu_setAsRecruit = app_commands.ContextMenu(
-			name="Set as Recruit",
-			callback=self.SetUserAsRecruit
-		)
-		self.botRef.tree.add_command(self.contextMenu_setAsRecruit)
+
+		if settings.BotSettings.botFeatures.UserLibrary:
+			self.contextMenu_setAsRecruit = app_commands.ContextMenu(
+				name="Set as Recruit",
+				callback=self.SetUserAsRecruit
+			)
+			self.botRef.tree.add_command(self.contextMenu_setAsRecruit)
+
 		BUPrint.Info("COG: User Library Admin loaded!")
+
+
 
 	async def cog_unload(self) -> None:
 		self.botRef.tree.remove_command(self.contextMenu_setAsRecruit)
 		return await super().cog_unload()
 
 
+	# CONTEXT MENU COMMAND
 	async def SetUserAsRecruit(self, p_interaction:discord.Interaction, p_User:discord.Member):
+		"""
+		# SET USER AS RECRUIT
+		Context menu option that changes a user to a recruit.
+		"""
 		# HARDCODED ROLE USEAGE:
 		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
 			return		
@@ -260,6 +274,7 @@ class UserLibrary():
 		"""
 		return f"{settings.Directories.userLibrary}{p_userID}.bin"
 
+
 	def GetRecruitEntryPath(p_userID:int):
 		"""
 		# GET ENTRY PATH: RECRUIT
@@ -278,7 +293,6 @@ class UserLibrary():
 
 		`False` if no entry exists.
 		"""
-		bPathExists = False
 		if os.path.exists(f"{UserLibrary.GetEntryPath(p_UserID)}"):
 			return True
 
@@ -286,6 +300,7 @@ class UserLibrary():
 			return True
 
 		return False
+
 
 	def IsRecruitEntry(p_userID:int):
 		"""
@@ -306,8 +321,6 @@ class UserLibrary():
 		"""
 		vFilePath = ""
 		vLockFile = ""
-		bIsRecruit = False
-
 
 		# Recruits User entry is saved in wrong directory, remove it.
 		if p_entry.bIsRecruit and os.path.exists(UserLibrary.GetEntryPath(p_entry.discordID)):
@@ -415,6 +428,8 @@ class UserLibrary():
 		"""
 		# GET ALL ENTRIES
 		Loads all entries and returns them in a list.
+
+		NOTE: Extension is stripped.
 		"""
 		vEntryList = []
 		files = FilesAndFolders.GetFiles(settings.Directories.userLibrary, ".bin")
@@ -455,6 +470,7 @@ class UserLibrary():
 
 		True if character is found.
 		"""
+
 		if p_entry.ps2Name == "":
 			BUPrint.Debug("Invalid PS2 name given, shouldn't have been able to get here!")
 			return False
@@ -1330,7 +1346,7 @@ class UserLib_RecruitValidationRequest():
 
 		vUser = self.botRef.get_user(self.userEntry.discordID)
 
-		self.requestMsg = vAdminChn.send(f"User {vUser.mention} is ready to be promoted!", view=vView)
+		self.requestMsg = await vAdminChn.send(f"User {vUser.mention} is ready to be promoted!", view=vView)
 
 
 class RecruitValidationReq_btnAccept(discord.ui.Button):

@@ -37,16 +37,27 @@ class Bot(commands.Bot):
         BUPrint.Info("Setting up hooks...")
         # Needed for later functions, which want a discord object instead of a plain string.
         self.vGuildObj = await botUtils.GetGuild(self)
-# COGS
-        await self.add_cog(newUser.NewUser(self))
-        await self.add_cog(roleManager.UserRoles(self))
-        await self.add_cog(opsManager.Operations(self))
-        await self.add_cog(AutoCommander(self))
-        await self.add_cog(CommanderCommands(self))
-        await self.add_cog(UserLibraryCog(self))
-        await self.add_cog(UserLibraryAdminCog(self))
-        await self.add_cog(ChatUtilityCog(self))
-        await self.add_cog(BotAdminCog(self))
+# COGS	
+        if settings.BotSettings.botFeatures.NewUser:
+            await self.add_cog(newUser.NewUser(self))
+
+        if settings.BotSettings.botFeatures.NewUser:
+            await self.add_cog(roleManager.UserRoles(self))
+
+        if settings.BotSettings.botFeatures.Operations:
+            await self.add_cog(opsManager.Operations(self))
+            await self.add_cog(AutoCommander(self))
+            await self.add_cog(CommanderCommands(self))
+
+        if settings.BotSettings.botFeatures.UserLibrary:
+            await self.add_cog(UserLibraryCog(self))
+            await self.add_cog(UserLibraryAdminCog(self))
+
+        if settings.BotSettings.botFeatures.chatUtility:
+            await self.add_cog(ChatUtilityCog(self))
+
+        if settings.BotSettings.botFeatures.BotAdmin:
+            await self.add_cog(BotAdminCog(self))
 
         self.tree.copy_global_to(guild=self.vGuildObj)
         await self.tree.sync(guild=self.vGuildObj)
