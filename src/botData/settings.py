@@ -52,7 +52,8 @@ class BotSettings:
 	roleRestrict_level_2 = ["Sergeant", "Corporal", "Lance-Corporal"]
 
 	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
-	# A special role restrict reserved specifically for those entrusted with BotAdmin. While named roleRestrict, only User IDs should be used.
+	
+	# ROLE RESTRICT: ADMIN	A special role restrict reserved specifically for those entrusted with BotAdmin. While named roleRestrict, only User IDs should be used.
 	roleRestrict_ADMIN = [182664228107321344] # DEV VALUE
 	# roleRestrict_ADMIN = [182933627242283008] # LIVE VALUE
 
