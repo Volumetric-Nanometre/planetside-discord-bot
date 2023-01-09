@@ -35,7 +35,7 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 	def __init__(self, p_botRef:commands.Bot):
 		self.botRef = p_botRef
 		BUPrint.Info("COG: User Library loaded!")
-		if settings.UserLib.topQuoteReactions > 0:
+		if settings.UserLib.topQuoteReactions > 0 and settings.BotSettings.botFeatures.UserLibraryFun:
 			self.botRef.add_listener(self.CheckReactions, "on_raw_reaction_add")
 			self.botRef.add_listener(self.CheckReactions, "on_raw_reaction_remove")
 
@@ -97,10 +97,26 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 				vMessage += f"- {liveEvent.name}, Starts {GetDiscordTime(liveEvent.date)}, signed up as: {signedUpRole}!"
 
 		
-		if vMessage == "":
-			await p_interaction.edit_original_response(content=settings.Messages.noSignedUpEvents)
-		else:
+		if vMessage != "":
 			await p_interaction.edit_original_response(content=f"**Your Events:**\n{vMessage}")
+			return
+
+		# user in no events.  If there are events, get the signup channels for them.  First check if there are any events.
+		if len(opsManager.OperationManager.vLiveOps) == 0:
+			await p_interaction.edit_original_response(content=settings.Messages.noEvents)
+			return
+
+		vSignUpCat = None
+		for category in p_interaction.guild.categories:
+			if category.name == settings.SignUps.signupCategory:
+				vSignUpCat = category
+
+		vOpsChannelMentions = ""
+		for channel in vSignUpCat.text_channels:
+			vOpsChannelMentions += f" {channel.mention} "
+		
+		await p_interaction.edit_original_response(content=settings.Messages.noSignedUpEvents.replace("EVENTMENTION", vOpsChannelMentions, 1))
+
 
 
 	async def CheckReactions(self, p_data:discord.RawReactionActionEvent):

@@ -530,8 +530,11 @@ class Messages:
 	# No User Entry Self: Shown when a user tries to view their own entry and userAutoCreate is disabled.
 	NoUserEntrySelf = "You have no entry.  Ask an administrator to make one for you."
 
-	# No signed up Events: Shown to user when they use "show_events" and they're not in any.
-	noSignedUpEvents = f"You're not signed up to any events!  Check the {SignUps.signupCategory} category for active events."
+	# No signed up Events: Shown to user when they use "show_events" and they're not in any. "EVENTMENTION" is replaced with mentions of event channels.
+	noSignedUpEvents = f"You're not signed up to any events!\nCheck EVENTMENTION for active events."
+
+	# No Events: Similar to above, except there's no events.
+	noEvents = "There are no events to be signed up to."
 
 	# Feature Disabled: Shown when a command that depends on another feature is disabled.
 	featureDisabled = "That feature has been disabled."
