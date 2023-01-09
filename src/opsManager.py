@@ -379,6 +379,7 @@ class OperationManager():
 				autoComCog.scheduler.remove_job(p_opData.messageID)
 			except apscheduler.jobstores.base.JobLookupError:
 				BUPrint.LogError(p_titleStr="Unable to remove scheduled event start", p_string="No matching ID found!")
+				pass
 
 		BUPrint.Info("	-> OPERATION REMOVED!")
 		return True

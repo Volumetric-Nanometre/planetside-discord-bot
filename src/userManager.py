@@ -111,6 +111,12 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 			if category.name == settings.SignUps.signupCategory:
 				vSignUpCat = category
 
+		# Exit out if category not found.
+		if vSignUpCat == None:
+			await p_interaction.edit_original_response(content=settings.Messages.noEvents)
+			return
+
+
 		vOpsChannelMentions = ""
 		for channel in vSignUpCat.text_channels:
 			vOpsChannelMentions += f" {channel.mention} "
