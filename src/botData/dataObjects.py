@@ -37,6 +37,8 @@ class SanityCheckOptions():
 		return vString
 
 
+
+
 @dataclass(frozen=True)
 class BotFeatures:
 	"""
@@ -144,6 +146,9 @@ class User:
 
 	# About loaded from a seperate file, editable only by admins.
 	specialAbout = ""
+
+	# List of top quotes (if enabled)
+	topQuotes: list[str] = field(default_factory=list) 
 
 	# Settings object.
 	settings: UserSettings = field(default_factory=UserSettings)

@@ -435,6 +435,18 @@ class UserLib:
 	bRemoveSpecialEntryOnLeave = False
 
 
+	# FUN STUFF: Settings here pertain to little funny things: due to their nonserious nature, they're not displayed in /Config or Console output.
+
+	# Top Quote: When a quote receives this amount of reactions, the mentioned user has the quote added to their library entry. 0 or negative value to disable.
+	topQuoteReactions = 1
+
+	# The maximum number of saved/displayed quotes.
+	maxQuotes = 3
+
+	# Quote Channel ID: If this is not found, the event listener is not added.
+	quoteChannelID = 1049523449867022348 # DEV VALUE
+	# quoteChannelID = 1036349723059159040 # LIVE VALUE
+
 
 
 @dataclass(frozen=True)

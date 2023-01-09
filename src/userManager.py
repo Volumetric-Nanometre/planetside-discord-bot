@@ -32,9 +32,12 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 	# USER LIBRARY COG
 	Commands related to the user library, for regular users.
 	"""
-	def __init__(self, p_botRef):
+	def __init__(self, p_botRef:commands.Bot):
 		self.botRef = p_botRef
 		BUPrint.Info("COG: User Library loaded!")
+		if settings.UserLib.topQuoteReactions > 0:
+			self.botRef.add_listener(self.CheckReactions, "on_raw_reaction_add")
+			self.botRef.add_listener(self.CheckReactions, "on_raw_reaction_remove")
 
 
 	@app_commands.command(name="about", description="Show information about a user, or see your own!")
@@ -99,6 +102,67 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 		else:
 			await p_interaction.edit_original_response(content=f"**Your Events:**\n{vMessage}")
 
+
+	async def CheckReactions(self, p_data:discord.RawReactionActionEvent):
+		if p_data.channel_id != settings.UserLib.quoteChannelID:
+			# Not correct channel.
+			return
+
+		bQuoteExists = False
+		quoteChanel = self.botRef.get_channel( p_data.channel_id )
+		vMessage = await quoteChanel.fetch_message( p_data.message_id )
+
+		if vMessage == None:
+			BUPrint.LogError("Unable to get Quote Channel Message", "FETCH FAILED")
+			return
+		
+		if len(vMessage.mentions) == 0:
+			BUPrint.Debug("No mentions, unable to get quotee.")
+			return
+		
+		vQuotedUser = vMessage.mentions[0]
+
+		if not UserLibrary.HasEntry(vQuotedUser.id):
+			BUPrint.Debug("User has no entry. Unable to update it.")
+			return
+
+		vUserLibEntry = UserLibrary.LoadEntry(vQuotedUser.id) 
+
+		# Determine if quote exists already:
+		existingQuote:str = str("")
+		for quote in vUserLibEntry.topQuotes:
+			if vMessage.content == quote:
+				bQuoteExists = True
+				existingQuote = quote
+
+
+		# Get total reaction count.
+		vTotalReactions = 0
+		for reaction in vMessage.reactions:
+			vTotalReactions += reaction.count
+
+
+		if vTotalReactions < settings.UserLib.topQuoteReactions and bQuoteExists:
+			BUPrint.Debug("Minimum quote threshold not reached, removing existing quote.")
+			try:
+				vUserLibEntry.topQuotes.remove(existingQuote)
+				UserLibrary.SaveEntry(vUserLibEntry)
+			except ValueError:
+				BUPrint.LogError(p_titleStr="Unable to remove existing quote", p_string="Unable to remove matching entry from list.")
+			return
+
+
+		if vTotalReactions >= settings.UserLib.topQuoteReactions and not bQuoteExists:
+			BUPrint.Debug("Quote threshold reached, adding quote!")
+			if len(vUserLibEntry.topQuotes) == settings.UserLib.maxQuotes:
+				BUPrint.Debug("Reached max quote count, removing oldest...")
+				# Remove oldest top quote.
+				vUserLibEntry.topQuotes.pop(-1)
+
+			if not bQuoteExists:
+				vUserLibEntry.topQuotes.append(vMessage.content)
+			UserLibrary.SaveEntry(vUserLibEntry)
+			return
 
 
 
@@ -875,6 +939,16 @@ class LibraryViewer():
 			title=f"General Info for {discordUser.display_name}",
 			description=f"They joined the server {GetDiscordTime(discordUser.joined_at, DateFormat.Dynamic)}!"
 		)
+
+		if len(self.userEntry.topQuotes) != 0:
+			vQuotes = ""
+			for quote in self.userEntry.topQuotes:
+				vQuotes += f"{quote}\n"
+			vEmbed.add_field(
+				name="Top Quotes",
+				value=vQuotes,
+				inline=False
+			)
 
 		if self.userEntry.specialAbout != "":
 			vEmbed.add_field(
