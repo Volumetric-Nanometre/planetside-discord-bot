@@ -89,7 +89,6 @@ class Bot(commands.Bot):
         if settings.BotSettings.bShowSettingsOnStartup_discord:
             vAdminChannel = self.get_channel(settings.BotSettings.adminChannel)
             if vAdminChannel != None and settings.BotSettings.bShowSettingsOnStartup_discord:
-                BotAdminCog.GetSettings()
                 vSettingStr = botUtils.PrintSettings(True)
                 splitString = [(vSettingStr[index:index+1990]) for index in range(0, len(vSettingStr), 1990)]
                 for segment in splitString:

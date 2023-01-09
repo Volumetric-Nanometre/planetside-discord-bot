@@ -91,22 +91,31 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 		await p_interaction.response.defer(thinking=True, ephemeral=True)
 		vMessage = ""
 
-		vJumpBtns = []
+
+		vJumpBtns:list[discord.ui.Button] = []
+
 		for liveEvent in opsManager.OperationManager.vLiveOps:
 			signedUpRole = liveEvent.PlayerInOps(p_interaction.user.id)
+
 			if signedUpRole != "":
 				vMessage += f"- {liveEvent.name}, Starts {GetDiscordTime(liveEvent.date)}, signed up as: {signedUpRole}!"
+
 			if liveEvent.status != OpsStatus.started and settings.UserLib.bShowJumpButtonsForGetEvents:
 				newBtn = discord.ui.Button(
-					label=liveEvent.name,
+					label=f"{liveEvent.name} {GetDiscordTime(liveEvent.date)}",
 					url=liveEvent.jumpURL
 				)
 				vJumpBtns.append(newBtn)
-				
+
+
+		newView = discord.ui.View(timeout=180)
+		if settings.UserLib.bShowJumpButtonsForGetEvents and len(vJumpBtns) != 0:
+			for jumpBtn in vJumpBtns:
+				newView.add_item(item=jumpBtn)		
 
 		
 		if vMessage != "":
-			await p_interaction.edit_original_response(content=f"**Your Events:**\n{vMessage}")
+			await p_interaction.edit_original_response(content=f"**Your Events:**\n{vMessage}", view=newView)
 			return
 
 		# user in no events.  If there are events, get the signup channels for them.  First check if there are any events.
@@ -114,11 +123,6 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 			await p_interaction.edit_original_response(content=settings.Messages.noEvents)
 			return
 		
-
-		newView = discord.ui.View
-		if settings.UserLib.bShowJumpButtonsForGetEvents:
-			for jumpBtn in vJumpBtns:
-				newView.add_item(jumpBtn)
 
 		await p_interaction.edit_original_response(content=settings.Messages.noSignedUpEvents, view=newView)
 

@@ -30,7 +30,7 @@ class BotSettings:
 	ps2ServiceID = Env.PS2_SVS_ID
 	botDir		 = Env.BOT_DIR
 
-	# BOT FEATURES:  Convenience function to Enable or Disable functionality.  Any co-dependnacy will behave based on these settings.
+	# BOT FEATURES:  Convenience function to Enable or Disable Cog functionality.  Any co-dependnacy will behave based on these settings.
 	botFeatures = botData.dataObjects.BotFeatures(
 		# Bot Admin: Enables commands specifically for administrative bot tasks (currently, just show config & shutdown)
 		BotAdmin= True,
@@ -386,6 +386,9 @@ class UserLib:
 	# Enable Special Users: when true, user viewer checks for a matching ID .txt file.
 	# The contents of this file are added to the General page; only admins are able to modify this text.
 	bEnableSpecialUsers = True
+
+	# Enable Inbox: When true, certain bot features may send an item to a users inbox (including admin warns)
+	bEnableInbox = True
 
 	# Commander can Auto Create: When true, new user library entries are created for non-existant entries if a valid ps2 name is found from their username during a live operation.
 	bCommanderCanAutoCreate = True

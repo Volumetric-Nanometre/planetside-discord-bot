@@ -467,6 +467,19 @@ def PrintSettings(bGetOnly = False):
 	"""
 	vString = "\n"
 
+
+	vString += "\nBOT DIRECTORY SETTINGS\n"
+	vString += f"	> Prefix Dir :	{Directories.prefixDir}\n"
+	vString += f"	> LiveOps Dir:	{Directories.liveOpsDir}\n" 
+	vString += f"	> DefaultsDir:	{Directories.savedDefaultsDir}\n" 
+	vString += f"	> UserLib Dir:	{Directories.userLibrary}\n"
+	vString += f"	> RecruitsDir:	{Directories.userLibraryRecruits}\n"
+	vString += f"	> LockFile Affix:	{Directories.lockFileAffix} | Retries: {Directories.lockFileRetry}\n"
+	vString += f"	> Feedback Prefix:	{Directories.feedbackPrefix}\n"
+	vString += f"	> Clean Temp Every:	{Directories.cleanTempEvery} hours ({Directories.cleanTempEvery/24} days)\n"
+	vString += f"	> Clean Temp On Shutdown: {Directories.bCleanTempOnShutdown}\n"
+
+
 	vString += "\nFEATURES\n"
 	vString += f"	> [{BotSettings.botFeatures.BotAdmin}] Bot Admin\n"
 	vString += f"	> [{BotSettings.botFeatures.NewUser}] New User\n"
@@ -523,6 +536,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Warnings: Outfit Rank (Ord): {NewUsers.outfitRankWarn}\n"
 
 
+
 	vString += "\nOP COMMANDER SETTINGS\n"
 	vString += f"	> Auto prestart:	{Commander.autoPrestart} minutes\n"
 	vString += f"	> Auto Start:		{Commander.bAutoStartEnabled}\n"
@@ -537,16 +551,6 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Default Channels: {Commander.defaultChannels}\n"
 
 
-	vString += "\nBOT DIRECTORY SETTINGS\n"
-	vString += f"	> Prefix Dir :	{Directories.prefixDir}\n"
-	vString += f"	> LiveOps Dir:	{Directories.liveOpsDir}\n" 
-	vString += f"	> DefaultsDir:	{Directories.savedDefaultsDir}\n" 
-	vString += f"	> UserLib Dir:	{Directories.userLibrary}\n"
-	vString += f"	> RecruitsDir:	{Directories.userLibraryRecruits}\n"
-	vString += f"	> LockFile Affix:	{Directories.lockFileAffix} | Retries: {Directories.lockFileRetry}\n"
-	vString += f"	> Feedback Prefix:	{Directories.feedbackPrefix}\n"
-	vString += f"	> Clean Temp Every:	{Directories.cleanTempEvery} hours ({Directories.cleanTempEvery/24} days)\n"
-	vString += f"	> Clean Temp On Shutdown: {Directories.bCleanTempOnShutdown}\n"
 
 
 	vString += "\nSIGN UP SETTINGS\n"
@@ -557,8 +561,11 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Show Opts in Footer: {SignUps.bShowOptsInFooter}\n"
 
 
+
 	vString += "\nUSER LIBRARY SETTINGS\n"
 	vString += f"	> Special Users:	{UserLib.bEnableSpecialUsers}\n"
+	vString += f"	> User Inbox Enabled:	{UserLib.bEnableInbox}\n"
+	vString += f"	> Show jump buttons	for GetEvents:	{UserLib.bShowJumpButtonsForGetEvents}\n"
 	vString += f"	> Commander Create Entry: {UserLib.bCommanderCanAutoCreate}\n"
 	vString += f"	> User Self Create:	{UserLib.bUserCanSelfCreate}\n"
 	vString += f"	> Max Saved Events:	{UserLib.maxSavedEvents}\n"
