@@ -18,7 +18,7 @@ from enum import Enum
 from botUtils import BotPrinter as BUPrint
 from botUtils import FilesAndFolders, GetDiscordTime, UserHasCommandPerms
 
-from botData.dataObjects import User, Session, OpsStatus
+from botData.dataObjects import User, Session, OpsStatus, LibraryViewPage, UserInboxItem
 
 from botData.utilityData import DateFormat
 
@@ -96,14 +96,14 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 
 		for liveEvent in opsManager.OperationManager.vLiveOps:
 			signedUpRole = liveEvent.PlayerInOps(p_interaction.user.id)
-
 			if signedUpRole != "":
 				vMessage += f"- {liveEvent.name}, Starts {GetDiscordTime(liveEvent.date)}, signed up as: {signedUpRole}!"
 
 			if liveEvent.status != OpsStatus.started and settings.UserLib.bShowJumpButtonsForGetEvents:
+				plainDate = f"{liveEvent.date.day}/{liveEvent.date.month}/{liveEvent.date.year}"
 				newBtn = discord.ui.Button(
-					label=f"{liveEvent.name} {GetDiscordTime(liveEvent.date)}",
-					url=liveEvent.jumpURL
+					label=f"{liveEvent.name} {plainDate}",
+					url=liveEvent.jumpURL,
 				)
 				vJumpBtns.append(newBtn)
 
@@ -207,16 +207,32 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 			)
 			self.botRef.tree.add_command(self.contextMenu_setAsRecruit)
 
+			if settings.BotSettings.botFeatures.userLibraryInboxSystem and settings.BotSettings.botFeatures.userLibraryInboxAdmin:
+				self.contextMenu_warnMessage = app_commands.ContextMenu(
+					name="Warn user about message",
+					callback=self.SendUserMessageWarning
+				)
+
+				self.contextMenu_warnUser = app_commands.ContextMenu(
+					name="Warn user",
+					callback=self.SendUserWarning
+				)
+				self.botRef.tree.add_command(self.contextMenu_warnUser)
+				self.botRef.tree.add_command(self.contextMenu_warnMessage)
+
+
 		BUPrint.Info("COG: User Library Admin loaded!")
 
 
 
 	async def cog_unload(self) -> None:
 		self.botRef.tree.remove_command(self.contextMenu_setAsRecruit)
+		self.botRef.tree.remove_command(self.contextMenu_warnMessage)
+		self.botRef.tree.remove_command(self.contextMenu_warnUser)
 		return await super().cog_unload()
 
 
-	# CONTEXT MENU COMMAND
+	# CONTEXT MENU COMMANDS
 	async def SetUserAsRecruit(self, p_interaction:discord.Interaction, p_User:discord.Member):
 		"""
 		# SET USER AS RECRUIT
@@ -265,6 +281,32 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 
 
 
+	async def SendUserWarning(self, p_interaction:discord.Interaction, p_User:discord.Member):
+		"""
+		# SEND USER WARNING
+		Context menu option that sends a warning message to the user via the library inbox.
+		"""
+		# HARDCODED ROLE USEAGE:
+		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
+			return
+
+		await p_interaction.response.send_modal(SendWarningModal(p_User.id, ""))
+		
+
+	async def SendUserMessageWarning(self, p_interaction:discord.Interaction, p_message:discord.Message):
+		"""
+		# SEND USER WARNING: MESSAGE
+		Context menu option that sends a warning regarding a message to the user via the library inbox.
+		"""
+		# HARDCODED ROLE USEAGE:
+		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
+			return
+
+		await p_interaction.response.send_modal(SendWarningModal(p_message.author.id, p_message.content))
+
+
+
+# # # NORMAL COMMANDS
 	@app_commands.command(name="edit_user", description="Opens the Edit modal for the specified user entry, if they have one.")
 	@app_commands.describe(p_userToEdit="Choose the user to edit.", p_createNew="If no entry exists, create a new entry (Default: True)")
 	@app_commands.rename(p_userToEdit="user", p_createNew="create_if_none")
@@ -340,6 +382,52 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 		BUPrint.Info("Automatic query of all recruits starting...")
 		await UserLibrary.QueryAllRecruits()
 
+
+
+
+class SendWarningModal(discord.ui.Modal):
+	"""# SEND WARNING MODAL:
+	A modal used by admins to send a warning to a users inbox.  Used for both member and message based menus.
+	"""
+	txt_messageTitle = discord.ui.TextInput(
+		label="Title",
+		style=discord.TextStyle.short,
+		required=True,
+		placeholder="Few word summary",
+		max_length=50
+	)
+
+	txt_messageToSend = discord.ui.TextInput(
+		label="Message",
+		style=discord.TextStyle.long,
+		placeholder="A message that should tell the user why they were warned",
+		max_length=800
+	)
+
+	def __init__(self, p_userID:int, p_flaggedMessage:str):
+		self.userID = p_userID
+		self.flaggedMsg = p_flaggedMessage
+		super().__init__(title="Send warning", custom_id=f"warningTo_{p_userID}")
+
+	async def on_submit(self, p_interaction:discord.Interaction):
+		userEntry:User = None
+		if not UserLibrary.HasEntry(self.userID):
+			userEntry = User(discordID=self.userID)
+			UserLibrary.SaveEntry(userEntry)
+		else:
+			userEntry = UserLibrary.LoadEntry(self.userID)
+
+		inboxItem = UserInboxItem(
+			date=datetime.now(timezone.utc),
+			adminContext=self.flaggedMsg[:150],
+			title=self.txt_messageTitle.value,
+			bIsWarning=True,
+			message=self.txt_messageToSend.value
+		)
+		
+		await UserLibrary.SendNewInboxMessage(userEntry, inboxItem)
+
+		await p_interaction.response.send_message("Warning sent succesfully.", ephemeral=True)
 
 
 
@@ -529,6 +617,27 @@ class UserLibrary():
 			vEntryList.append( UserLibrary.LoadEntry(file.replace(".bin", "")) )
 
 		return vEntryList
+
+
+
+	async def SendNewInboxMessage(p_entry:User, p_message:UserInboxItem):
+		"""# SEND NEW INBOX MESSAGE
+		Adds the inbox item to user entry, then sends a notification.
+		"""
+
+		vMember = UserLibrary.botRef.get_user(p_entry.discordID)
+		vChannel = UserLibrary.botRef.get_channel(settings.NewUsers.generalChanelID)
+
+		p_entry.inbox.append(p_message)
+		UserLibrary.SaveEntry(p_entry)
+
+		newView = discord.ui.View()
+		newView.add_item(LibViewer_btnViewInbox(p_entry.discordID))
+
+		if vMember != None and vChannel != None:
+			await vChannel.send(content=f"{vMember.mention}, you have a new message in your inbox!", view=newView)
+
+
 
 
 	def GetRecruitEntries():
@@ -812,18 +921,6 @@ class UserLibrary():
 
 
 
-class LibraryViewPage(Enum):
-	"""
-	# LIBRARY VIEW: PAGE
-	Enum to mark the current page being viewed.
-	"""
-	general = 0
-	ps2Info = 10
-	sessions = 20
-	individualSession = 25
-
-
-
 
 class LibraryViewer():
 	"""
@@ -881,6 +978,7 @@ class LibraryViewer():
 	def GenerateView(self):
 		vView = LibViewer_view(self)
 		btn_configure = LibViewerBtn_setup(self)
+		btn_inbox = LibViewerBtn_inbox(self)
 		btn_General = LibViewerBtn_general(self)
 		btn_Ps2 = LibViewerBtn_planetside2(self)
 		btn_sessions = LibViewerBtn_sessions(self)
@@ -890,6 +988,7 @@ class LibraryViewer():
 
 		if self.bIsViewingSelf:
 			vView.add_item(btn_configure)
+			vView.add_item(btn_inbox)
 		vView.add_item(btn_General)
 		vView.add_item(btn_Ps2)
 		vView.add_item(btn_sessions)
@@ -955,6 +1054,9 @@ class LibraryViewer():
 				BUPrint.LogError("Invalid session index given!")
 				return self.GenerateEmbed_General()
 
+		if self.page == LibraryViewPage.inbox:
+			return self.GenerateEmbed_inbox()
+
 
 
 	def GenerateEmbed_General(self):
@@ -1011,6 +1113,24 @@ class LibraryViewer():
 			value=str(self.userEntry.eventsAttended),
 			inline=False
 			)
+
+		return vEmbed
+
+
+
+	def GenerateEmbed_inbox(self):
+		vEmbed = discord.Embed(title="Inbox", description=f"You have {len(self.userEntry.inbox)} messages")
+
+		if len(self.userEntry.inbox) == 0:
+			return vEmbed
+
+		for message in self.userEntry.inbox:
+			embedTitle = ""
+			if message.bIsWarning:
+				embedTitle = "WARNING: "
+			embedTitle += f"{GetDiscordTime(message.date, DateFormat.DateTimeShort)} | {message.title}"
+			
+			vEmbed.add_field(name=embedTitle, value=f"{message.adminContext}\n{message.message}", inline=False)
 
 		return vEmbed
 
@@ -1143,6 +1263,19 @@ class LibraryViewer():
 
 
 ####### LIBRARY VIEWER BUTTONS & UI.VIEWER
+class LibViewer_btnViewInbox(discord.ui.Button):
+	def __init__(self, p_userID):
+		self.userID = p_userID
+		super().__init__( label="View inbox")
+
+	async def callback(self, p_interaction:discord.Interaction):
+		vViewer = LibraryViewer(self.userID, True)
+		vViewer.page = LibraryViewPage.inbox
+
+		await vViewer.SendViewer(p_interaction)
+			
+
+
 class LibViewer_view(discord.ui.View):
 	def __init__(self, p_viewer:LibraryViewer):
 		self.vViewer = p_viewer
@@ -1251,6 +1384,17 @@ class LibViewerBtn_sessionSelector(discord.ui.Select):
 		await p_interaction.response.defer()
 
 
+
+class LibViewerBtn_inbox(discord.ui.Button):
+	def __init__(self, p_viewer:LibraryViewer):
+		self.vViewer = p_viewer
+		super().__init__(label="Inbox", row=0)
+
+
+	async def callback (self, p_interaction:discord.Interaction):
+		self.vViewer.page = LibraryViewPage.inbox
+		await self.vViewer.UpdateViewer()
+		await p_interaction.response.defer()
 
 
 #### LIB VIEWER CONFIGURE MODAL

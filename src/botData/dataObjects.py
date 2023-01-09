@@ -48,13 +48,14 @@ class BotFeatures:
 	BotAdmin:bool
 	NewUser: bool
 	UserLibrary: bool
+	userLibraryInboxSystem: bool
 	UserLibraryFun: bool
 	Operations: bool
 	chatUtility: bool
 	UserRoles: bool
 
 
-
+# # # # USER LIBRARY
 
 @dataclass
 class UserSettings:
@@ -107,6 +108,38 @@ class AutoPromoteRule():
 
 
 
+@dataclass
+class UserInboxItem:
+	"""# USER INBOX ITEM
+	Data for an inbox item, sent by administrators and some bot features.
+	"""
+	# Date/Time the inbox item was sent.
+	date: datetime
+	# Title of the item.
+	title: str
+	# Message of the item.
+	message:str
+	# If sent by an admin command, this is true.
+	bIsWarning:bool
+	# If sent by an admin for a message, this is a snip of the message for context.
+	adminContext:str
+
+
+
+
+class LibraryViewPage(Enum):
+	"""
+	# LIBRARY VIEW: PAGE
+	Enum to mark the current page being viewed.
+	"""
+	general = 0
+	ps2Info = 10
+	sessions = 20
+	individualSession = 25
+	inbox = 30
+
+
+
 
 @dataclass
 class User:
@@ -150,6 +183,9 @@ class User:
 
 	# List of top quotes (if enabled)
 	topQuotes: list[str] = field(default_factory=list) 
+
+	#Inbox (if enabled)
+	inbox:list[UserInboxItem] = field(default_factory=list)
 
 	# Settings object.
 	settings: UserSettings = field(default_factory=UserSettings)

@@ -43,6 +43,12 @@ class BotSettings:
 		# There is an administative cog associated with the user library, containing administrative commands.
 		UserLibrary= True,
 
+		# User Library: Inbox System - Allows sending discreet messages to the user via their own inbox.  A discord-safe alternative since some users may have direct messages disabled.
+		userLibraryInboxSystem= True,
+
+		# User Library: Inbox system - Admin: Allows admins to send warnings to users, either about a message, or generally; via right clicking (a message, or the user)
+		userLibraryInboxAdmin= True,
+
 		# Fun features of UserLibrary cog.  Fun Features are non-serious and generally just for humour.
 		UserLibraryFun = True,
 
@@ -67,7 +73,7 @@ class BotSettings:
 	bShowSettingsOnStartup = True
 
 	# Show settings on startup: Discord: Same as above, but posts the config into bot-admin channel
-	bShowSettingsOnStartup_discord = True
+	bShowSettingsOnStartup_discord = False
 
 	# ID of a channel which users are moved to when their current one is removed; this value is used when otherwise specified channels are not found.
 	fallbackVoiceChat = 326783867036106752 # Dev value!
