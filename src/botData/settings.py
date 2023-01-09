@@ -43,6 +43,9 @@ class BotSettings:
 		# There is an administative cog associated with the user library, containing administrative commands.
 		UserLibrary= True,
 
+		# Fun features of UserLibrary cog.  Fun Features are non-serious and generally just for humour.
+		UserLibraryFun = True,
+
 		# Operations:  Cog which contains commands to create, edit and delete operations (live and defaults), and operation commanders.
 		Operations= True,
 

@@ -48,6 +48,7 @@ class BotFeatures:
 	BotAdmin:bool
 	NewUser: bool
 	UserLibrary: bool
+	UserLibraryFun: bool
 	Operations: bool
 	chatUtility: bool
 	UserRoles: bool
