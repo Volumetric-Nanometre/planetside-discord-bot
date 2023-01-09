@@ -18,7 +18,7 @@ from enum import Enum
 from botUtils import BotPrinter as BUPrint
 from botUtils import FilesAndFolders, GetDiscordTime, UserHasCommandPerms
 
-from botData.dataObjects import User, Session
+from botData.dataObjects import User, Session, OpsStatus
 
 from botData.utilityData import DateFormat
 
@@ -91,10 +91,18 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 		await p_interaction.response.defer(thinking=True, ephemeral=True)
 		vMessage = ""
 
+		vJumpBtns = []
 		for liveEvent in opsManager.OperationManager.vLiveOps:
 			signedUpRole = liveEvent.PlayerInOps(p_interaction.user.id)
 			if signedUpRole != "":
 				vMessage += f"- {liveEvent.name}, Starts {GetDiscordTime(liveEvent.date)}, signed up as: {signedUpRole}!"
+			if liveEvent.status != OpsStatus.started and settings.UserLib.bShowJumpButtonsForGetEvents:
+				newBtn = discord.ui.Button(
+					label=liveEvent.name,
+					url=liveEvent.jumpURL
+				)
+				vJumpBtns.append(newBtn)
+				
 
 		
 		if vMessage != "":
@@ -105,23 +113,14 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 		if len(opsManager.OperationManager.vLiveOps) == 0:
 			await p_interaction.edit_original_response(content=settings.Messages.noEvents)
 			return
-
-		vSignUpCat = None
-		for category in p_interaction.guild.categories:
-			if category.name == settings.SignUps.signupCategory:
-				vSignUpCat = category
-
-		# Exit out if category not found.
-		if vSignUpCat == None:
-			await p_interaction.edit_original_response(content=settings.Messages.noEvents)
-			return
-
-
-		vOpsChannelMentions = ""
-		for channel in vSignUpCat.text_channels:
-			vOpsChannelMentions += f" {channel.mention} "
 		
-		await p_interaction.edit_original_response(content=settings.Messages.noSignedUpEvents.replace("EVENTMENTION", vOpsChannelMentions, 1))
+
+		newView = discord.ui.View
+		if settings.UserLib.bShowJumpButtonsForGetEvents:
+			for jumpBtn in vJumpBtns:
+				newView.add_item(jumpBtn)
+
+		await p_interaction.edit_original_response(content=settings.Messages.noSignedUpEvents, view=newView)
 
 
 
