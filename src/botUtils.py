@@ -467,16 +467,16 @@ def PrintSettings(bGetOnly = False):
 	"""
 	vString = "\n"
 
-	vString += "\n	FEATURES\n"
+	vString += "\nFEATURES\n"
 	vString += f"	> [{BotSettings.botFeatures.BotAdmin}] Bot Admin\n"
 	vString += f"	> [{BotSettings.botFeatures.NewUser}] New User\n"
 	vString += f"	> [{BotSettings.botFeatures.Operations}] Operations\n"
-	vString += f"	> [{BotSettings.botFeatures.UserLibrary} User Library]\n"
+	vString += f"	> [{BotSettings.botFeatures.UserLibrary}] User Library\n"
 	vString += f"	> [{BotSettings.botFeatures.UserRoles}] User Roles\n"
-	vString += f"	> [{BotSettings.botFeatures.chatUtility}]  Chat Utility\n"
+	vString += f"	> [{BotSettings.botFeatures.chatUtility}]  Chat Utility\n\n"
 
 
-	vString += "\n	GENERAL BOT SETTINGS\n"
+	vString += "\nGENERAL BOT SETTINGS\n"
 	vString += f"	> DebugEnabled: {BotSettings.bDebugEnabled}\n"
 	token = BotSettings.discordToken[:5] # Always hide most of the token; shows JUST the first 5 characters.
 	vString += f"	> DiscordToken:	{token}...\n"
@@ -497,10 +497,10 @@ def PrintSettings(bGetOnly = False):
 		vString += f"	> Error Output:	{BotSettings.errorOutput}\n"
 	vString += f"	> Sanity Check Values: {BotSettings.bCheckValues}\n"
 	if BotSettings.bCheckValues:
-		vString += f"{BotSettings.sanityCheckOpts}"
+		vString += f"{BotSettings.sanityCheckOpts}\n"
 
 
-	vString += f"	COMMAND LIMITS\n"
+	vString += f"\nCOMMAND LIMITS\n"
 	vString += f"	> Validate New User: {CommandLimit.validateNewuser.name}\n"
 	vString += f"	> User Roles: {CommandLimit.userRoles.name}\n"
 	vString += f"	> Op Commander: {CommandLimit.opCommander.name}\n"
@@ -510,7 +510,7 @@ def PrintSettings(bGetOnly = False):
 
 
 
-	vString += "\n	NEW USER SETTINGS\n"
+	vString += "\nNEW USER SETTINGS\n"
 	vString += f"	> Gate channel:		{NewUsers.gateChannelID}\n"
 	vString += f"	> General Channel:	{NewUsers.generalChanelID}\n"
 	vString += f"	> Rule Channel:		{NewUsers.ruleChnID}\n"
@@ -523,7 +523,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Warnings: Outfit Rank (Ord): {NewUsers.outfitRankWarn}\n"
 
 
-	vString += "\n	OP COMMANDER SETTINGS\n"
+	vString += "\nOP COMMANDER SETTINGS\n"
 	vString += f"	> Auto prestart:	{Commander.autoPrestart} minutes\n"
 	vString += f"	> Auto Start:		{Commander.bAutoStartEnabled}\n"
 	vString += f"	> Live Tracking:	{Commander.trackEvent.name}\n"
@@ -537,7 +537,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Default Channels: {Commander.defaultChannels}\n"
 
 
-	vString += "\n	BOT DIRECTORY SETTINGS\n"
+	vString += "\nBOT DIRECTORY SETTINGS\n"
 	vString += f"	> Prefix Dir :	{Directories.prefixDir}\n"
 	vString += f"	> LiveOps Dir:	{Directories.liveOpsDir}\n" 
 	vString += f"	> DefaultsDir:	{Directories.savedDefaultsDir}\n" 
@@ -549,7 +549,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Clean Temp On Shutdown: {Directories.bCleanTempOnShutdown}\n"
 
 
-	vString += "\n	SIGN UP SETTINGS\n"
+	vString += "\nSIGN UP SETTINGS\n"
 	vString += f"	> Signup Cat  : {SignUps.signupCategory}\n"
 	vString += f"	> Resign Icon : {SignUps.resignIcon}\n" 
 	vString += f"	> Reserve Icon: {SignUps.reserveIcon}\n"
@@ -557,7 +557,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Show Opts in Footer: {SignUps.bShowOptsInFooter}\n"
 
 
-	vString += "\n	USER LIBRARY SETTINGS\n"
+	vString += "\nUSER LIBRARY SETTINGS\n"
 	vString += f"	> Special Users:	{UserLib.bEnableSpecialUsers}\n"
 	vString += f"	> Commander Create Entry: {UserLib.bCommanderCanAutoCreate}\n"
 	vString += f"	> User Self Create:	{UserLib.bUserCanSelfCreate}\n"

@@ -66,6 +66,9 @@ class BotSettings:
 	# Show Settings on Startup: When true, the bots settings are displayed in the console.
 	bShowSettingsOnStartup = True
 
+	# Show settings on startup: Discord: Same as above, but posts the config into bot-admin channel
+	bShowSettingsOnStartup_discord = True
+
 	# ID of a channel which users are moved to when their current one is removed; this value is used when otherwise specified channels are not found.
 	fallbackVoiceChat = 326783867036106752 # Dev value!
 	# fallbackVoiceChat = 710854499782361140 # LIVE value (general)

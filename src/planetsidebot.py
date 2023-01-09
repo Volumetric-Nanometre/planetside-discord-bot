@@ -28,7 +28,8 @@ class Bot(commands.Bot):
         super().__init__(command_prefix=['!'], intents=discord.Intents.all())
         
         if settings.BotSettings.bShowSettingsOnStartup:
-            BUPrint.Info(f"Starting bot with settings:\n{botUtils.PrintSettings(True)}\n")
+            BUPrint.Info(f"Starting bot with settings:\n")
+            botUtils.PrintSettings()
 
         self.vGuildObj: discord.Guild
         self.vOpsManager = opsManager.OperationManager()
@@ -84,6 +85,16 @@ class Bot(commands.Bot):
             self.vOpsManager.RefreshAutostarts()
         
         BUPrint.Info(f'\n\nBOT READY	|	{self.user.name} ({self.user.id}) on: {self.vGuildObj.name}\n')
+
+        if settings.BotSettings.bShowSettingsOnStartup_discord:
+            vAdminChannel = self.get_channel(settings.BotSettings.adminChannel)
+            if vAdminChannel != None and settings.BotSettings.bShowSettingsOnStartup_discord:
+                BotAdminCog.GetSettings()
+                vSettingStr = botUtils.PrintSettings(True)
+                splitString = [(vSettingStr[index:index+1990]) for index in range(0, len(vSettingStr), 1990)]
+                for segment in splitString:
+                    segment = f"```{segment}```"
+                    await vAdminChannel.send( f"{segment}\n" )
 
 
 
