@@ -264,7 +264,7 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 		
 		else:
 			vUserEntry.bIsRecruit = True
-			vResultMessage += "User library has been updated."
+			vResultMessage += f"User library for {p_User.display_name} has been updated."
 
 		UserLibrary.SaveEntry(vUserEntry)
 		vAdminChn = p_interaction.guild.get_channel( settings.BotSettings.adminChannel )
