@@ -1129,11 +1129,11 @@ class OpsEditor(discord.ui.View):
 		if self.vOpsData.messageID == "":
 			BUPrint.Info("Adding new Live Op...")
 			self.vOpsData.GenerateFileName()
+			self.vOpsData.status = OpsStatus.open
 			bSucsessfulOp = await vOpManager.AddNewLiveOp(self.vOpsData)
 			
 			if bSucsessfulOp:
 				await pInteraction.response.send_message(botMessages.dismissEditor, ephemeral=True)
-				OperationManager.SaveToFile(self.vOpsData)
 				BUPrint.Debug(f"	-> Message ID of Ops Editor opdata after send: {self.vOpsData.messageID}")
 			else:
 				await pInteraction.response.send_message(botMessages.editorError, ephemeral=True)
