@@ -806,6 +806,7 @@ class OperationManager():
 				return
 
 			await commander.GenerateInfo()
+			await commander.UpdateParticipants() # Updates connections.
 
 
 
@@ -857,6 +858,8 @@ class OperationManager():
 
 		else:
 			BUPrint.Debug("No live commanders.")
+
+
 
 # SCHEDULER RELATED FUNCTIONS
 	def RefreshAutostarts(self):
@@ -961,20 +964,23 @@ class OpsRoleSelector(discord.ui.Select):
 		super().__init__(placeholder="Choose a role...", options=[defaultOption])
 
 	async def callback(self, pInteraction: discord.Interaction):
+		await pInteraction.response.defer(thinking=True, ephemeral=True)
+
 		botUtils.BotPrinter.Debug(f"User {pInteraction.user.name} has signed up to {self.vOpsData.fileName} with role: {self.values[0]}")
 		vOpMan = OperationManager()		
 		vSelectedRole: OpRoleData = None
-		role: OpRoleData
+
 		for role in self.vOpsData.roles:
 			if self.values[0] == role.roleName:
 				vSelectedRole = role
+
 
 		if vSelectedRole == None:
 			# Player selected RESIGN
 			OperationManager.RemoveUser(p_opData=self.vOpsData, p_userToRemove=pInteraction.user.id)
 			OperationManager.SaveToFile(self.vOpsData)
 			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
-			await pInteraction.response.send_message(f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!")
 			# No need to continue further.
 			return
 
@@ -984,9 +990,9 @@ class OpsRoleSelector(discord.ui.Select):
 			vSelectedRole.players.append( pInteraction.user.id )
 			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
 			OperationManager.SaveToFile(self.vOpsData)	
-			await pInteraction.response.send_message(f"You have signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You have signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
 		else:
-			await pInteraction.response.send_message(f"You're already signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You're already signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
 
 	
 	
@@ -1019,7 +1025,6 @@ class OpsRoleSelector(discord.ui.Select):
 		if p_role.roleIcon == "-":
 			self.add_option(label=p_role.roleName, value=p_role.roleName)
 		else:
-			botUtils.BotPrinter.Debug(f"Icon ({p_role.roleIcon}) specified, using Icon for role selector")
 			self.add_option(label=p_role.roleName, value=p_role.roleName, emoji=p_role.roleIcon)
 
 
@@ -1030,16 +1035,17 @@ class OpsRoleReserve(discord.ui.Button):
 		super().__init__(label="Reserve", emoji=botSettings.SignUps.reserveIcon)
 
 	async def callback(self, pInteraction: discord.Interaction):
-		
+		await pInteraction.response.defer(thinking=True, ephemeral=True)
+
 		if pInteraction.user.id not in self.vOpsData.reserves:
-			await pInteraction.response.send_message(content=f"You have signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You have signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
 			OperationManager.RemoveUser(self.vOpsData, pInteraction.user.id)
 			self.vOpsData.reserves.append(pInteraction.user.id)
 
 			vOpMan = OperationManager()
 			await vOpMan.UpdateMessage(self.vOpsData)
 		else:
-			await pInteraction.response.send_message(f"You have already signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You have already signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
 
 
 

@@ -13,6 +13,7 @@ import auraxium
 import re
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers import SchedulerNotRunningError
 import datetime, dateutil.relativedelta
 from datetime import timedelta
 
@@ -42,20 +43,30 @@ async def StartCommander(p_opData: OperationData):
 	Self explanitory, calling this will start the commander for the given ops file.
 	
 	Starting a commander does NOT start an Ops.  That is a different event, handled by the commander itself (if bAutoStart is enabled in both op settings and botsettings).
+
+	## RETURNS: `int`
+	`0` if commander has started.
+
+	`1` Fail: Event already started
+
+	`2` Fail: Invalid OpData given
 	"""
 
 	# CHECKS:
 	if p_opData == None:
 		BUPrint.Info("Invalid OpData given.  Not starting commander.")
-		return
+		return 3
 
 	if len(p_opData.GetParticipantIDs()) == 0:
 		BUPrint.Info("Cannot start an event with 0 participants.  Not starting commander.")
-		return
+		return 2
 
 	if p_opData.status.value >= OpsStatus.prestart.value:
-		BUPrint.Info("Trying to start a commander for an event that is already started!")
-		return
+		# Check to make sure there's no other commander, else calling command is taking over.
+		for commander in opsManager.OperationManager.vLiveCommanders:
+			if commander.vOpData.messageID == p_opData.messageID:
+				BUPrint.Info("Trying to start a commander for an event that already has a commander!")
+				return 1
 
 
 	BUPrint.Debug(f"Starting commander for {p_opData.fileName}!")
@@ -63,6 +74,8 @@ async def StartCommander(p_opData: OperationData):
 	await vNewCommander.CommanderSetup()
 	opsManager.OperationManager.vLiveCommanders.append(vNewCommander)
 	# Don't call `commander.GenerateCommander()` here! CommanderSetup handles this.
+	
+	return 0
 
 
 
@@ -89,9 +102,11 @@ class Commander():
 		# Auraxium client & Op event tracker
 		self.vAuraxClient:auraxium.EventClient = None
 		self.vOpsEventTracker:OpsEventTracker = None
+
 		if p_opData.options.bIsPS2Event:
 			self.vAuraxClient = auraxium.EventClient(service_id=botSettings.ps2ServiceID)
 			self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
+			self.vOpsEventTracker.updateParent = self.GenerateCommander
 
 		# Alert & Autostart Scheduler
 		self.scheduler = AsyncIOScheduler()
@@ -149,6 +164,7 @@ class Commander():
 		await self.commanderMsg.edit(content=vMessageContent, view=vMessageView, embeds=vEmbeds)
 
 
+
 	async def CommanderSetup(self):
 		"""
 		# COMMANDER SETUP
@@ -197,14 +213,17 @@ class Commander():
 
 			
 			# Setup Connections Refresh
-			if commanderSettings.connectionRefreshInterval != 0:
-				self.scheduler.add_job( Commander.GenerateCommander, 
-					"interval", 
-					seconds=commanderSettings.connectionRefreshInterval,
-					end_date=self.vOpData.date,
-					args=[self], 
-					id="ConnectionRefresh"
-				)
+			if self.vOpData.options.bIsPS2Event:
+				await self.RefreshPS2LoginWatch()
+
+			# if commanderSettings.connectionRefreshInterval != 0:
+			# 	self.scheduler.add_job( Commander.GenerateCommander, 
+			# 		"interval", 
+			# 		seconds=commanderSettings.connectionRefreshInterval,
+			# 		end_date=self.vOpData.date,
+			# 		args=[self], 
+			# 		id="ConnectionRefresh"
+			# 	)
 	
 			self.scheduler.start()
 
@@ -217,15 +236,19 @@ class Commander():
 			BUPrint.Debug("	-> Posting Ops Info")
 			await self.GenerateInfo()
 
+			# Call first Participant Update before posting commander, so connections field shows correct list of participants.
+			await self.UpdateParticipants()
+
 			#Post standby commander, to set commander messageID; all future calls should use GenerateCommander instead.
+			self.vCommanderStatus = CommanderStatus.WarmingUp
+
 			BUPrint.Debug("	-> Posting Commander")
 			vCommanderMsg = f"**COMMANDER ON STANDBY**\n"
 			if commanderSettings.bAutoStartEnabled:
 				vCommanderMsg += botMessages.commanderAutoStart
-			self.commanderMsg =  await self.commanderChannel.send(vCommanderMsg, view=self.GenerateView_Commander())
+			self.commanderMsg =  await self.commanderChannel.send(vCommanderMsg, view=self.GenerateView_Commander(), embeds=[await self.GenerateEmbed_Connections()])
 
-			# Set to WarmingUp and return.
-			self.vCommanderStatus = CommanderStatus.WarmingUp
+
 
 		else:
 			BUPrint.Info("Commander has already been set up!")
@@ -469,15 +492,18 @@ class Commander():
 				if discordRole != None:
 					vRoleMentionPing += f"{discordRole.mention} "
 
-		vMessage = f"**REMINDER: {self.vOpData.name} STARTS {GetDiscordTime( self.vOpData.date, DateFormat.Dynamic )}**\n"
-
-		vMessage += f"{vRoleMentionPing}|{self.GetParticipantMentions()}\n\n"
-
+		vMessageTitle = f"**REMINDER: {self.vOpData.name} STARTS {GetDiscordTime( self.vOpData.date, DateFormat.Dynamic )}**"
+		# Dynamically set strings.
+		vMessagePings = ""
 		notTrackedParticipants = ""
+		vMessage = ""
+
+
 		for participant in self.participants:
 			BUPrint.Debug(participant)
 			if not participant.bIsTracking:
 				notTrackedParticipants += f"{participant.discordUser.mention} "
+
 
 		if notTrackedParticipants != "":
 			if self.vOpData.options.bIsPS2Event:
@@ -489,17 +515,24 @@ class Commander():
 			vMessage += f"\n\n*{botMessages.OpsAutoMoveWarn}*\n\n"
 
 
-		opRole: OpRoleData
+		bAvailableSpace = False
 		for opRole in self.vOpData.roles:
 			if len(opRole.players) < opRole.maxPositions and opRole.maxPositions > 0:
 				vMessage += f"**{opRole.roleName}** currently has **{opRole.maxPositions - len(opRole.players)}** available spaces!\n"
+				bAvailableSpace = True
 				continue
 			
 			if opRole.maxPositions < 0:
 				vMessage += f"{opRole.roleName} is **open**!"
+				bAvailableSpace = True
+
+		if bAvailableSpace:
+			vMessagePings = f"{vRoleMentionPing}|{self.GetParticipantMentions()}"
+		else:
+			vMessagePings = self.GetParticipantMentions()
 
 
-		return vMessage
+		return f"{vMessageTitle}\n{vMessagePings}\n\n{vMessage}"
 
 
 	async def GenerateStartAlertMessage(self):
@@ -568,6 +601,8 @@ class Commander():
 		# UPDATE PARTICIPANTS
 
 		Updates `self.participants` to match with the users in the opData.
+
+		This also calls `loadParticipantData`, and `UpdateParticipantTracking`.
 		"""
 		vParticipantIDs = self.vOpData.GetParticipantIDs()
 		BUPrint.Debug(f"Updating Participants : {vParticipantIDs}")
@@ -609,6 +644,34 @@ class Commander():
 
 
 
+	async def RefreshPS2LoginWatch(self):
+		"""# REFRESH PS2 LOGIN WATCH:
+		Checks to make sure there's a difference in participants.  
+		
+		If there is, clears the old trigger for watching planetside2 login/logouts.
+		Then re-create it using the new participant list.
+
+		An event where this is called and there's no difference in participants: a user changes role.
+		"""
+		participantIDs = self.vOpData.GetParticipantIDs()
+		bMismatchDetected = False
+
+		for participant in self.participants:
+			# If any occurance of a user no longer in participant IDs, reconstruct the list.
+			if participant.discordID not in participantIDs:
+				bMismatchDetected = True
+				BUPrint.Debug(f"{participant.discordUser.display_name} no longer in list of participant IDs.  Reconstructing list.")
+				break
+
+
+		if not bMismatchDetected:
+			BUPrint.Debug("No mismatch found, continue using old participant list.")
+			return
+
+		# Mismatch found, remake trigger.
+		self.vOpsEventTracker.CreateLoginTrigger()
+
+
 	async def UpdateParticipantTracking(self):
 		"""
 		# UPDATE PARTICIPANT TRACKING
@@ -631,11 +694,14 @@ class Commander():
 				try:
 					if commanderSettings.trackEvent == PS2EventTrackOptions.InGameOnly:
 						
-						if await participantObj.ps2Char.is_online():
+						if participantObj.bPS2Online:
 							participantObj.bIsTracking = True
 							BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now Enabled")
+					
+					
 					elif commanderSettings.trackEvent == PS2EventTrackOptions.InGameAndDiscordVoice:
-						if await participantObj.ps2Char.is_online() and participantObj.discordUser.voice != None:
+					
+						if participantObj.bPS2Online and participantObj.discordUser.voice != None:
 							# Make sure user is in Op channel:
 							if participantObj.discordUser.voice.channel in self.vCategory.voice_channels:
 								participantObj.bIsTracking = True
@@ -648,17 +714,16 @@ class Commander():
 				except auraxium.errors.AuraxiumException as vError:
 					BUPrint.LogErrorExc("Unable to determine if user is online.", vError)
 		
+
 		elif commanderSettings.trackEvent != PS2EventTrackOptions.Disabled and not self.vOpData.options.bIsPS2Event:
 			BUPrint.Debug("Tracking Enabled: Event is not PS2. Only checking if player is in voice channel...")
 			for participantObj in self.participants:
 				if participantObj.discordUser.voice != None:
 					if participantObj.discordUser.voice.channel in self.vCategory.voice_channels:
-						BUPrint.Debug("User in event voice chat!")
 						participantObj.bIsTracking = True
 						BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now ENABLED ({participantObj.bIsTracking})")
 
 					else:
-						BUPrint.Debug("User isn't in event voice chat! D:<")
 						participantObj.bIsTracking = False
 						BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now DISABLED ({participantObj.bIsTracking})")
 
@@ -679,6 +744,7 @@ class Commander():
 					if botSettings.botFeatures.UserLibrary and participant.libraryEntry != None:
 						participant.libraryEntry.eventsMissed += 1
 						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
+
 
 		elif not self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.Started and commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
 			BUPrint.Debug("Non PS2 Ops started, checking participant tracking status.")
@@ -936,7 +1002,7 @@ class Commander():
 
 		Creates an Embed for player connections.
 		"""
-		await self.UpdateParticipants()
+		# await self.UpdateParticipants()
 
 		vEmbed = discord.Embed(colour=discord.Colour.from_rgb(200, 200, 255), title="CONNECTIONS", description="Discord and PS2 connection information for participants.")
 
@@ -947,7 +1013,7 @@ class Commander():
 			vPlayersStr += f"{participant.discordUser.display_name}\n"
 			
 			BUPrint.Debug(f"Status of {participant.discordUser.display_name}: {participant.discordUser.status}")
-			if participant.discordUser.status.value == discord.Status.offline.value:
+			if participant.discordUser.status == discord.Status.offline:
 				vStatusStr += f"{commanderSettings.connIcon_discordOffline} | "
 			else:
 				vStatusStr += f"{commanderSettings.connIcon_discordOnline} | "
@@ -960,18 +1026,20 @@ class Commander():
 
 
 			if participant.ps2Char != None:
-				try:
-					isOnline = await participant.ps2Char.is_online()
-					if isOnline:
-						vStatusStr += f"{commanderSettings.connIcon_ps2Online}\n"
-					else:
-						vStatusStr += f"{commanderSettings.connIcon_ps2Offline}\n"
-				except:
-					vStatusStr += f"{commanderSettings.connIcon_ps2Invalid}\n"
-
+				if participant.bPS2Online == True:
+					vStatusStr += f"{commanderSettings.connIcon_ps2Online}"
+				else:
+					vStatusStr += f"{commanderSettings.connIcon_ps2Offline}"
 
 			else:
-				vStatusStr += f"{commanderSettings.connIcon_ps2Invalid}\n"
+				vStatusStr += f"{commanderSettings.connIcon_ps2Invalid}"
+
+			
+			if botSettings.botFeatures.UserLibrary:
+				if participant.libraryEntry != None and participant.libraryEntry.bIsRecruit:
+					vStatusStr += f" | {commanderSettings.connIcon_ps2Recruit}"
+
+			vStatusStr += "\n"
 
 
 
@@ -1227,6 +1295,8 @@ class Commander():
 		return newView
 
 
+
+
 	def GenerateView_Alerts(self):
 		"""
 		# GENERATE VIEW: Alerts
@@ -1238,6 +1308,7 @@ class Commander():
 		vView.add_item(btnJump)
 
 		return vView
+
 
 
 	async def StartOperation(self):
@@ -1281,6 +1352,7 @@ class Commander():
 		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
 			await self.UpdateParticipantTracking()
 			if self.vOpData.options.bIsPS2Event:
+				self.vOpsEventTracker.participants = self.participants
 				self.vOpsEventTracker.Start()
 
 
@@ -1304,11 +1376,19 @@ class Commander():
 		"""
 		if self.vOpData.options.bIsPS2Event:
 			await self.vOpsEventTracker.Stop()
-		self.scheduler.shutdown()
+		
+		try:
+			self.scheduler.shutdown()
+		except SchedulerNotRunningError:
+			BUPrint.Debug("Scheduler not started.")
 
 		self.bHasSoftEnded = True
-
-		vDuration: datetime.timedelta = datetime.datetime.now(tz=datetime.timezone.utc) - self.trueStartTime
+		vDuration: datetime.timedelta
+		if self.trueStartTime != None:
+			vDuration = datetime.datetime.now(tz=datetime.timezone.utc) - self.trueStartTime
+		else:
+			BUPrint.Info("Event in pre-start; not adding to stats.")
+			return
 
 		if bool(not commanderSettings.bSaveNonPS2ToSessions and not self.vOpData.options.bIsPS2Event) or commanderSettings.trackEvent == PS2EventTrackOptions.Disabled:
 			return
@@ -1332,20 +1412,22 @@ class Commander():
 					BUPrint.Debug(f"{participant.discordUser.display_name} has tracking disabled.")
 	
 
+
 	async def EndOperation(self):
 		"""
 		# END OPERATION
 		Removes the live Op from the Operations manager, 
 		then cleans up the Op Commander.
 		"""
-		self.vCommanderStatus = CommanderStatus.Ended
+		bOpStarted = bool(self.vCommanderStatus.value > CommanderStatus.Started.value)
 
 		if not self.bHasSoftEnded:
 			await self.EndOperationSoft()
 
-		# Removes the operation posting.
-		vOpMan = opsManager.OperationManager()
-		await vOpMan.RemoveOperation(self.vOpData)
+		# Removes the operation posting if the event has started.
+		if bOpStarted:
+			vOpMan = opsManager.OperationManager()
+			await vOpMan.RemoveOperation(self.vOpData)
 
 		# Move users before removing channels.
 		await self.MoveUsers(p_moveToStandby=False)
@@ -1355,7 +1437,7 @@ class Commander():
 
 		BUPrint.Info(f"Operation {self.vOpData.name} has ended.")
 
-		if botSettings.botFeatures.UserLibrary:
+		if bOpStarted and botSettings.botFeatures.UserLibrary:
 			# Query recruit participants.
 			for participant in self.participants:
 				if participant.libraryEntry != None:

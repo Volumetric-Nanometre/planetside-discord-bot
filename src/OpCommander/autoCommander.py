@@ -5,7 +5,7 @@ Classes related to the starting of an Operation Commander, whether via commands 
 
 # import discord
 # import discord.ext
-from discord import app_commands, Interaction, File
+from discord import app_commands, Interaction, File, Member, VoiceState
 from discord.ext import tasks, commands
 
 from botUtils import UserHasCommandPerms, FilesAndFolders
@@ -24,20 +24,33 @@ class AutoCommander(commands.Cog):
 	"""
 	# AUTO COMMANDER
 
-	A cog that sets up and automatically creates commanders for Operation events, as well as handling commands for manually starting a commander.
+	A cog for holding the Auto Commander scheduler and linking voice chat state changes to refreshing commanders.
 	"""
 
 	def __init__(self, p_bot) -> None:
 		super().__init__()
 		self.botRef = p_bot
 		self.scheduler = AsyncIOScheduler()
-		BUPrint.Info("COG: AutoCommander loaded!")
 		self.scheduler.start()
+		BUPrint.Info("COG: AutoCommander loaded!")
+
+
+	@commands.Cog.listener("on_voice_state_update")
+	async def VoiceStateChanged(self, p_member:Member, p_before:VoiceState, p_after:VoiceState):
+		"""
+		# VOICE STATE CHANGED: Listener
+		Checks if user is in any live ops, and updates their commander if present.
+		"""
+
+		if len(opsManager.OperationManager.vLiveCommanders) != 0:
+			for commander in opsManager.OperationManager.vLiveCommanders:
+				await commander.GenerateCommander()
 
 
 
 
-class CommanderCommands(commands.Cog):
+
+class CommanderCommands(commands.Cog, name="commander", description=""):
 	def __init__(self, p_bot) -> None:
 		super().__init__()
 		self.botRef = p_bot
@@ -50,6 +63,7 @@ class CommanderCommands(commands.Cog):
 		# HARDCODED ROLE USEAGE:
 		if not await UserHasCommandPerms(p_interaction.user, (BotSettings.CommandLimit.opCommander), p_interaction):
 			return
+		await p_interaction.response.defer(thinking=True, ephemeral=True)
 
 		vOpData: OperationData
 		
@@ -59,9 +73,14 @@ class CommanderCommands(commands.Cog):
 				vOpData = opData
 				break
 
-		BUPrint.Info(f"Starting commander for {vOpData.name}!")
-		await p_interaction.response.send_message(f"Starting commander for {vOpData.name}!", ephemeral=True)
-		await OpCommander.commander.StartCommander(vOpData)
+		startResponse = await OpCommander.commander.StartCommander(vOpData)
+		if startResponse == 0:
+			await p_interaction.edit_original_response(content=f"Starting commander for {vOpData.name}!")
+		elif startResponse == 1:
+			await p_interaction.edit_original_response(content=f"{vOpData.name} has been started already!")
+		elif startResponse == 2:
+			await p_interaction.edit_original_response(content=f"Invalid operation data given!")
+			
 
 
 	@manualcommander.autocomplete("p_opFile")
@@ -74,6 +93,8 @@ class CommanderCommands(commands.Cog):
 			if (p_typedStr.lower() in option.fileName.lower()):
 				choices.append(app_commands.Choice(name=option.fileName.replace(".bin", ""), value=option.fileName))
 		return choices
+
+
 
 
 	@app_commands.command(name="get_feedback", description="Get the event feedback text file for the specified event.")
@@ -93,6 +114,7 @@ class CommanderCommands(commands.Cog):
 			return
 
 		await p_interaction.response.send_message("Feedback File:", file=vFile, ephemeral=True)
+
 
 
 	@GetFeedback.autocomplete("p_typedStr")

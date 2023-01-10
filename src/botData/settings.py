@@ -260,7 +260,7 @@ class Commander:
 
 	# Connection Refresh Interval: time in seconds the connection embed is refreshed. (0 = disabled)
 	# This stops being refreshed once the event starts.
-	connectionRefreshInterval = 30
+	connectionRefreshInterval = 90
 
 	# These channels are created for EVERY event, inside its own category, which are then removed when the event ends.
 	defaultChannels = botData.dataObjects.DefaultChannels(
@@ -297,6 +297,7 @@ class Commander:
 	connIcon_ps2Online = "🟢"
 	connIcon_ps2Offline = "🔴"
 	connIcon_ps2Invalid = "❌" # Users who have an invalid/non-matching PS2 name
+	connIcon_ps2Recruit = "🚼" # Shown when user is a recruit (requires User Library)
 	
 
 

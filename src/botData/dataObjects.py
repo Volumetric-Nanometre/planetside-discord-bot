@@ -49,6 +49,7 @@ class BotFeatures:
 	NewUser: bool
 	UserLibrary: bool
 	userLibraryInboxSystem: bool
+	userLibraryInboxAdmin: bool
 	UserLibraryFun: bool
 	Operations: bool
 	chatUtility: bool
@@ -292,7 +293,8 @@ class Participant:
 
 	# DATA
 	discordID : int = 0
-	bIsTracking : bool = True 
+	bIsTracking : bool = True
+	bPS2Online : bool = False # Set to true by aurax event.
 	lastCheckedName : str = "" # Last Checked name: skips searching for a PS2 character if this is the same.
 
 	def __repr__(self) -> str:
@@ -383,6 +385,23 @@ class OpFeedback:
 		except:
 			botUtils.BotPrinter.LogError("Unable to save a the file!")
 			return ""
+
+
+
+
+@dataclass(frozen=True)
+class EventID:
+	"""
+	# EVENT IDs
+	Matches event IDs to human readable variable names.
+	"""
+	med_heal = 4
+	med_revive = 53
+
+	eng_maxRepair = 142
+	eng_vehicleRepair = [28, 129, 132, 133, 134, 138, 140, 141, 302, 505, 656]
+	eng_resupply = 55
+
 
 
 

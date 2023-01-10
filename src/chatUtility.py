@@ -17,6 +17,7 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 		self.adminLevel = Settings.CommandLimit.chatUtilities
 		BUPrint.Info("COG: Chat Monitor loaded!")
 
+
 	@app_commands.command(name="move", description="Move all users from one channel to another.")
 	@app_commands.rename(p_targetChannel="target", p_relocationChannel="new_channel")
 	async def MoveUsers(self, p_interaction:discord.Interaction, p_targetChannel:discord.VoiceChannel, p_relocationChannel:discord.VoiceChannel):
