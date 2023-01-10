@@ -14,6 +14,7 @@ class BotAdminCog(GroupCog, name="admin", description="Administrative commands a
 
 	def __init__(self, p_botRef:Bot):
 		self.botRef = p_botRef
+		self.shutdownFunction: function = None
 		BUPrint.Info("Cog: ADMIN loaded!")
 
 	def HasPermission(self, p_userID:int):
@@ -48,7 +49,7 @@ class BotAdminCog(GroupCog, name="admin", description="Administrative commands a
 			await vAdminChn.send(vMessage)
 		BUPrint.Info(vMessage)
 
-		await self.botRef.close()
+		await self.shutdownFunction()
 
 
 

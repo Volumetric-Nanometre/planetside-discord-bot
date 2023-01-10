@@ -58,7 +58,10 @@ class Bot(commands.Bot):
             await self.add_cog(ChatUtilityCog(self))
 
         if settings.BotSettings.botFeatures.BotAdmin:
-            await self.add_cog(BotAdminCog(self))
+            adminCog = BotAdminCog(self)
+            await self.add_cog(adminCog)
+            adminCog.shutdownFunction = self.ExitCalled
+
 
         self.tree.copy_global_to(guild=self.vGuildObj)
         await self.tree.sync(guild=self.vGuildObj)
@@ -102,7 +105,15 @@ class Bot(commands.Bot):
 		# EXIT CALLED
 		Called when an exit signal is sent.
 		"""
+        if self._closed:
+            return
+
         BUPrint.Info("Bot shutting down. Performing cleanup...")
         botUtils.FilesAndFolders.CleanupTemp()
+
+        BUPrint.Info(f"	> Ending {len(self.vOpsManager.vLiveCommanders)} running events...")
         for liveOp in self.vOpsManager.vLiveCommanders:
             await liveOp.EndOperation()
+        
+        BUPrint.Info("Closing bot connections")
+        await self.close()
