@@ -94,7 +94,7 @@ class EditRoles(baseModal.BaseModal):
 				# Index is a new role, append!
 				if vCurrentRole.roleIcon.startswith("ICON_"):
 					BUPrint.Debug("Icon library icon specified, parsing for result...")
-					EmojiLibrary.ParseStringToEmoji(vCurrentRole.roleIcon)
+					vCurrentRole.roleIcon = EmojiLibrary.ParseStringToEmoji(vCurrentRole.roleIcon)
 				self.vOpData.roles.append(vCurrentRole)
 
 			vIndex += 1
