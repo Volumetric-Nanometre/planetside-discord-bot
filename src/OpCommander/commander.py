@@ -55,11 +55,11 @@ async def StartCommander(p_opData: OperationData):
 	# CHECKS:
 	if p_opData == None:
 		BUPrint.Info("Invalid OpData given.  Not starting commander.")
-		return 3
-
-	if len(p_opData.GetParticipantIDs()) == 0:
-		BUPrint.Info("Cannot start an event with 0 participants.  Not starting commander.")
 		return 2
+
+	# if len(p_opData.GetParticipantIDs()) == 0:
+	# 	BUPrint.Info("Cannot start an event with 0 participants.  Not starting commander.")
+	# 	return 2
 
 	if p_opData.status.value >= OpsStatus.prestart.value:
 		# Check to make sure there's no other commander, else calling command is taking over.
@@ -254,6 +254,7 @@ class Commander():
 			BUPrint.Info("Commander has already been set up!")
 
 
+
 	async def CreateCategory(self):
 		"""
 		# CREATE CATEGORY
@@ -291,6 +292,7 @@ class Commander():
 				except TypeError as error:
 					BUPrint.LogErrorExc("	-> Invalid permission overwrites", error)
 					return False
+
 
 
 	async def CreateTextChannels(self):
@@ -416,6 +418,8 @@ class Commander():
 					await self.vCategory.create_voice_channel(name=newChannel)
 	
 	
+
+
 	async def RemoveChannels(self):
 		"""
 		# REMOVE CHANNELS
@@ -533,6 +537,8 @@ class Commander():
 
 
 		return f"{vMessageTitle}\n{vMessagePings}\n\n{vMessage}"
+
+
 
 
 	async def GenerateStartAlertMessage(self):
@@ -672,6 +678,7 @@ class Commander():
 		self.vOpsEventTracker.CreateLoginTrigger()
 
 
+
 	async def UpdateParticipantTracking(self):
 		"""
 		# UPDATE PARTICIPANT TRACKING
@@ -806,6 +813,7 @@ class Commander():
 				participantObj.ps2Char = await self.GetParticipantPS2Char(participantObj)
 
 
+
 	async def GetParticipantPS2Char(self, p_participant: Participant):
 		"""
 		# GET PARTICIPANT PLANETSIDE 2 CHARACTER
@@ -879,6 +887,7 @@ class Commander():
 			except discord.NotFound:
 				BUPrint.Info("Message not found but posted?  Reposting...")
 				self.commanderInfoMsg = await self.commanderChannel.send(embed=self.GenerateEmbed_OpInfo() )
+
 
 
 	def GenerateEmbed_OpInfo(self):
@@ -1332,17 +1341,14 @@ class Commander():
 			gracePeriodTime = self.vOpData.date + dateutil.relativedelta.relativedelta(minutes= commanderSettings.gracePeriod)
 			self.scheduler.add_job( Commander.UpdateParticipantTracking, 'date', run_date=gracePeriodTime, args=[self] )
 
-		# vSchedJob = self.scheduler.get_job("ConnectionRefresh")
-		# if vSchedJob != None:
-		# 	BUPrint.Debug("Event started early; stopping `ConnectionRefresh` job.")
-		# 	self.scheduler.remove_job("ConnectionRefresh")
-
-
-		# vSchedJob = self.scheduler.get_job("CommanderAutoStart")
-		# if vSchedJob != None:
-		# 	BUPrint.Debug("Event started early; stopping `CommanderAutoStart` job.")
-		# 	self.scheduler.remove_job("CommanderAutoStart")
-
+			if commanderSettings.dataPointInterval != 0:
+				self.scheduler.add_job( OpsEventTracker.NewEventPoint, 
+					"interval", 
+					seconds=commanderSettings.dataPointInterval,
+					end_date=self.vOpData.date,
+					args=[self.vOpsEventTracker],
+					id="newDataPoint"
+				)
 
 
 		if commanderSettings.bAutoMoveVCEnabled:
@@ -1360,10 +1366,13 @@ class Commander():
 
 
 		await self.SendAlertMessage(p_opStart=True)
+	
 		self.vOpData.status = OperationData.status.started
+	
 		vOpMan = opsManager.OperationManager()
+	
 		await vOpMan.UpdateMessage(self.vOpData)
-		self.vCommanderStatus = CommanderStatus.Started
+	
 		await self.GenerateCommander()
 		self.trueStartTime = datetime.datetime.now(tz=datetime.timezone.utc)
 

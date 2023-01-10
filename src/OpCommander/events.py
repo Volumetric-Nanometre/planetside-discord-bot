@@ -7,6 +7,8 @@ from __future__ import annotations
 from auraxium.event import EventClient, Trigger, Event, PlayerLogin, PlayerLogout, GainExperience
 from auraxium import event
 
+from datetime import datetime, timezone
+
 from botUtils import BotPrinter as BUPrint
 from botData.dataObjects import EventPoint, Participant, EventID
 
@@ -38,6 +40,9 @@ class OpsEventTracker():
 		Starts the tracking.
 		"""
 		self.CreateTriggers()
+		self.currentEventPoint = EventPoint( timestamp=datetime.now(timezone.utc).time(), activeParticipants=len(self.participants) )
+
+
 
 
 	def CreateLoginTrigger(self):
@@ -96,6 +101,20 @@ class OpsEventTracker():
 
 
 
+	def NewEventPoint(self):
+		"""# NEW EVENT POINT
+		Moves the current event point into the point list, and sets a new one.
+		"""
+		self.eventPoints.append(self.currentEventPoint)
+		stillOnline = 0
+		for participant in self.participants:
+			if participant.bPS2Online:
+				stillOnline += 1
+		self.currentEventPoint = EventPoint(timestamp=datetime.now(timezone.utc).time(), activeParticipants=len(self.participants))
+
+
+
+
 	def CreateTriggers(self):
 		""" # CREATE TRIGGERS
 		Creates and sets the triggers for the event.
@@ -127,9 +146,17 @@ class OpsEventTracker():
 		triggerList.append(
 			Trigger(action=self.updateParent,
 					characters=playerCharacters,
-					event=[event.PlayerLogin, event.PlayerLogout]
+					event=event.PlayerLogin
 			)
 		)
+
+		triggerList.append(
+			Trigger(action=self.updateParent,
+					characters=playerCharacters,
+					event=event.PlayerLogout
+			)
+		)
+
 
 
 		# ENGINEER

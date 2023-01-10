@@ -258,9 +258,8 @@ class Commander:
 	# Sober Feedback ID: The ID of the forum to post a new SoberDogs Debrief message into.
 	soberFeedbackID = 1042463290472800317
 
-	# Connection Refresh Interval: time in seconds the connection embed is refreshed. (0 = disabled)
-	# This stops being refreshed once the event starts.
-	connectionRefreshInterval = 90
+	# Data Point Interval:  Interval in seconds a new data point for event tracking is set.
+	dataPointInterval = 60
 
 	# These channels are created for EVERY event, inside its own category, which are then removed when the event ends.
 	defaultChannels = botData.dataObjects.DefaultChannels(

@@ -394,6 +394,10 @@ class EventID:
 	"""
 	# EVENT IDs
 	Matches event IDs to human readable variable names.
+	Where an event has multiple sub-events, the variable is a list for iteration purposes.
+
+	All events included are for squad only and thus will not track general events. 
+		eg: 'med_heal' only counts heals to squad-members, not blueberries.
 	"""
 	med_heal = 4
 	med_revive = 53
@@ -409,10 +413,20 @@ class EventID:
 class EventPoint():
 	"""
 	# EVENT POINT
-	A singular point during an event
+	A singular point during an event, used to plot graphs.
+
+	These are updated individually to user statistics.
 	"""
 	timestamp: time = None
-	users: list = field(default_factory=list)
+	activeParticipants: int = 0
+
+	captured:int = 0
+	defended:int = 0
+
+	deaths: int = 0
+	kills: int = 0
+	revives: int = 0
+
 
 
 

@@ -548,7 +548,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Auto Move VC:		{Commander.bAutoMoveVCEnabled}\n"
 	vString += f"	> Automove VC ID:	{Commander.autoMoveBackChannelID}\n"
 	vString += f"	> Soberdogs Feedback:	{Commander.soberFeedbackID}\n"
-	vString += f"	> ConnectionsRefresh:	{Commander.connectionRefreshInterval} seconds\n"
+	vString += f"	> Tracking Interval:	{Commander.dataPointInterval} seconds\n"
 	vString += f"	> Default Channels: {Commander.defaultChannels}\n"
 
 
