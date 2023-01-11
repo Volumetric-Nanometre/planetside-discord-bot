@@ -301,7 +301,7 @@ class OperationManager():
 
 	# Remove Message first.
 		if not bIsDefault: # Defaults have no message!
-			BUPrint.Info("	-> Removing MESSAGE...")
+			BUPrint.Debug("	-> Removing MESSAGE...")
 			vChannel: discord.TextChannel = await self.AddNewLive_GetTargetChannel(p_opsData=p_opData)
 			vMessage: discord.Message = await vChannel.fetch_message(p_opData.messageID)
 			try:
@@ -314,7 +314,7 @@ class OperationManager():
 				return False
 
 			# Remove OpData from LiveOps list
-			BUPrint.Info("	-> Removing OpData from LiveOps...")
+			BUPrint.Debug("	-> Removing OpData from LiveOps...")
 			try:
 				self.vLiveOps.remove(p_opData)
 			except ValueError:
@@ -346,7 +346,7 @@ class OperationManager():
 					await vChannel.delete(reason="Auto removal of empty signup channel")
 
 	# Remove File
-		BUPrint.Info("	-> Removing FILE...")
+		BUPrint.Debug("	-> Removing FILE...")
 		try:
 			os.remove(vFileToRemove)
 		except FileNotFoundError:
