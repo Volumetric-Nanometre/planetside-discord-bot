@@ -87,7 +87,7 @@ class Operations(commands.GroupCog):
 		vOpManager = OperationManager()
 		newOpsData.date = vDate
 
-		if vOpTypeStr not in OperationManager.GetDefaults():
+		if vOpTypeStr not in botUtils.FilesAndFolders.GetFiles(botSettings.Directories.savedDefaultsDir, ".bin"):
 			# USER IS USING A NON-DEFAULT/CUSTOM
 			newOpsData.status = OpsStatus.editing
 
@@ -274,17 +274,6 @@ class OperationManager():
 
 
 
-	def GetDefaults():
-		"""
-		# GET DEFAULTS:
-		Get the default Ops filenames.
-		
-		## RETURN : list(str)
-		"""
-		return botUtils.FilesAndFolders.GetFiles(botSettings.Directories.savedDefaultsDir, ".bin")
-
-
-
 	async def RemoveOperation(self, p_opData: OperationData):
 		"""
 		# REMOVE OPERATION:
@@ -417,7 +406,7 @@ class OperationManager():
 		"""
 		vDataFiles: list = ["Custom"]
 		# Merge custom list with list of actual default files.		
-		vDataFiles += OperationManager.GetDefaults()
+		vDataFiles += botUtils.FilesAndFolders.GetFiles(botSettings.Directories.savedDefaultsDir, ".bin")
 
 		return vDataFiles
 
@@ -743,14 +732,20 @@ class OperationManager():
 		vRoleSelector.UpdateOptions()
 
 		btnReserve = OpsRoleReserve(p_opsData)
+		btnResign = OpsRoleResign( p_opsData )
 
 		vView.add_item( vRoleSelector )
+		
 		if p_opsData.options.bUseReserve:
 			vView.add_item( btnReserve )
+
+		if botSettings.SignUps.bResignAsButton:
+			vView.add_item( btnResign )
 		
 		if p_opsData.status == OpsStatus.started or p_opsData.status == OpsStatus.editing:
 			vRoleSelector.disabled = True
 			btnReserve.disabled = True
+			btnResign.disabled = True
 
 		return vView
 
@@ -964,7 +959,7 @@ class OpsRoleSelector(discord.ui.Select):
 		super().__init__(placeholder="Choose a role...", options=[defaultOption])
 
 	async def callback(self, pInteraction: discord.Interaction):
-		await pInteraction.response.defer(thinking=True, ephemeral=True)
+		# await pInteraction.response.defer(thinking=True, ephemeral=True)
 
 		botUtils.BotPrinter.Debug(f"User {pInteraction.user.name} has signed up to {self.vOpsData.fileName} with role: {self.values[0]}")
 		vOpMan = OperationManager()		
@@ -975,14 +970,17 @@ class OpsRoleSelector(discord.ui.Select):
 				vSelectedRole = role
 
 
-		if vSelectedRole == None:
+		if vSelectedRole == None and not botSettings.SignUps.bResignAsButton:
 			# Player selected RESIGN
-			OperationManager.RemoveUser(p_opData=self.vOpsData, p_userToRemove=pInteraction.user.id)
-			OperationManager.SaveToFile(self.vOpsData)
-			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
-			await pInteraction.edit_original_response(content=f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!")
-			# No need to continue further.
-			return
+			if pInteraction.user.id in self.vOpsData.GetParticipantIDs():
+				OperationManager.RemoveUser(p_opData=self.vOpsData, p_userToRemove=pInteraction.user.id)
+				OperationManager.SaveToFile(self.vOpsData)
+				await vOpMan.UpdateMessage(p_opData=self.vOpsData)
+				await pInteraction.response.send_message(content=f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!", ephemeral=True)
+				# No need to continue further.
+				return
+			else:
+				await pInteraction.response.send_message(content=f"You are not signed up to {self.vOpsData.name}!", ephemeral=True)
 
 
 		if pInteraction.user.id not in vSelectedRole.players:
@@ -990,9 +988,9 @@ class OpsRoleSelector(discord.ui.Select):
 			vSelectedRole.players.append( pInteraction.user.id )
 			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
 			OperationManager.SaveToFile(self.vOpsData)	
-			await pInteraction.edit_original_response(content=f"You have signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
+			await pInteraction.response.send_message(content=f"You have signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
 		else:
-			await pInteraction.edit_original_response(content=f"You're already signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
+			await pInteraction.response.send_message(content=f"You're already signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
 
 	
 	
@@ -1035,17 +1033,37 @@ class OpsRoleReserve(discord.ui.Button):
 		super().__init__(label="Reserve", emoji=botSettings.SignUps.reserveIcon)
 
 	async def callback(self, pInteraction: discord.Interaction):
-		await pInteraction.response.defer(thinking=True, ephemeral=True)
+		# await pInteraction.response.defer(thinking=True, ephemeral=True)
 
 		if pInteraction.user.id not in self.vOpsData.reserves:
-			await pInteraction.edit_original_response(content=f"You have signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
+			await pInteraction.response.send_message(content=f"You have signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
 			OperationManager.RemoveUser(self.vOpsData, pInteraction.user.id)
 			self.vOpsData.reserves.append(pInteraction.user.id)
 
 			vOpMan = OperationManager()
 			await vOpMan.UpdateMessage(self.vOpsData)
 		else:
-			await pInteraction.edit_original_response(content=f"You have already signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
+			await pInteraction.response.send_message(content=f"You have already signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
+
+
+
+
+class OpsRoleResign(discord.ui.Button):
+	def __init__(self, p_opsData : OperationData):
+		self.vOpsData = p_opsData
+		super().__init__(label="Resign", emoji=botSettings.SignUps.resignIcon)
+
+	async def callback(self, pInteraction: discord.Interaction):
+		if pInteraction.user.id in self.vOpsData.GetParticipantIDs():
+			OperationManager.RemoveUser(self.vOpsData, pInteraction.user.id)
+			OperationManager.SaveToFile(self.vOpsData)
+			vOpMan = OperationManager()
+			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
+			await pInteraction.response.send_message(content=f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!", ephemeral=True)
+
+
+		else:
+			await pInteraction.response.send_message(content=f"You are not signed up to {self.vOpsData.name}!", ephemeral=True)
 
 
 
@@ -1075,7 +1093,6 @@ class OpsEditor(discord.ui.View):
 	# Edit Date:
 	@discord.ui.button( label="Edit Date/Time",
 						style=editButtonStyle, 
-						custom_id="EditDate",
 						row=0)
 	async def btnEditDate(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		vEditModal = editDates.EditDates(p_opData=self.vOpsData)
@@ -1086,7 +1103,6 @@ class OpsEditor(discord.ui.View):
 	@discord.ui.button(
 						style=editButtonStyle, 
 						label="Edit Op Info",
-						custom_id="EditInfo",
 						row=0)
 	async def btnEditInfo(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		vEditModal = editInfo.EditInfo(p_OpData=self.vOpsData)
@@ -1097,7 +1113,6 @@ class OpsEditor(discord.ui.View):
 	@discord.ui.button(
 						style=editButtonStyle, 
 						label="Edit Roles",
-						custom_id="EditRoles",
 						row=0)
 	async def btnEditRoles(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		vEditModal = editRoles.EditRoles(p_opData=self.vOpsData)
@@ -1109,7 +1124,6 @@ class OpsEditor(discord.ui.View):
 	@discord.ui.button(
 						style=editButtonStyle, 
 						label="Edit Channels",
-						custom_id="EditChannels",
 						row=0)
 	async def btnEditChannels(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
 		vEditModal = editChannels.EditChannels(p_OpData=self.vOpsData)
@@ -1120,7 +1134,6 @@ class OpsEditor(discord.ui.View):
 	@discord.ui.button(
 						style=discord.ButtonStyle.green, 
 						label="Apply/Send",
-						custom_id="EditorApply",
 						emoji="📨",
 						row=3)
 	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
@@ -1171,7 +1184,6 @@ class OpsEditor(discord.ui.View):
 	@discord.ui.button( 
 						style=discord.ButtonStyle.primary, 
 						label="New Default",
-						custom_id="EditorNewDefault",
 						emoji="💾",
 						row=3)
 	async def btnNewDefault(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
@@ -1223,7 +1235,6 @@ class OpsEditor(discord.ui.View):
 	@discord.ui.button(
 						style=discord.ButtonStyle.danger,
 						label="Delete",
-						custom_id="EditorDelete",
 						emoji="⚠️",
 						row=3)
 	async def btnDelete(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):

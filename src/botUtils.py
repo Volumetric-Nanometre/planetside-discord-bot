@@ -542,13 +542,13 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Auto prestart:	{Commander.autoPrestart} minutes\n"
 	vString += f"	> Auto Start:		{Commander.bAutoStartEnabled}\n"
 	vString += f"	> Live Tracking:	{Commander.trackEvent.name}\n"
+	vString += f"	> Tracking Interval:	{Commander.dataPointInterval} seconds\n"
 	vString += f"	> Marked Present:	{Commander.markedPresent.name}\n"
 	vString += f"	> Auto Alerts:		{Commander.bAutoAlertsEnabled}\n"
 	vString += f"	> Auto Alert count:	{Commander.autoAlertCount}\n"
 	vString += f"	> Auto Move VC:		{Commander.bAutoMoveVCEnabled}\n"
 	vString += f"	> Automove VC ID:	{Commander.autoMoveBackChannelID}\n"
 	vString += f"	> Soberdogs Feedback:	{Commander.soberFeedbackID}\n"
-	vString += f"	> Tracking Interval:	{Commander.dataPointInterval} seconds\n"
 	vString += f"	> Default Channels: {Commander.defaultChannels}\n"
 
 
@@ -557,6 +557,7 @@ def PrintSettings(bGetOnly = False):
 	vString += "\nSIGN UP SETTINGS\n"
 	vString += f"	> Signup Cat  : {SignUps.signupCategory}\n"
 	vString += f"	> Resign Icon : {SignUps.resignIcon}\n" 
+	vString += f"	> Resign As Button : {SignUps.bResignAsButton}\n" 
 	vString += f"	> Reserve Icon: {SignUps.reserveIcon}\n"
 	vString += f"	> Auto Prestart:{SignUps.bAutoPrestartEnabled}\n"
 	vString += f"	> Show Opts in Footer: {SignUps.bShowOptsInFooter}\n"

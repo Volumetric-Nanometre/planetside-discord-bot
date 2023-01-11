@@ -155,8 +155,10 @@ class NewUser_btnReadRules(discord.ui.Button):
 		miniRules = NewUser_MiniRules(p_userID=p_interaction.user.id, p_guild=p_interaction.guild)
 
 		await miniRules.Setup()
-
-		await p_interaction.response.send_message(view=miniRules.view, embed=miniRules.rulesEmbed, ephemeral=True)
+		if miniRules.bUseContent:
+			await p_interaction.response.send_message(view=miniRules.view, content=miniRules.rulesMessage.content, ephemeral=True)
+		else:
+			await p_interaction.response.send_message(view=miniRules.view, embed=miniRules.rulesEmbed, ephemeral=True)
 		userData.rulesMsg = await p_interaction.original_response()
 
 
@@ -202,7 +204,11 @@ class NewUser_MiniRules():
 		self.view.add_item(NewUser_MiniRules_btnDecline(self.userID))
 
 		self.rulesMessage:discord.Message = None
+
 		self.rulesEmbed = None
+		self.bUseContent = False # Set to true if no embeds are found.
+
+
 
 	async def Setup(self):
 		"""
@@ -212,15 +218,18 @@ class NewUser_MiniRules():
 		ruleChannel:discord.TextChannel = self.guild.get_channel(NewUserSettings.ruleChnID)
 
 		self.rulesMessage = await ruleChannel.fetch_message(NewUserSettings.ruleMsgID)
-		try:
-			self.rulesEmbed = self.rulesMessage.embeds[0]
-		except IndexError:
-			BotPrinter.Info("NO RULES EMBED FOUND!  Falling back to message content")
-			self.rulesEmbed = discord.Embed(title="RULES")
-			self.rulesEmbed.add_field(
-				name="----------------",
-				value=self.rulesMessage.content
-			)
+		
+		if len(self.rulesMessage.embeds) != 0:
+			try:
+				self.rulesEmbed = self.rulesMessage.embeds[0]
+			except IndexError:
+				BotPrinter.Debug("NO RULES EMBED FOUND!  Falling back to message content")
+				self.bUseContent = True
+		else:
+			BotPrinter.Debug("Using Rules Message content.")
+			self.bUseContent = True
+
+		
 
 
 

@@ -356,12 +356,15 @@ class SignUps:
 
 	NOTE:  These are NOT settings for individual signups! See `botData.operations.operationOptions` for those.
 	"""
-	# Auto Remove Outdated: On startup (or any call to Refresh Ops), if the event date is before the current date, remove the event. 
+	# Auto Remove Outdated: On startup, or any call to Refresh Ops; if the event date is before the current date, remove it. 
 	bAutoRemoveOutdated = True
 	
 	# The category name (results are searched in lower, so this is generally case insensitive.)
 	# If not found, this category is created.
 	signupCategory = "SIGN UP"
+
+	# Resign as Button: True, Resign as a separate button. False, Resign is added to the role selector.  
+	bResignAsButton = True
 
 	# Icon used for built in RESIGN role.
 	resignIcon = "❌"
