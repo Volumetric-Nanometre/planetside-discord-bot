@@ -998,8 +998,9 @@ class OpsRoleSelector(discord.ui.Select):
 		self.options.clear()
 		role: OpRoleData
 
-		# Always add a default used to resign players.
-		self.add_option(label="Resign", value="Resign", emoji=botSettings.SignUps.resignIcon)
+		if not botSettings.SignUps.bResignAsButton:
+			self.add_option(label="Resign", value="Resign", emoji=botSettings.SignUps.resignIcon)
+
 		
 		for role in self.vOpsData.roles:
 			if len(self.options) == botSettings.SignUps.maxRoles:
