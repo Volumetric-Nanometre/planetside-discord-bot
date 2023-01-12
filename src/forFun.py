@@ -26,8 +26,6 @@ class ForFunCog(commands.Cog, name="for fun", description="Isolated fun elements
 		if self.options.bMorningGreeting:
 			self.botRef.add_listener(self.SendMorningGreeting, "on_message")
 
-		BUPrint.Debug(f"List of responses: {self.greetingResponses}")
-
 		BUPrint.Info("COG: For Fun loaded!")
 
 
