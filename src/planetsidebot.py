@@ -17,6 +17,7 @@ from OpCommander.commander import Commander
 from userManager import UserLibraryCog, UserLibraryAdminCog, UserLibrary, UserLib_RecruitValidationRequest
 from chatUtility import ChatUtilityCog
 from botAdmin import BotAdminCog
+from forFun import ForFunCog
 
 from botData.sanityChecker import SanityCheck
 
@@ -56,6 +57,9 @@ class Bot(commands.Bot):
 
         if settings.BotSettings.botFeatures.chatUtility:
             await self.add_cog(ChatUtilityCog(self))
+
+        if settings.BotSettings.botFeatures.ForFunCog:
+            await self.add_cog(ForFunCog(self))
 
         if settings.BotSettings.botFeatures.BotAdmin:
             adminCog = BotAdminCog(self)

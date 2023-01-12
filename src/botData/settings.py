@@ -61,6 +61,9 @@ class BotSettings:
 
 		# User Roles: Cog which enables users to self-assign roles using a command (or button on newUser, if enabled)
 		UserRoles= True,
+
+		# For Fun Cog: Cog that implements 'for fun' features that do not depend on other bot functionality.
+		ForFunCog=True,
 	)
 
 	# Debug Enabled: set to false during live use to reduce console clutter.
@@ -659,7 +662,7 @@ class ForFun:
 	]
 
 	# Morning Greeting minimum time: the minimum time since the last greeting was sent, used to prevent spam.
-	morningGreetingMinTime = relativedelta(minute=30)
+	morningGreetingMinTime = relativedelta(minutes=5)
 
 
 

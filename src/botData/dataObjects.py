@@ -54,6 +54,7 @@ class BotFeatures:
 	Operations: bool
 	chatUtility: bool
 	UserRoles: bool
+	ForFunCog: bool
 
 
 # # # # USER LIBRARY

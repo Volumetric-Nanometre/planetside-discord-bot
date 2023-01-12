@@ -488,6 +488,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"		>> [{BotSettings.botFeatures.userLibraryInboxAdmin}] Inbox System | [{BotSettings.botFeatures.userLibraryInboxAdmin}] Inbox Admin | [{BotSettings.botFeatures.UserLibraryFun}] Fun Features\n"
 	vString += f"	> [{BotSettings.botFeatures.UserRoles}] User Roles\n"
 	vString += f"	> [{BotSettings.botFeatures.chatUtility}]  Chat Utility\n\n"
+	vString += f"	> For Fun Cog: {BotSettings.botFeatures.ForFunCog}\n"
 
 
 	vString += "\nGENERAL BOT SETTINGS\n"
