@@ -5,7 +5,7 @@ Functions and classes specifically for administrative tasks that don't really fi
 
 from discord.ext.commands import GroupCog, Bot
 from discord import app_commands, Interaction
-from botData.settings import BotSettings, Channels
+from botData.settings import BotSettings, Channels, Roles
 from botUtils import BotPrinter as BUPrint
 from botUtils import PrintSettings
 
@@ -22,7 +22,7 @@ class BotAdminCog(GroupCog, name="admin", description="Administrative commands a
 		# HAS PERMISSION
 		Convenience function to check if calling user is in list of admin IDs.
 		"""
-		if p_userID in BotSettings.roleRestrict_ADMIN:
+		if p_userID in Roles.roleRestrict_ADMIN:
 			return True
 		else:
 			BUPrint.LogError(p_titleStr="ADMIN COMMAND USE", p_string="User attempted to use an admin command.")
