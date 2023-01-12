@@ -644,12 +644,23 @@ class ForFun:
 	# Morning Greetings: list of greetings to a user who says "morning", any instance of "_USER" is replaced with a mention.
 	morningGreetings = [
 		"G'Mornin', _USER!",
+		"Morning! :D",
 		"It is?",
 		"Is it?",
 		"Top o' the mornin' to ya, _USER!",
 		"Afternoon. :)",
 		"Hello there _USER!",
 		"_USER, it's too early.  Go back to bed.",
+		"And a glorious morning to you, too, _USER!",
+		"Why are you awake? Why are you awake?!",
+		"I've checked with my bar clock, and I have to disagree with you, Sir.",
+		"I've checked with my bar clock, and I must say you're positively delirious, Sir.",
+		"... You've had one too many drinks today.",
+		"Are you sure?",
+		"I'm going back to bed...",
+		"Glorious pleasantries to you too, _USER!",
+		"Morning, _USER. \nI heard you flown with Cactus recently... how was it?  They didn't _FLIGHTDEATHREASON?",
+		"Morning, _USER. \nI heard you flown with DoubleD recently... how was it?  They didn't _FLIGHTDEATHREASON?",
 	]
 
 	morningGreetingsGif = [
@@ -659,12 +670,24 @@ class ForFun:
 		"https://tenor.com/rvIY.gif",
 		"https://tenor.com/blv8V.gif",
 		"https://media.tenor.com/PZf33FwKn-0AAAAd/good-morning-funny.gif",
+		"https://giphy.com/gifs/warnerarchive-warner-archive-julie-christie-petulia-26uf05j0KemLdP58A",
+		"https://www.lovethispic.com/uploaded_images/379818-Funny-Good-Morning-Sunshine-Gif.gif",
+		"https://media.tenor.com/vL8iJNn7tjcAAAAM/awake-woke.gif",
+		"https://media.tenor.com/Pb2FdndScvgAAAAd/good-morning-unhappy.gif",
+		"https://media.tenor.com/lzNPKl40wigAAAAM/figaro-pinocchio.gif",
+		"https://media.tenor.com/bT5Ha1rqXpkAAAAM/no-u-michael-scott-no-u.gif",
 	]
 
 	# Morning Greeting minimum time: the minimum time since the last greeting was sent, used to prevent spam.
 	morningGreetingMinTime = relativedelta(minutes=5)
 
 
+	flightDeathReason = [
+		"prematurely explode",
+		"crash into a stray tree and die in a fiery inferno",
+		"forget which way is up",
+		"have one too many to drink"
+	]
 
 @dataclass(frozen=True)
 class Messages:

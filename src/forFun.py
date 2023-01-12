@@ -38,11 +38,9 @@ class ForFunCog(commands.Cog, name="for fun", description="Isolated fun elements
 			return
 
 		if datetime.now() < self.nextGreeting:
-			BUPrint.Debug("Too soon for next morning message!")
 			return
 
 		if not p_message.content.lower().__contains__("morning") or p_message.content.count(" ") > 3:
-			BUPrint.Debug("Not a morning message, ignoring.")
 			return
 
 		self.nextGreeting = datetime.now() + ForFun.morningGreetingMinTime
@@ -50,6 +48,6 @@ class ForFunCog(commands.Cog, name="for fun", description="Isolated fun elements
 
 		msgResponse = choice(self.greetingResponses)
 
-		msgResponse = msgResponse.replace("_USER", f"{p_message.author.mention}")
+		msgResponse = msgResponse.replace("_USER", f"{p_message.author.mention}").replace("_FLIGHTDEATHREASON", choice(ForFun.flightDeathReason))
 
 		await p_message.channel.send(content=msgResponse)
