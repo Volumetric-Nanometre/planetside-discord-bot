@@ -90,7 +90,7 @@ class Bot(commands.Bot):
         BUPrint.Info(f'\n\nBOT READY	|	{self.user.name} ({self.user.id}) on: {self.vGuildObj.name}\n')
 
         if settings.BotSettings.bShowSettingsOnStartup_discord:
-            vAdminChannel = self.get_channel(settings.BotSettings.adminChannel)
+            vAdminChannel = self.get_channel(settings.Channels.botAdminID)
             if vAdminChannel != None and settings.BotSettings.bShowSettingsOnStartup_discord:
                 vSettingStr = botUtils.PrintSettings(True)
                 splitString = [(vSettingStr[index:index+1990]) for index in range(0, len(vSettingStr), 1990)]

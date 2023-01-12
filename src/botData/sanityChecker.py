@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from discord import Role, SelectOption
 from discord.ext.commands import Bot
-from botData.settings import BotSettings, NewUsers, Commander, UserLib, Roles
+from botData.settings import BotSettings, NewUsers, Commander, UserLib, Roles, Channels
 from botUtils import BotPrinter as BUPrint
 
-class BadChannel(Exception):
+class BadChannelError(Exception):
 	"""
 	# EXCEPTION: BAD CHANNEL:
 	Raised when required channels are not set.
@@ -20,7 +20,7 @@ class BadChannel(Exception):
 		super().__init__("An invalid channel name or ID was set.  See above for more details.")
 
 
-class BadGuild(Exception):
+class BadGuildError(Exception):
 	"""
 	# EXCEPTION: BAD GUILD
 	Raised when the guild is invalid.
@@ -29,7 +29,7 @@ class BadGuild(Exception):
 		super().__init__(f"Guild not found with ID {BotSettings.discordGuild}. Check Guild ID is correct and bot is present in the guild.")
 
 
-class BadRole(Exception):
+class BadRoleError(Exception):
 	"""
 	# EXCEPTION: BAD ROLE:
 	Raised when required roles are not set/invalid.
@@ -70,7 +70,7 @@ class SanityCheck():
 		vGuild = p_botRef.get_guild(int(BotSettings.discordGuild))
 		if vGuild == None:
 			BUPrint.LogError(f"{BotSettings.discordGuild}", "INVALID GUILD ID:")
-			raise BadGuild()
+			raise BadGuildError()
 
 
 	async def CheckRoles(p_botRef:Bot):
@@ -84,8 +84,8 @@ class SanityCheck():
 		checkOptions = BotSettings.sanityCheckOpts
 		bFailedCheck = False
 
-		if len(BotSettings.roleRestrict_ADMIN):
-			for adminID in BotSettings.roleRestrict_ADMIN:
+		if len(Roles.roleRestrict_ADMIN):
+			for adminID in Roles.roleRestrict_ADMIN:
 				adminUser = p_botRef.get_user(adminID)
 				if adminUser == None:
 					BUPrint.LogError(p_titleStr="INVALID ROLE |  ADMINISTRATOR", p_string=str(adminID))
@@ -93,36 +93,36 @@ class SanityCheck():
 
 		# BOT SETTINGS: Role restrict values
 		if checkOptions.RestrictLevels:
-			for roleStr in BotSettings.roleRestrict_level_0:
+			for roleStr in Roles.roleRestrict_level_0:
 				if not SanityCheck.RoleInRoles(roleStr, allRoles):
 					BUPrint.LogError(p_titleStr="INVALID ROLE |  Role Restriction Level 0", p_string=roleStr)
 					bFailedCheck = True
 
-			for roleStr in BotSettings.roleRestrict_level_1:
+			for roleStr in Roles.roleRestrict_level_1:
 				if not SanityCheck.RoleInRoles(roleStr, allRoles):
 					BUPrint.LogError(p_titleStr="INVALID ROLE |  Role Restriction Level 1", p_string=roleStr)
 					bFailedCheck = True
 
-			for roleStr in BotSettings.roleRestrict_level_2:
+			for roleStr in Roles.roleRestrict_level_2:
 				if not SanityCheck.RoleInRoles(roleStr, allRoles):
 					BUPrint.LogError(p_titleStr="INVALID ROLE |  Role Restriction Level 2", p_string=roleStr)
 					bFailedCheck = True
 
-			for roleStr in BotSettings.roleRestrict_level_3:
+			for roleStr in Roles.roleRestrict_level_3:
 				if not SanityCheck.RoleInRoles(roleStr, allRoles):
 					BUPrint.LogError(p_titleStr="INVALID ROLE |  Role Restriction Level 3", p_string=roleStr)
 					bFailedCheck = True
 
 		if checkOptions.UsedByNewUser or checkOptions.UsedByUserLibrary:
 			# AUTO ASSIGN ROLES
-			for autoRoleID in NewUsers.autoAssignRoles:
+			for autoRoleID in Roles.autoAssignOnAccept:
 				if not SanityCheck.RoleInRoles(autoRoleID, allRoles):
 					BUPrint.LogError(p_titleStr="INVALID ROLE |  NewUsers: AutoAssign", p_string=str(autoRoleID))
 					bFailedCheck = True
 
 			# RECRUIT ROLE
-			if not SanityCheck.RoleInRoles(NewUsers.recruitRole, allRoles):
-				BUPrint.LogError(p_titleStr="INVALID ROLE |  NewUsers: Recruit", p_string=str(NewUsers.recruitRole))
+			if not SanityCheck.RoleInRoles(Roles.recruit, allRoles):
+				BUPrint.LogError(p_titleStr="INVALID ROLE |  NewUsers: Recruit", p_string=str(Roles.recruit))
 				bFailedCheck = True
 
 		if checkOptions.UsedByNewUser:
@@ -134,8 +134,8 @@ class SanityCheck():
 
 		if checkOptions.UsedByUserLibrary:
 			# PROMOTION ROLE
-			if not SanityCheck.RoleInRoles(UserLib.promotionRoleID, allRoles):
-				BUPrint.LogError(p_titleStr="INVALID ROLE |  UserLib: Promotion", p_string=str(UserLib.promotionRoleID))
+			if not SanityCheck.RoleInRoles(Roles.recruitPromotion, allRoles):
+				BUPrint.LogError(p_titleStr="INVALID ROLE |  UserLib: Promotion", p_string=str(Roles.recruitPromotion))
 				bFailedCheck = True
 
 		if checkOptions.UsedByUserRoles:
@@ -164,7 +164,7 @@ class SanityCheck():
 			if BotSettings.bDebugEnabled:
 				BUPrint.LogError(p_titleStr="ROLES FAILED CHECK", p_string="One or more roles has an invalid value.")
 			else:
-				raise BadRole
+				raise BadRoleError()
 
 
 	def RoleInRoles(p_roleNameOrID:str, p_RolesList:list[Role]):
@@ -198,51 +198,54 @@ class SanityCheck():
 		checkOptions = BotSettings.sanityCheckOpts
 		checkChannel = None
 		vGuild = p_botRef.get_guild(int(BotSettings.discordGuild))
+		if vGuild == None:
+			raise BadGuildError()
 		bFailedCheck = False
 
 		if checkOptions.UsedByNewUser or checkOptions.UsedByUserLibrary:
 			# ADMIN CHANNEL
-			checkChannel = vGuild.get_channel( BotSettings.adminChannel )
+			checkChannel = vGuild.get_channel( Channels.botAdminID )
 			if checkChannel == None:
 				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Admin Channel")
 				bFailedCheck = True
 
 		if checkOptions.UsedByCommander:
 			# FALLBACK VOICE CHAT
-			checkChannel = vGuild.get_channel( BotSettings.fallbackVoiceChat )
+			checkChannel = vGuild.get_channel( Channels.voiceFallbackID )
 			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Commander: Fallback")
+				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Voice Fallback")
 				bFailedCheck = True
 
 			# COMMANDER MOVEBACK CHANNEL
 			if Commander.bAutoMoveVCEnabled:
-				checkChannel = vGuild.get_channel( Commander.autoMoveBackChannelID )
+				checkChannel = vGuild.get_channel( Channels.eventMovebackID )
 				if checkChannel == None:
-					BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Commander: AutoMoveback")
+					BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Event AutoMoveback")
 					bFailedCheck = True
 
 			# SOBER FEEDBACK
-			checkChannel = vGuild.get_channel( Commander.soberFeedbackID )
+			checkChannel = vGuild.get_channel( Channels.soberFeedbackID )
 			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Commander: Sober Feedback")
+				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Sober Feedback")
 				bFailedCheck = True
 
 
 		if checkOptions.UsedByNewUser:
 			# GATE CHANNEL
-			checkChannel = vGuild.get_channel( NewUsers.gateChannelID )
+			checkChannel = vGuild.get_channel( Channels.gateID )
 			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="New Users: Gate")
+				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Gate")
 				bFailedCheck = True
 
 			# GENERAL CHANNEL
-			checkChannel = vGuild.get_channel( NewUsers.generalChanelID )
+		if checkOptions.UsedByNewUser or checkOptions.UsedByUserLibrary:
+			checkChannel = vGuild.get_channel( Channels.generalID )
 			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="New Users: General")
+				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="General Text")
 				bFailedCheck = True
 
 		if bFailedCheck:
 			if BotSettings.bDebugEnabled:
 				BUPrint.LogError(p_titleStr="CHANNELS FAILED CHECK", p_string="One or more channels has an invalid value.")
 			else:
-				raise BadChannel
+				raise BadChannelError

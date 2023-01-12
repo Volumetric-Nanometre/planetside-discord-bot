@@ -69,8 +69,10 @@ class Operations(commands.GroupCog):
 		pAdditionalInfo: str = ""
 	):
 		# HARDCODED ROLE USEAGE:
-		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandRestrictionLevels.level1), pInteraction):
+		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandLimit.opManager), pInteraction):
 			return
+
+		await pInteraction.response.defer(thinking=True, ephemeral=True)
 
 		botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
 		vDate = datetime.datetime(
@@ -95,7 +97,7 @@ class Operations(commands.GroupCog):
 
 			botUtils.BotPrinter.Debug(f"Editor: {vEditor}, Type: {type(vEditor)}")
 
-			await pInteraction.response.send_message("**OPS EDITOR**", view=vEditor, ephemeral=True)
+			await pInteraction.edit_original_response(content="**OPS EDITOR**", view=vEditor)
 			vEditor.vEditorMsg = await pInteraction.original_response()
 			return
 
@@ -118,20 +120,20 @@ class Operations(commands.GroupCog):
 
 			if newOpsData == None:
 				botUtils.FilesAndFolders.DeleteCorruptFile(vFilePath)
-				await pInteraction.response.send_message(botMessages.newOpCorruptData, ephemeral=True)
+				await pInteraction.edit_original_response(content=botMessages.newOpCorruptData)
 				return
 
 
 			if(edit):
 				vEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
-				await pInteraction.response.send_message(f"**Editing OpData for** *{optype}*", view=vEditor, ephemeral=True)
+				await pInteraction.edit_original_response(content=f"**Editing OpData for** *{optype}*", view=vEditor)
 				vEditor.vEditorMsg = await pInteraction.original_response()
 
 			else:
 				if await vOpManager.AddNewLiveOp(p_opData=newOpsData):
-					await pInteraction.response.send_message("Ops posted!", ephemeral=True)
+					await pInteraction.edit_original_response(content="Ops posted!")
 				else:
-					await pInteraction.response.send_message("Op posting failed, check console for more information.", ephemeral=True)
+					await pInteraction.edit_original_response(content="Op posting failed, check console for more information.")
 
 		# End AddOpsEvent
 
@@ -158,7 +160,7 @@ class Operations(commands.GroupCog):
 	async def editopsevent(self, pInteraction: discord.Interaction, pOpsToEdit: str):
 
 		# HARDCODED ROLE USEAGE:
-		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandRestrictionLevels.level1), pInteraction):
+		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandLimit.opManager), pInteraction):
 			return
 
 		BUPrint.Info(f"**Editing Ops data for** *{pOpsToEdit}*")
@@ -794,6 +796,7 @@ class OperationManager():
 		await vMessage.edit(embed=vNewEmbed, view=vView)
 
 
+		# If the event has been pre-started, update the commanders participants and re-generate info & commander (for connections)
 		if p_opData.status == OpsStatus.prestart:
 			commander: OpCommander.commander.Commander = OperationManager.FindCommander(p_opData)
 			if commander == None:
@@ -801,7 +804,8 @@ class OperationManager():
 				return
 
 			await commander.GenerateInfo()
-			await commander.UpdateParticipants() # Updates connections.
+			await commander.UpdateParticipants() 
+			await commander.GenerateCommander() # Updates connections.
 
 
 

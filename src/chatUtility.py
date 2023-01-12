@@ -50,9 +50,9 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 		p_interaction.response.defer()
 		
 		vMessage = f"{p_interaction.user.display_name} removed the Category: {p_category.name}\n\n"
-		vAdminChannel = p_interaction.guild.get_channel( Settings.BotSettings.adminChannel )
+		vAdminChannel = p_interaction.guild.get_channel( Settings.Channels.botAdminID )
 
-		if p_category.id in Settings.BotSettings.protectedCategories:
+		if p_category.id in Settings.Channels.protectedCategoriesID:
 			await p_interaction.response.send_message("That category is protected and cannot be removed with this command!", ephemeral=True)
 			if vAdminChannel != None:
 				await vAdminChannel.send(f"User {p_interaction.user.mention} attempted to delete protected category: {p_category.name}")
@@ -62,7 +62,7 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 
 		# Remove voice channels, moving any connected users to fallback (if found).
 		# This is done first, since movin connected members should remove all the chat-linked text channels.
-		fallbackVC = p_interaction.guild.get_channel( Settings.BotSettings.fallbackVoiceChat )
+		fallbackVC = p_interaction.guild.get_channel( Settings.Channels.voiceFallbackID )
 		vMessage += f"**Voice Channels: {len(p_category.voice_channels)}"
 		for voiceChan in p_category.voice_channels:
 			if fallbackVC != None:

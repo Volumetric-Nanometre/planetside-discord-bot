@@ -3,7 +3,7 @@ import sys
 import datetime
 import time
 from sys import stderr
-from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib, CommandLimit
+from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib, CommandLimit, Roles, Channels
 import botData.utilityData as UtilityData
 import traceback
 import discord
@@ -485,7 +485,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> [{BotSettings.botFeatures.NewUser}] New User\n"
 	vString += f"	> [{BotSettings.botFeatures.Operations}] Operations\n"
 	vString += f"	> [{BotSettings.botFeatures.UserLibrary}] User Library\n"
-	vString += f"		>> [{BotSettings.botFeatures.userLibraryInboxAdmin}] Inbox System | [{BotSettings.botFeatures.userLibraryInboxAdmin}] Inbox Admin | [{BotSettings.botFeatures.UserLibraryFun}] Fun Features"
+	vString += f"		>> [{BotSettings.botFeatures.userLibraryInboxAdmin}] Inbox System | [{BotSettings.botFeatures.userLibraryInboxAdmin}] Inbox Admin | [{BotSettings.botFeatures.UserLibraryFun}] Fun Features\n"
 	vString += f"	> [{BotSettings.botFeatures.UserRoles}] User Roles\n"
 	vString += f"	> [{BotSettings.botFeatures.chatUtility}]  Chat Utility\n\n"
 
@@ -498,13 +498,6 @@ def PrintSettings(bGetOnly = False):
 	token = BotSettings.ps2ServiceID[:5]
 	vString += f"	> PS2ServiceID:	{token}...\n"
 	vString += f"	> BotDirectory:	{BotSettings.botDir}\n"
-	vString += f"	> AdminChannel:	{BotSettings.adminChannel}\n"
-	vString += f"	> Force Role Restrictions: {BotSettings.bForceRoleRestrictions}\n"
-	vString += f"	> Level 0:	{BotSettings.roleRestrict_level_0}\n"
-	vString += f"	> Level 1:	{BotSettings.roleRestrict_level_1}\n"
-	vString += f"	> Level 2:	{BotSettings.roleRestrict_level_2}\n"
-	vString += f"	> Level 3:	{BotSettings.roleRestrict_level_3}\n"
-	vString += f"	> Fallback VC:	{BotSettings.fallbackVoiceChat}\n"
 	if BotSettings.errorOutput == stderr:
 		vString += f"	> Error Output:	stderr\n"
 	else:
@@ -512,11 +505,35 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Sanity Check Values: {BotSettings.bCheckValues}\n"
 	if BotSettings.bCheckValues:
 		vString += f"{BotSettings.sanityCheckOpts}\n"
+	vString += f"\n	> Force Role Restrictions: {BotSettings.bForceRoleRestrictions}\n"
+	vString += f"	> Level 0:	{Roles.roleRestrict_level_0}\n"
+	vString += f"	> Level 1:	{Roles.roleRestrict_level_1}\n"
+	vString += f"	> Level 2:	{Roles.roleRestrict_level_2}\n"
+	vString += f"	> Level 3:	{Roles.roleRestrict_level_3}\n"
+
+
+	vString += "\nROLES\n"
+	vString += f"	> Recruit ID:		{Roles.recruit}\n"
+	vString += f"	> Promoted Role ID:	{Roles.recruitPromotion}\n"
+	vString += f"	> Auto Assign on Accept:{Roles.autoAssignOnAccept}\n"
+
+
+	vString += "\nCHANNELS\n"
+	vString += f"	> Bot Admin:	{Channels.botAdminID}\n"
+	vString += f"	> General:	{Channels.generalID}\n"
+	vString += f"	> Rules:	{Channels.ruleID}\n"
+	vString += f"	> Gate:		{Channels.gateID}\n"
+	vString += f"	> Voice Fallback:{Channels.voiceFallbackID}\n"
+	vString += f"	> Event Moveback:{Channels.eventMovebackID}\n"
+	vString += f"	> Protected Categories:\n		> {Channels.protectedCategoriesID}\n"
+	vString += f"	> Quotes:	{Channels.quoteID}\n"
+
 
 
 	vString += f"\nCOMMAND LIMITS\n"
 	vString += f"	> Validate New User: {CommandLimit.validateNewuser.name}\n"
 	vString += f"	> User Roles: {CommandLimit.userRoles.name}\n"
+	vString += f"	> Op Manager:	{CommandLimit.opManager}\n"
 	vString += f"	> Op Commander: {CommandLimit.opCommander.name}\n"
 	vString += f"	> User Library: {CommandLimit.userLibrary.name}\n"
 	vString += f"	> User Library Admin: {CommandLimit.userLibraryAdmin.name}\n"
@@ -525,12 +542,8 @@ def PrintSettings(bGetOnly = False):
 
 
 	vString += "\nNEW USER SETTINGS\n"
-	vString += f"	> Gate channel:		{NewUsers.gateChannelID}\n"
-	vString += f"	> General Channel:	{NewUsers.generalChanelID}\n"
-	vString += f"	> Rule Channel:		{NewUsers.ruleChnID}\n"
 	vString += f"	> Rule Message:		{NewUsers.ruleMsgID}\n"
 	vString += f"	> Recruit ID:		{NewUsers.recruitRole}\n"
-	vString += f"	> AutoAssign Roles:	{NewUsers.autoAssignRoles}\n"
 	vString += f"	> Show AddRoles Button:	{NewUsers.bShowAddRolesBtn}\n"
 	vString += f"	> Create Library Entry on Accept: {NewUsers.bCreateLibEntryOnAccept}\n"
 	vString += f"\n	> Warnings: Discord Account age: {NewUsers.newAccntWarn} months\n"
@@ -547,8 +560,6 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Auto Alerts:		{Commander.bAutoAlertsEnabled}\n"
 	vString += f"	> Auto Alert count:	{Commander.autoAlertCount}\n"
 	vString += f"	> Auto Move VC:		{Commander.bAutoMoveVCEnabled}\n"
-	vString += f"	> Automove VC ID:	{Commander.autoMoveBackChannelID}\n"
-	vString += f"	> Soberdogs Feedback:	{Commander.soberFeedbackID}\n"
 	vString += f"	> Default Channels: {Commander.defaultChannels}\n"
 
 
@@ -557,8 +568,8 @@ def PrintSettings(bGetOnly = False):
 	vString += "\nSIGN UP SETTINGS\n"
 	vString += f"	> Signup Cat  : {SignUps.signupCategory}\n"
 	vString += f"	> Resign Icon : {SignUps.resignIcon}\n" 
-	vString += f"	> Resign As Button : {SignUps.bResignAsButton}\n" 
 	vString += f"	> Reserve Icon: {SignUps.reserveIcon}\n"
+	vString += f"	> Resign As Button : {SignUps.bResignAsButton}\n" 
 	vString += f"	> Auto Prestart:{SignUps.bAutoPrestartEnabled}\n"
 	vString += f"	> Show Opts in Footer: {SignUps.bShowOptsInFooter}\n"
 

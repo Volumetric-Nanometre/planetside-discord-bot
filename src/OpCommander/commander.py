@@ -29,7 +29,7 @@ from botData.utilityData import DateFormat, Colours
 from botData.settings import BotSettings as botSettings
 from botData.settings import Commander as commanderSettings
 from botData.settings import Messages as botMessages
-from botData.settings import Directories, UserLib, NewUsers
+from botData.settings import Directories, UserLib, NewUsers, Channels
 
 from botData.dataObjects import OperationData, User, OpRoleData, PS2EventTrackOptions
 
@@ -214,7 +214,8 @@ class Commander():
 			
 			# Setup Connections Refresh
 			if self.vOpData.options.bIsPS2Event:
-				await self.RefreshPS2LoginWatch()
+				BUPrint.Debug("Creating login triggers for current participant list.")
+				await self.vOpsEventTracker.CreateLoginTrigger()
 
 			# if commanderSettings.connectionRefreshInterval != 0:
 			# 	self.scheduler.add_job( Commander.GenerateCommander, 
@@ -384,7 +385,7 @@ class Commander():
 		# Create custom voice channels if present
 		if len(self.vOpData.voiceChannels) != 0 and self.vOpData.voiceChannels[0] != "":
 			BUPrint.Debug("	-> Voice channels specified...")
-			newChannel:str
+
 			for newChannel in self.vOpData.voiceChannels:
 				BUPrint.Debug(f"	-> Adding channel: {newChannel}")
 
@@ -397,7 +398,7 @@ class Commander():
 
 				if not bAlreadyExists:
 					BUPrint.Debug(f"No existing channel for {newChannel} found.  Creating new voice channel!")
-					channel = await self.vCategory.create_voice_channel(name=newChannel)
+					await self.vCategory.create_voice_channel(name=newChannel)
 		
 		
 		else: # No custom voice channels given, use default
@@ -435,7 +436,7 @@ class Commander():
 
 		# Get fallback channel		
 		user:discord.Member
-		fallbackChannel = self.vBotRef.get_channel(botSettings.fallbackVoiceChat)
+		fallbackChannel = self.vBotRef.get_channel(Channels.voiceFallbackID)
 
 		# Move connected users to fallback channel
 		for user in userList:
@@ -490,7 +491,6 @@ class Commander():
 		if len(self.vOpData.pingables) != 0:
 			vGuild:discord.Guild = await GetGuild(self.vBotRef)
 
-			rolePing:str
 			for rolePing in self.vOpData.pingables:
 				discordRole:discord.Role = discord.utils.find(lambda role: role.name.lower() == rolePing.lower(), vGuild.roles)
 				if discordRole != None:
@@ -531,6 +531,7 @@ class Commander():
 				bAvailableSpace = True
 
 		if bAvailableSpace:
+			vMessage = f"*Spaces listed below were true at the time this notification was sent.*\n{vMessage}"
 			vMessagePings = f"{vRoleMentionPing}|{self.GetParticipantMentions()}"
 		else:
 			vMessagePings = self.GetParticipantMentions()
@@ -561,10 +562,11 @@ class Commander():
 				vMessage += f"\n\n\n**ATTENTION**\n{notTrackedParticipants}\n{botMessages.noMatchingPS2Char}\n\n"
 			else:
 				vMessage += f"\n\n\n**ATTENTION**\n{notTrackedParticipants}\n{botMessages.nonPS2TrackReqsNotMet}\n\n"
-
-
 		
+
 		return vMessage
+
+
 
 
 	async def SendAlertMessage(self, p_opStart:bool = False):
@@ -1226,7 +1228,7 @@ class Commander():
 			vAllForums = self.vBotRef.guilds[0].forums
 			forum: discord.ForumChannel
 			for forum in vAllForums:
-				if forum.id == commanderSettings.soberFeedbackID:
+				if forum.id == Channels.soberFeedbackID:
 					self.soberdogFeedbackForum = forum
 					break
 			
@@ -1300,6 +1302,12 @@ class Commander():
 			newView.add_item(btnDownloadDebrief)
 			newView.add_item(btnEnd)
 
+		newView.add_item(discord.ui.Button(
+							label="HELP",
+							emoji="❓",
+							url="https://github.com/LCWilliams/planetside-discord-bot/wiki/Op-Commander"
+					)
+		)
 
 		return newView
 
@@ -1328,9 +1336,16 @@ class Commander():
 		Modifies commander status, then updates commander.
 		
 		Starts tracking, if enabled.
+
+		If no participants are in the event, it is ended instead.
 		"""
 		if self.vOpData.status.value >= OperationData.status.started.value:
 			BUPrint.Debug("Operation has already been started. Skipping.")
+			return
+
+		if len(self.participants) == 0:
+			BUPrint.Info(f"No participants for {self.vOpData.name}. Ending event.")
+			await self.EndOperation()
 			return
 
 		# If early start; stop connection refresh & autostart
@@ -1467,13 +1482,13 @@ class Commander():
 		
 		vGuild:discord.Guild = await GetGuild(self.vBotRef)
 
-		fallbackChannel = vGuild.get_channel(commanderSettings.autoMoveBackChannelID)
+		fallbackChannel = vGuild.get_channel(Channels.eventMovebackID)
 
 		if fallbackChannel == None:
-			fallbackChannel = await vGuild.fetch_channel(commanderSettings.autoMoveBackChannelID)
+			fallbackChannel = await vGuild.fetch_channel(Channels.eventMovebackID)
 			if fallbackChannel == None:
 				BUPrint.Info("ATTENTION!  Invalid Auto Move-back Channel ID provided!")
-				fallbackChannel = await vGuild.fetch_channel(botSettings.fallbackVoiceChat)
+				fallbackChannel = await vGuild.fetch_channel(Channels.voiceFallbackID)
 				if fallbackChannel == None:
 					BUPrint.Info("ATTENTION! Invalid fallback channel ID provided!  Unable to automatically move users.")
 					return

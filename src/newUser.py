@@ -7,7 +7,7 @@ import datetime, dateutil.relativedelta
 
 import botData.settings
 from botData.settings import NewUsers as NewUserSettings
-from botData.settings import CommandLimit
+from botData.settings import CommandLimit, Channels, Roles
 from botUtils import BotPrinter, GetDiscordTime, UserHasCommandPerms, GetGuild
 from botData.utilityData import Colours, DateFormat
 
@@ -66,11 +66,11 @@ class NewUser(commands.Cog):
 		"""
 		BotPrinter.Info("Purging Join Posts and sent Requests...")
 
-		gateChannel = self.botRef.get_channel(NewUserSettings.gateChannelID)
+		gateChannel = self.botRef.get_channel(Channels.gateID)
 		await gateChannel.purge(reason="Start-up/Shutdown Purge.")
 		BotPrinter.Debug("	-> Gate channel Purged.")
 
-		adminRequestChannel = self.botRef.get_channel(botData.settings.BotSettings.adminChannel)
+		adminRequestChannel = self.botRef.get_channel(botData.settings.Channels.botAdminID)
 		await adminRequestChannel.purge(reason="Startup/Shutdown Purge")
 		BotPrinter.Debug("	-> Request Channel Purged.")
 
@@ -81,7 +81,7 @@ class NewUser(commands.Cog):
 	@commands.Cog.listener("on_member_join")
 	async def promptUser(self, p_member: discord.Member):
 		if NewUserRequest.vRequestChannel == None:
-			NewUserRequest.vRequestChannel = self.botRef.get_channel(botData.settings.BotSettings.adminChannel)
+			NewUserRequest.vRequestChannel = self.botRef.get_channel(botData.settings.Channels.botAdminID)
 			if(NewUserRequest.vRequestChannel == None):
 				BotPrinter.Info("NEW USER REQUEST CHANNEL NOT FOUND!")
 				return
@@ -102,7 +102,7 @@ class NewUser(commands.Cog):
 			vEmbed.add_field(name="ACCEPTANCE OF RULES", value=botData.settings.Messages.newUserRuleDeclaration, inline=True)
 
 			vView = self.GenerateView(p_member.id)
-			gateChannel = self.botRef.get_channel(NewUserSettings.gateChannelID)
+			gateChannel = self.botRef.get_channel(Channels.gateID)
 			userData.joinMessage:discord.Message = await gateChannel.send(f"{p_member.mention}",  view=vView, embed=vEmbed)
 		
 		else:
@@ -215,7 +215,7 @@ class NewUser_MiniRules():
 		# SETUP
 		Grabs the rules message and sets the embed.
 		"""
-		ruleChannel:discord.TextChannel = self.guild.get_channel(NewUserSettings.ruleChnID)
+		ruleChannel:discord.TextChannel = self.guild.get_channel(Channels.ruleID)
 
 		self.rulesMessage = await ruleChannel.fetch_message(NewUserSettings.ruleMsgID)
 		
@@ -517,16 +517,19 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 				BotPrinter.Debug("	-> ROLE MATCH")
 				rolesToAssign.append(roleIndex)
 				vAssignedRoleName = roleIndex.name
+
+				if roleIndex.id == Roles.recruit:
+					self.userData.bIsRecruit = True
 				continue
 
-			if roleIndex.id in NewUserSettings.autoAssignRoles:
+			if roleIndex.id in Roles.autoAssignOnAccept:
 				rolesToAssign.append(roleIndex)
 				continue
 
-			if roleIndex.id == NewUserSettings.recruitRole:
-				self.userData.bIsRecruit = True
-				rolesToAssign.append(roleIndex)
-				continue
+			# if roleIndex.id == NewUserSettings.recruitRole and roleIndex.name == vAssignedRoleName:
+			# 	self.userData.bIsRecruit = True
+			# 	rolesToAssign.append(roleIndex)
+			# 	continue
 
 
 		BotPrinter.Info(f"Assigning {rolesToAssign} to {self.userData.userObj.display_name}")
@@ -577,7 +580,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		NewUser.userDatas.remove(self.userData)
 
 		# Alert User
-		vGeneralChannel = vGuild.get_channel(NewUserSettings.generalChanelID)
+		vGeneralChannel = vGuild.get_channel(Channels.generalID)
 		
 		vView = discord.ui.View()
 		if NewUserSettings.bShowAddRolesBtn:

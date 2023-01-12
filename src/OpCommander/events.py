@@ -21,7 +21,8 @@ class OpsEventTracker():
 	"""
 	def __init__(self, p_aurClient: EventClient) -> None:
 		self.auraxClient = p_aurClient
-		self.updateParent: function = None
+		self.updateParentFunction: function = None
+		
 
 		self.participants:list[Participant] = []
 		self.triggerList:list[Trigger] = []
@@ -41,7 +42,16 @@ class OpsEventTracker():
 		"""
 		self.CreateTriggers()
 		self.currentEventPoint = EventPoint( timestamp=datetime.now(timezone.utc).time(), activeParticipants=len(self.participants) )
+		BUPrint.Info("Full event Tracking has started!")
 
+
+
+	async def Stop(self):
+		"""# STOP
+		Stops the event tracker.
+		"""
+		self.ClearTriggers()
+		await self.auraxClient.close()
 
 
 
@@ -50,6 +60,8 @@ class OpsEventTracker():
 		Seperate from `Create Triggers` in that this is specifically for login and logout events,
 		and is added to the client immediately- intended to be called from the commander after the participant list has changed.
 		"""
+
+		BUPrint.Debug("Creating Login/Out Triggers")
 
 		if self.loginTrigger != None:
 			BUPrint.Debug("Removing old Login trigger...")
@@ -63,6 +75,7 @@ class OpsEventTracker():
 		vCharList = []
 		for participant in self.participants:
 			if participant.ps2Char != None:
+				BUPrint.Debug(f"	> {participant.ps2Char} added to trigger character list.")
 				vCharList.append(participant.ps2Char)
 
 		# Create new Login & Logout trigger
@@ -95,9 +108,9 @@ class OpsEventTracker():
 			if participant.ps2Char.id == p_charID:
 				participant.bPS2Online = p_isLoggedIn
 				BUPrint.Debug(f"Participant: {participant.discordUser.display_name} updated.  Online [{p_isLoggedIn}]")
-				await self.updateParent()
+				await self.updateParentFunction()
 				return
-		
+		BUPrint.Debug("Player Status attempted update but participant not found")
 
 
 
@@ -144,14 +157,14 @@ class OpsEventTracker():
 
 		# User Logins
 		triggerList.append(
-			Trigger(action=self.updateParent,
+			Trigger(action=self.updateParentFunction,
 					characters=playerCharacters,
 					event=event.PlayerLogin
 			)
 		)
 
 		triggerList.append(
-			Trigger(action=self.updateParent,
+			Trigger(action=self.updateParentFunction,
 					characters=playerCharacters,
 					event=event.PlayerLogout
 			)
@@ -184,15 +197,10 @@ class OpsEventTracker():
 		BUPrint.Debug("Clearing all triggers...")
 		for triggerToRemove in self.triggerList:
 			self.auraxClient.remove_trigger(triggerToRemove)
+		
+		self.auraxClient.remove_trigger(self.loginTrigger)
+		self.auraxClient.remove_trigger(self.logOutTrigger)
 
-
-
-	async def Stop(self):
-		"""# STOP
-		Stops the event tracker.
-		"""
-		self.ClearTriggers()
-		await self.auraxClient.close()
 
 
 

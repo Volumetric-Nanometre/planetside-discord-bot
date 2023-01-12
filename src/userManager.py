@@ -242,8 +242,8 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
 			return		
 		
-		vRecruitRole = p_interaction.guild.get_role(settings.NewUsers.recruitRole)
-		vNormalRole = p_interaction.guild.get_role(settings.UserLib.promotionRoleID)
+		vRecruitRole = p_interaction.guild.get_role(settings.Roles.recruit)
+		vNormalRole = p_interaction.guild.get_role(settings.Roles.recruitPromotion)
 		vUserEntry = UserLibrary.LoadEntry( p_User.id )
 		vResultMessage = ""
 
@@ -267,7 +267,7 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 			vResultMessage += f"User library for {p_User.display_name} has been updated."
 
 		UserLibrary.SaveEntry(vUserEntry)
-		vAdminChn = p_interaction.guild.get_channel( settings.BotSettings.adminChannel )
+		vAdminChn = p_interaction.guild.get_channel( settings.Channels.botAdminID )
 
 		if vAdminChn != None:
 			try:
@@ -626,7 +626,7 @@ class UserLibrary():
 		"""
 
 		vMember = UserLibrary.botRef.get_user(p_entry.discordID)
-		vChannel = UserLibrary.botRef.get_channel(settings.NewUsers.generalChanelID)
+		vChannel = UserLibrary.botRef.get_channel(settings.Channels.generalID)
 
 		p_entry.inbox.append(p_message)
 		UserLibrary.SaveEntry(p_entry)
@@ -900,7 +900,7 @@ class UserLibrary():
 				vRecruitRole = role
 				continue
 
-			if role.id == settings.UserLib.promotionRoleID:
+			if role.id == settings.Roles.recruitPromotion:
 				vPromotionRole = role
 				continue
 
@@ -914,7 +914,7 @@ class UserLibrary():
 		UserLibrary.SaveEntry(userEntry)
 
 		# Notify Admin channel:
-		vAdminChn = vGuild.get_channel( settings.BotSettings.adminChannel )
+		vAdminChn = vGuild.get_channel( settings.Channels.botAdminID )
 		if vAdminChn != None:
 			vAdminChn.send(f"User {p_member.display_name} was promoted to {vPromotionRole.name} ({vRecruitRole.name} removed)")
 
@@ -1578,7 +1578,7 @@ class UserLib_RecruitValidationRequest():
 		# SEND REQUEST
 		Sends the request to an admin channel.
 		"""
-		vAdminChn = self.botRef.get_channel(settings.BotSettings.adminChannel)
+		vAdminChn = self.botRef.get_channel(settings.Channels.botAdminID)
 
 		if vAdminChn == None:
 			BUPrint.Info("Unable to get admin channel for promotion request!")

@@ -5,7 +5,7 @@ Functions and classes specifically for administrative tasks that don't really fi
 
 from discord.ext.commands import GroupCog, Bot
 from discord import app_commands, Interaction
-from botData.settings import BotSettings, CommandLimit
+from botData.settings import BotSettings, Channels
 from botUtils import BotPrinter as BUPrint
 from botUtils import PrintSettings
 
@@ -36,7 +36,7 @@ class BotAdminCog(GroupCog, name="admin", description="Administrative commands a
 		# BOT SHUTDOWN:
 		Command to cleanly shutdown the bot.
 		"""
-		vAdminChn = self.botRef.get_channel(BotSettings.adminChannel)
+		vAdminChn = self.botRef.get_channel(Channels.botAdminID)
 
 		if not self.HasPermission(p_interaction.user.id):
 			if vAdminChn != None:
@@ -59,7 +59,7 @@ class BotAdminCog(GroupCog, name="admin", description="Administrative commands a
 		# GET SETTINGS
 		Command that prints the bots settings to messages.
 		"""
-		vAdminChn = self.botRef.get_channel(BotSettings.adminChannel)
+		vAdminChn = self.botRef.get_channel(Channels.botAdminID)
 	
 		if not self.HasPermission(p_interaction.user.id):
 			if vAdminChn != None:
