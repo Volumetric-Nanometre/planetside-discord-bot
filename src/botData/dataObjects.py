@@ -248,8 +248,12 @@ class PS2SessionKDA:
 class PS2SessionEngineer:
 	"""
 	# PS2 SESSION : ENGINEER SPECIFIC DATA
-	Role specific data 
+
+	Role specific data for Engineers.
+
+	NOTE: DO NOT adjust `__version`.
 	"""
+	__version = -1
 	repairScore = 0
 	resupplyScore = 0
 
@@ -257,7 +261,12 @@ class PS2SessionEngineer:
 class PS2SessionMedic:
 	"""
 	# PS2 SESSION : MEDIC SPECIFIC DATA
+
+	Role specific data for medics.
+
+	NOTE: DO NOT adjust `__version`.
 	"""
+	__version = -1
 	revives = 0
 	heals = 0
 
@@ -267,16 +276,24 @@ class Session:
 	"""
 	# SESSION
 	Dataclass that represents a single user session.
+	
+	NOTE: KDA, MedicData, and EngineerData must be created and set for the first instance.
+	This ensures no uneeded data is saved.
+
+	NOTE: DO NOT adjust version.
+	Version will be used to ensure any changes to the Session Data object will be detectable and old data can still be dealt with.
+	EG: `if __version < current: User.sessions.remove(Session)`
 	"""
 	eventName: str = ""
 	bIsPS2Event: bool = True
 	date: datetime = None
 	duration: float = 0
-	kda = None
-	medicData = None
-	engineerData = None
+	kda:PS2SessionKDA = None
+	medicData:PS2SessionMedic = None
+	engineerData:PS2SessionEngineer = None
 	score: int = 0
 	funEvents:list[str] = field(default_factory=list)
+	__version:int = -1
 
 
 
@@ -426,7 +443,9 @@ class EventPoint():
 
 	deaths: int = 0
 	kills: int = 0
+
 	revives: int = 0
+	repairs: int = 0
 
 
 

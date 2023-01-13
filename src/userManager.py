@@ -1226,25 +1226,47 @@ class LibraryViewer():
 			
 			return vEmbed
 
-		vEmbed.add_field(
-			name="Kills",
-			value=str(p_session.kills)
-		)
 
-		vEmbed.add_field(
-			name="Deaths",
-			value=str(p_session.deaths)
-		)
+		if p_session.kda != None:
+			vEmbed.add_field(
+				name="Kills, Deaths & Assists",
+				value=f"""Kills:{p_session.kda.kills}
+				Allies: {p_session.kda.killedAllies}
+				Squadmates: {p_session.kda.killedSquad}
 
-		vEmbed.add_field(
-			name="Assists",
-			value=str(p_session.assists)
-		)
+				Deaths: {p_session.kda.deathTotal}
+				From enemies: {p_session.kda.deathByEnemies}
+				From allies: {p_session.kda.deathByAllies}
+				From Squad: {p_session.kda.deathBySquad}
+
+				Assists: {p_session.kda.assists}
+
+				Vehicle Takedowns: {p_session.kda.vehiclesDestroyed}
+				"""
+			)
+
+		if p_session.medicData != None:
+			vEmbed.add_field(
+				name="Medic Stats",
+				value=f"""Heals: {p_session.medicData.heals}
+				Revives: {p_session.medicData.revives}
+				"""
+			)
+
+		if p_session.engineerData != None:
+			vEmbed.add_field(
+				name="Engineer Stats",
+				value=f"""Vehicle Repairs: {p_session.engineerData.repairScore}
+				Resupplies: {p_session.engineerData.resupplyScore}
+				"""
+			)
+
 
 		vEmbed.add_field(
 			name="Score",
 			value=str(p_session.score)
 		)
+
 
 		if len(p_session.funEvents) != 0:
 			vEventString = ""
@@ -1282,11 +1304,10 @@ class LibViewer_view(discord.ui.View):
 		super().__init__(timeout=180)
 
 	async def on_timeout(self):
-		BUPrint.Debug(f"Viewer for {self.vViewer.userID} removed.")
 		try:
 			await self.vViewer.viewerMsg.delete()
 		except discord.errors.NotFound:
-			BUPrint.Debug("Message not found, user most likely dismissed message.")
+			pass
 
 
 class LibViewerBtn_setup(discord.ui.Button):

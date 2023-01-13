@@ -641,6 +641,9 @@ class ForFun:
 	# Random Gif: When true, the bot sends one of the specified gifs instead of a message.  This is implied false if the gif list is empty.
 	bMorningGreetingRandomGif = True
 
+	# Morning Greeting minimum time: the minimum time since the last greeting was sent, used to prevent spam.
+	morningGreetingMinTime = relativedelta(minutes=5)
+
 	# Morning Greetings: list of greetings to a user who says "morning", any instance of "_USER" is replaced with a mention.
 	morningGreetings = [
 		"G'Mornin', _USER!",
@@ -671,15 +674,13 @@ class ForFun:
 		"https://tenor.com/blv8V.gif",
 		"https://media.tenor.com/PZf33FwKn-0AAAAd/good-morning-funny.gif",
 		"https://giphy.com/gifs/warnerarchive-warner-archive-julie-christie-petulia-26uf05j0KemLdP58A",
-		"https://www.lovethispic.com/uploaded_images/379818-Funny-Good-Morning-Sunshine-Gif.gif",
+		"https://media3.giphy.com/media/j6BdaJIYXPSkUOF33H/giphy.gif",
 		"https://media.tenor.com/vL8iJNn7tjcAAAAM/awake-woke.gif",
 		"https://media.tenor.com/Pb2FdndScvgAAAAd/good-morning-unhappy.gif",
 		"https://media.tenor.com/lzNPKl40wigAAAAM/figaro-pinocchio.gif",
 		"https://media.tenor.com/bT5Ha1rqXpkAAAAM/no-u-michael-scott-no-u.gif",
 	]
 
-	# Morning Greeting minimum time: the minimum time since the last greeting was sent, used to prevent spam.
-	morningGreetingMinTime = relativedelta(minutes=5)
 
 
 	flightDeathReason = [

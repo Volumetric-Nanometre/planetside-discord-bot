@@ -104,9 +104,10 @@ class Commander():
 		self.vOpsEventTracker:OpsEventTracker = None
 
 		if p_opData.options.bIsPS2Event:
+			BUPrint.Debug("Event is PS2 related, creating tracker & client...")
 			self.vAuraxClient = auraxium.EventClient(service_id=botSettings.ps2ServiceID)
 			self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
-			self.vOpsEventTracker.updateParent = self.GenerateCommander
+			self.vOpsEventTracker.updateParentFunction = self.GenerateCommander
 
 		# Alert & Autostart Scheduler
 		self.scheduler = AsyncIOScheduler()
@@ -211,20 +212,6 @@ class Commander():
 				BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
 				self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self], id="CommanderAutoStart")
 
-			
-			# Setup Connections Refresh
-			if self.vOpData.options.bIsPS2Event:
-				BUPrint.Debug("Creating login triggers for current participant list.")
-				await self.vOpsEventTracker.CreateLoginTrigger()
-
-			# if commanderSettings.connectionRefreshInterval != 0:
-			# 	self.scheduler.add_job( Commander.GenerateCommander, 
-			# 		"interval", 
-			# 		seconds=commanderSettings.connectionRefreshInterval,
-			# 		end_date=self.vOpData.date,
-			# 		args=[self], 
-			# 		id="ConnectionRefresh"
-			# 	)
 	
 			self.scheduler.start()
 
@@ -239,6 +226,14 @@ class Commander():
 
 			# Call first Participant Update before posting commander, so connections field shows correct list of participants.
 			await self.UpdateParticipants()
+
+
+			# Setup Connections Refresh
+			if self.vOpData.options.bIsPS2Event:
+				BUPrint.Debug("Creating login triggers for current participant list.")
+				self.vOpsEventTracker.participants = self.participants
+				await self.vOpsEventTracker.CreateLoginTriggers()
+
 
 			#Post standby commander, to set commander messageID; all future calls should use GenerateCommander instead.
 			self.vCommanderStatus = CommanderStatus.WarmingUp
@@ -531,7 +526,7 @@ class Commander():
 				bAvailableSpace = True
 
 		if bAvailableSpace:
-			vMessage = f"*Spaces listed below were true at the time this notification was sent.*\n{vMessage}"
+			vMessage += f"{vMessage}\n*Spaces listed above were true at the time this notification was sent.*\n"
 			vMessagePings = f"{vRoleMentionPing}|{self.GetParticipantMentions()}"
 		else:
 			vMessagePings = self.GetParticipantMentions()
@@ -642,13 +637,19 @@ class Commander():
 	
 		await self.LoadParticipantData()
 
-		if self.vCommanderStatus == CommanderStatus.Started:
+		# Only reset participant `session`` if event hasn't started.
+		if self.vCommanderStatus == CommanderStatus.WarmingUp:
 			for participant in self.participants:
 				participant.userSession = Session()
 				participant.userSession.bIsPS2Event = self.vOpData.options.bIsPS2Event
 				participant.userSession.date = self.vOpData.date
 
+
 		await self.UpdateParticipantTracking()
+
+		if self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.WarmingUp:
+			self.vOpsEventTracker.participants = self.participants
+			await self.vOpsEventTracker.CreateLoginTriggers()
 
 
 
@@ -677,7 +678,7 @@ class Commander():
 			return
 
 		# Mismatch found, remake trigger.
-		self.vOpsEventTracker.CreateLoginTrigger()
+		await self.vOpsEventTracker.CreateLoginTriggers()
 
 
 
@@ -1339,9 +1340,10 @@ class Commander():
 
 		If no participants are in the event, it is ended instead.
 		"""
-		if self.vOpData.status.value >= OperationData.status.started.value:
+		if self.vOpData.status.value >= OperationData.status.started.value or self.vCommanderStatus.value >= CommanderStatus.Started.value:
 			BUPrint.Debug("Operation has already been started. Skipping.")
 			return
+
 
 		if len(self.participants) == 0:
 			BUPrint.Info(f"No participants for {self.vOpData.name}. Ending event.")
