@@ -1049,7 +1049,7 @@ class OpsRoleReserve(discord.ui.Button):
 			vOpMan = OperationManager()
 			await vOpMan.UpdateMessage(self.vOpsData)
 		else:
-			await pInteraction.response.send_message(content=f"You have already signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
+			await pInteraction.response.send_message(content=f"You have already signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
 
 
 
