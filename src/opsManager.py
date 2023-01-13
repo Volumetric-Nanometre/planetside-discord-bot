@@ -735,8 +735,9 @@ class OperationManager():
 
 		btnReserve = OpsRoleReserve(p_opsData)
 		btnResign = OpsRoleResign( p_opsData )
-
-		vView.add_item( vRoleSelector )
+		
+		if vRoleSelector.options.__len__() != 0:
+			vView.add_item(vRoleSelector)
 		
 		if p_opsData.options.bUseReserve:
 			vView.add_item( btnReserve )

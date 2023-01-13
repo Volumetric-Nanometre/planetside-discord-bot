@@ -81,9 +81,11 @@ class EditRoles(baseModal.BaseModal):
 					else:
 						self.vOpData.roles[vIndex].roleIcon = vCurrentRole.roleIcon
 
-				# Handle overflow (lowering a max limit to a lower number than there are participants).
-				if len(self.vOpData.roles[vIndex].players) > self.vOpData.roles[vIndex].maxPositions:
-					while (len(self.vOpData.roles[vIndex].players) > self.vOpData.roles[vIndex].maxPositions):
+				# Handle overflow (lowering a max limit to a lower number than there are participants) when max positions is higher than 0.
+				if self.vOpData.roles[vIndex].players.__len__() > self.vOpData.roles[vIndex].maxPositions and self.vOpData.roles[vIndex].maxPositions > 0:
+					BUPrint.Debug(f"Handling overflow of users in role {self.vOpData.roles[vIndex].roleName}.")
+
+					while self.vOpData.roles[vIndex].players.__len__() > self.vOpData.roles[vIndex].maxPositions:
 						madeReserve += 1
 						lastUserID = self.vOpData.roles[vIndex].players.pop()
 						affectedUser = pInteraction.guild.get_member(lastUserID)
