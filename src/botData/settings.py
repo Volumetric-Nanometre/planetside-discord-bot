@@ -343,10 +343,14 @@ class Channels:
 
 	# Quote Channel ID: If this is not found, the event listener is not added.
 	quoteID = 1049523449867022348 # DEV VALUE
-	# quoteChannelID = 1036349723059159040 # LIVE VALUE
+	# quoteID = 1036349723059159040 # LIVE VALUE
 
 	# Sober Feedback: ID of the soberDogs feedback/debrief FORUM.
 	soberFeedbackID = 1042463290472800317
+
+	# Planetside2: ID of a planetside 2 text channel.
+	ps2TextID = 1063336834324766730 # DEV VALUE
+	# ps2TextID = 715337156255809568 # LIVE VALUE 
 
 
 
@@ -620,10 +624,6 @@ class UserLib:
 	# The maximum number of saved/displayed quotes.
 	maxQuotes = 3
 
-	# Quote Channel ID: If this is not found, the event listener is not added.
-	quoteChannelID = 1049523449867022348 # DEV VALUE
-	# quoteChannelID = 1036349723059159040 # LIVE VALUE
-
 
 
 
@@ -645,50 +645,21 @@ class ForFun:
 	morningGreetingMinTime = relativedelta(minutes=5)
 
 	# Morning Greetings: list of greetings to a user who says "morning", any instance of "_USER" is replaced with a mention.
-	morningGreetings = [
-		"G'Mornin', _USER!",
-		"Morning! :D",
-		"It is?",
-		"Is it?",
-		"Top o' the mornin' to ya, _USER!",
-		"Afternoon. :)",
-		"Hello there _USER!",
-		"_USER, it's too early.  Go back to bed.",
-		"And a glorious morning to you, too, _USER!",
-		"Why are you awake? Why are you awake?!",
-		"I've checked with my bar clock, and I have to disagree with you, Sir.",
-		"I've checked with my bar clock, and I must say you're positively delirious, Sir.",
-		"... You've had one too many drinks today.",
-		"Are you sure?",
-		"I'm going back to bed...",
-		"Glorious pleasantries to you too, _USER!",
-		"Morning, _USER. \nI heard you flown with Cactus recently... how was it?  They didn't _FLIGHTDEATHREASON?",
-		"Morning, _USER. \nI heard you flown with DoubleD recently... how was it?  They didn't _FLIGHTDEATHREASON?",
-	]
+	# Proxy to `DataObjects.ForFunData`
+	morningGreetings =  botData.dataObjects.ForFunData.morningGreetings
 
-	morningGreetingsGif = [
-		"https://giphy.com/gifs/hello-hi-wave-xT9IgG50Fb7Mi0prBC",
-		"https://giphy.com/gifs/halloween-morning-grumpy-4rKr0feK7xfO0",
-		"https://tenor.com/bAFsa.gif",
-		"https://tenor.com/rvIY.gif",
-		"https://tenor.com/blv8V.gif",
-		"https://media.tenor.com/PZf33FwKn-0AAAAd/good-morning-funny.gif",
-		"https://giphy.com/gifs/warnerarchive-warner-archive-julie-christie-petulia-26uf05j0KemLdP58A",
-		"https://media3.giphy.com/media/j6BdaJIYXPSkUOF33H/giphy.gif",
-		"https://media.tenor.com/vL8iJNn7tjcAAAAM/awake-woke.gif",
-		"https://media.tenor.com/Pb2FdndScvgAAAAd/good-morning-unhappy.gif",
-		"https://media.tenor.com/lzNPKl40wigAAAAM/figaro-pinocchio.gif",
-		"https://media.tenor.com/bT5Ha1rqXpkAAAAM/no-u-michael-scott-no-u.gif",
-	]
+	morningGreetingsGif = botData.dataObjects.ForFunData.morningGreetingsGif
+
+	flightDeathReason = botData.dataObjects.ForFunData.flightDeathReason
+
+	# PlanetSide2 Vehicle Death: When true, if a player is killed by another participants sunderer or galaxy, it's broadcasted to the PS2 text channel. 
+	bBroadcastPS2VehicleDeath = True
+
+	# Planetside 2 Vehicle Death: Fun event- when true, same as above except its added to users' UserLibrary.
+	bPS2VehicleDeathFunEvent = True
 
 
 
-	flightDeathReason = [
-		"prematurely explode",
-		"crash into a stray tree and die in a fiery inferno",
-		"forget which way is up",
-		"have one too many to drink"
-	]
 
 @dataclass(frozen=True)
 class Messages:

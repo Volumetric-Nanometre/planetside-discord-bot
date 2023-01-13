@@ -26,6 +26,7 @@ class SanityCheckOptions():
 	UsedByUserLibrary : bool = True
 	RestrictLevels: bool = True
 	UsedByUserRoles: bool = True
+	UsedByForFun: bool = True
 
 	def __repr__(self) -> str:
 		vString = f"		>[{self.UsedByNewUser}] Used By New user\n"
@@ -33,6 +34,7 @@ class SanityCheckOptions():
 		vString += f"		>[{self.UsedByCommander}] Used By Commander\n"
 		vString += f"		>[{self.UsedByUserLibrary}] Used By User Library\n"
 		vString += f"		>[{self.UsedByUserRoles}] Used By User Roles\n"
+		vString += f"		>[{self.UsedByForFun}] Used By For Fun\n"
 		vString += f"		>[{self.RestrictLevels}] Command Retriction Levels\n"
 		return vString
 
@@ -150,7 +152,11 @@ class User:
 	Data object representing a user on the discord.  
 	
 	Contains their planetside2 character information, and tracked event sessions.
+
+	NOTE: DO NOT adjust `__version`!
 	"""
+	__version = -1
+
 	discordID: int = -1
 
 	# Users PS2 Character Name
@@ -232,7 +238,11 @@ class PS2EventTrackOptions(Enum):
 class PS2SessionKDA:
 	""" # PS2 SESSION: KILLS ASSISTS AND DEATHS
 	Data object containing KDA information for a session.
+
+	NOTE: DO NOT adjust `__version`
 	"""
+	__version = -1
+
 	kills = 0
 	killedAllies = 0
 	killedSquad = 0
@@ -245,6 +255,7 @@ class PS2SessionKDA:
 	deathBySquad = 0
 
 
+
 class PS2SessionEngineer:
 	"""
 	# PS2 SESSION : ENGINEER SPECIFIC DATA
@@ -254,6 +265,7 @@ class PS2SessionEngineer:
 	NOTE: DO NOT adjust `__version`.
 	"""
 	__version = -1
+
 	repairScore = 0
 	resupplyScore = 0
 
@@ -287,7 +299,7 @@ class Session:
 	eventName: str = ""
 	bIsPS2Event: bool = True
 	date: datetime = None
-	duration: float = 0
+	duration: float = 0 # Set by commander, currently configured to be in hours.
 	kda:PS2SessionKDA = None
 	medicData:PS2SessionMedic = None
 	engineerData:PS2SessionEngineer = None
@@ -424,6 +436,8 @@ class EventID:
 	eng_vehicleRepair = [28, 129, 132, 133, 134, 138, 140, 141, 302, 505, 656]
 	eng_resupply = 55
 
+	kill = 1
+
 
 
 
@@ -448,10 +462,24 @@ class EventPoint():
 	repairs: int = 0
 
 
+@dataclass
+class ForFunVehicleDeath:
+	"""# FOR FUN VEHICLE DEATH
+	Small data object for vehicle death for-fun events: 
+	Used to ensure only one event is broadcast since the DEATH trigger will be called for each participants death.
+	"""
+	# Killer Vehicle ID: Probably redundant, but here anyway.
+	killerVehicleID:int = -1
+	# Killer Character ID: PS2 Character ID of the killer.
+	killerCharID: int = -1
+
+	# For discord purposes: Killer and Killed mentions.
+	killerMention:str = ""
+	killedMentions:str = ""
 
 
 	#############################################################
-# OPERATIONS
+# OPERATIONS SIGNUP
 
 class OpsStatus(Enum):
 	"""
@@ -561,6 +589,10 @@ class OperationData:
 
 
 	def GetFullFilePath(self):
+		"""
+		# GET FULL FILE PATH (LIVE ONLY)
+		Convenience function to get the filepath of the live event.
+		"""
 		return f"{Settings.Directories.liveOpsDir}{self.fileName}.bin"
 
 
@@ -731,7 +763,6 @@ class OperationData:
 		return vIDList
 
 
-
 	def __repr__(self) -> str:
 		vOutputStr = "	OPERATION DATA\n"
 		vOutputStr += f"	-> Name|FileName: {self.name} | {self.fileName}\n"
@@ -740,7 +771,7 @@ class OperationData:
 		vOutputStr += f"	-> Additional Info: {self.customMessage}\n"
 		vOutputStr += f"	-> Message ID: {self.messageID}\n"
 		vOutputStr += f"	-> Arguments: {self.arguments}\n"
-		vOutputStr += f"	-> Status: {self.status.value}\n"
+		vOutputStr += f"	-> Status: {self.status.name}\n"
 		vOutputStr += f"	-> VoiceChannels: {self.voiceChannels}\n"
 		vOutputStr += f"	-> Reserves: {self.reserves}\n"
 		vOutputStr += f"	-> Options: {self.options}\n"
@@ -775,4 +806,99 @@ class DefaultChannels:
 		vString += f"		> Commander Channel: {self.opCommander}\n"
 		vString += f"		> Notifications Channel: {self.notifChannel}\n"
 		vString += f"		> Standby Channel: {self.standByChannel}\n"
-		return vString		
+		return vString
+
+#################################
+
+dataclass(frozen=True)
+class ForFunData:
+	"""# FOR FUN DATA
+	Contains data objects relating to 'For Fun'
+	
+	Strings may contian the following special replaceable substrings:
+	`_USER`: The user the string is typically about.
+	`_USERBY`: If the string is caused by another user, this is included; variable name is affixed with "By".
+	"""
+
+	# Party Death Bus: intended for the user library fun entries.
+	partyBusDeath = [
+		"Bought a one way ticket to Death Valley on _USER's bus.",
+		"Met an unfortunate ending when _USER's bus spontaneously exploded.",
+	]
+	
+	# Party Bus Death By: when a user(s) is killed by being in someone elses sunderer.
+	partyBusDeathBy =[
+		"_USER took a one way trip to DeathVille on a party bus driven by _USERBY!",
+		"_USERBY should return their bus drivers license! They killed _USER!",
+		"Attention _USER, your bus to Alive City took an unfortunate detour to Death Valley, on account of _USERBY",
+		"_USERBY forgot how to drive.  _USER found that out the hard way.",
+		"_USER made the *grave* mistake of getting into _USERBY's party bus.",
+	]
+
+	# GalaxyDeath: Intended for user library fun entries.
+	galaxyDeath =[
+		"Met an unfortunate end when _USER's galaxy spontaneously exploded.",
+		"Waiting for a bonus check after _USER crashed their galaxy... again.",
+		"Died to _USER's inability to fly a skybus.",
+		"Got on _USER's bus.  That was a *grave* mistake.",
+	]
+
+	# Galaxy Death by: When a user(s) is killed by being in someone elses galaxy 
+	galaxyDeathBy = [
+		"_USER just went splat after _USERBY forgot which way is up.",
+		"_USER is awaiting a bonus check after _USERBY crashed their galaxy.\n\n**Again.**",
+		"_USERBY forgot how to fly.  _USER paid the price.", 
+		"RIP _USER.  There's no funeral service since _USERBY is still paying their Galaxy Insurance Premium.",
+		"Really, _USER?  Next time you're in _USERBY's galaxy, familiarise yourself with the eject feature.  If you get in their galaxy again, that is.",
+		"ATTENTION!  _USERBY just obliterated _USER!\nHow you ask?  _USERBY had one too many to drink and crashed their galaxy.",
+		"_USERBY hit a stray branch with their galaxy and rooted _USER's death!",
+		"_USERBY hit a stray branch with their galaxy and killed _USER in a fiery inferno!",
+		"Who let _USERBY drink?  They did 3 loop-de-loops, flew upside down, went sideways and crashed backwards into "
+	]
+
+
+
+	morningGreetings = [
+		"G'Mornin', _USER!",
+		"Morning! :D",
+		"It is?",
+		"Is it?",
+		"Top o' the mornin' to ya, _USER!",
+		"Afternoon. :)",
+		"Hello there _USER!",
+		"_USER, it's too early.  Go back to bed.",
+		"And a glorious morning to you, too, _USER!",
+		"Why are you awake? Why are you awake?!",
+		"I've checked with my bar clock, and I have to disagree with you, Sir.",
+		"I've checked with my bar clock, and I must say you're positively delirious, Sir.",
+		"... You've had one too many drinks today.",
+		"Are you sure?",
+		"I'm going back to bed...",
+		"Glorious pleasantries to you too, _USER!",
+		"Morning, _USER. \nI heard you flown with Cactus recently... how was it?  They didn't _FLIGHTDEATHREASON?",
+		"Morning, _USER. \nI heard you flown with DoubleD recently... how was it?  They didn't _FLIGHTDEATHREASON?",
+	]
+
+	morningGreetingsGif = [
+		"https://giphy.com/gifs/hello-hi-wave-xT9IgG50Fb7Mi0prBC",
+		"https://giphy.com/gifs/halloween-morning-grumpy-4rKr0feK7xfO0",
+		"https://tenor.com/bAFsa.gif",
+		"https://tenor.com/rvIY.gif",
+		"https://tenor.com/blv8V.gif",
+		"https://media.tenor.com/PZf33FwKn-0AAAAd/good-morning-funny.gif",
+		"https://giphy.com/gifs/warnerarchive-warner-archive-julie-christie-petulia-26uf05j0KemLdP58A",
+		"https://media3.giphy.com/media/j6BdaJIYXPSkUOF33H/giphy.gif",
+		"https://media.tenor.com/vL8iJNn7tjcAAAAM/awake-woke.gif",
+		"https://media.tenor.com/Pb2FdndScvgAAAAd/good-morning-unhappy.gif",
+		"https://media.tenor.com/lzNPKl40wigAAAAM/figaro-pinocchio.gif",
+		"https://media.tenor.com/bT5Ha1rqXpkAAAAM/no-u-michael-scott-no-u.gif",
+	]
+
+
+	# Specific to morning greeting.
+	flightDeathReason = [
+		"prematurely explode",
+		"crash into a stray tree and die in a fiery inferno",
+		"forget which way is up",
+		"have one too many to drink"
+	]

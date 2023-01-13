@@ -244,6 +244,13 @@ class SanityCheck():
 				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="General Text")
 				bFailedCheck = True
 
+		if checkOptions.UsedByForFun:
+			checkChannel = vGuild.get_channel( Channels.ps2TextID )
+			if checkChannel == None:
+				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Planetside 2 Text")
+				bFailedCheck = True
+
+
 		if bFailedCheck:
 			if BotSettings.bDebugEnabled:
 				BUPrint.LogError(p_titleStr="CHANNELS FAILED CHECK", p_string="One or more channels has an invalid value.")
