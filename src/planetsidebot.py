@@ -111,6 +111,9 @@ class Bot(commands.Bot):
 		"""
         if self._closed:
             return
+        vAdminChan = self.get_channel(settings.Channels.botAdminID)
+        if vAdminChan != None:
+            await vAdminChan.send("**Bot shutting down.**")
 
         BUPrint.Info("Bot shutting down. Performing cleanup...")
         botUtils.FilesAndFolders.CleanupTemp()

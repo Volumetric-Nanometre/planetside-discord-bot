@@ -66,7 +66,8 @@ class SanityCheck():
 
 
 	async def CheckGuild(p_botRef:Bot):
-		BUPrint.Info("Sanity Checking Guild.")
+		BUPrint.Info("Sanity Checking Guild...")
+
 		vGuild = p_botRef.get_guild(int(BotSettings.discordGuild))
 		if vGuild == None:
 			BUPrint.LogError(f"{BotSettings.discordGuild}", "INVALID GUILD ID:")
@@ -78,7 +79,8 @@ class SanityCheck():
 		# CHECK ROLES:
 		Checks if any required roles are invalid.
 		"""
-		BUPrint.Info("Sanity Checking Roles.")
+		BUPrint.Info("Sanity Checking Roles...")
+
 		guild = p_botRef.get_guild(int(BotSettings.discordGuild))
 		allRoles = guild.roles
 		checkOptions = BotSettings.sanityCheckOpts
@@ -196,6 +198,8 @@ class SanityCheck():
 		""" # CHECK CHANNELS:
 		Checks if required channels are present.
 		"""
+		BUPrint.Info("Sanity Checking Channels...")
+
 		checkOptions = BotSettings.sanityCheckOpts
 		checkChannel = None
 		vGuild = p_botRef.get_guild(int(BotSettings.discordGuild))
