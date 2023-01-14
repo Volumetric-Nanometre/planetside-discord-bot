@@ -130,6 +130,17 @@ class Operations(commands.GroupCog):
 				vEditor.vEditorMsg = await pInteraction.original_response()
 
 			else:
+				if newOpsData.date < datetime.datetime.now(tz=datetime.timezone.utc):
+					await pInteraction.edit_original_response(content="Cannot create an event for the past!")
+					return
+
+				# Check Existing live ops for matching op name & date, fail if found.
+				for liveOp in vOpManager.vLiveOps:
+					if liveOp.name == newOpsData.name:
+						if liveOp.date == newOpsData.date:
+							await pInteraction.edit_original_response(content="An event with that name and date/time already exists!")
+							return
+
 				if await vOpManager.AddNewLiveOp(p_opData=newOpsData):
 					await pInteraction.edit_original_response(content="Ops posted!")
 				else:
@@ -1105,7 +1116,7 @@ class OpsEditor(discord.ui.View):
 						style=editButtonStyle, 
 						row=0)
 	async def btnEditDate(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = editDates.EditDates(p_opData=self.vOpsData)
+		vEditModal = editDates.EditDates(p_opData=self.vOpsData, p_liveOps=OperationManager.vLiveOps)
 		vEditModal.custom_id="EditDateModal"
 		await pInteraction.response.send_modal( vEditModal )
 	

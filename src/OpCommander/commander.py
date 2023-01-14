@@ -378,7 +378,8 @@ class Commander():
 					await self.vCategory.create_voice_channel(name=newChannel)
 	
 
-	def UserInEventChannel(self, p_participant:Participant):
+
+	def SetUserInEventChannel(self, p_participant:Participant):
 		"""# USER IN EVENT CHANNEL
 		Checks if the participant is inside the event channel(s), and sets their `bDiscordVoice` accordingly.
 		"""
@@ -919,7 +920,7 @@ class Commander():
 		vStatusStr = f"{commanderSettings.connIcon_discord} | {commanderSettings.connIcon_voice} | {commanderSettings.connIcon_ps2}\n"
 
 		for participant in self.participants:
-			self.UserInEventChannel(participant)
+			self.SetUserInEventChannel(participant)
 
 			vPlayersStr += f"{participant.discordUser.display_name}\n"
 			

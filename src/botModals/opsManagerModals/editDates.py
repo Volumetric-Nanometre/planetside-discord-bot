@@ -35,7 +35,8 @@ class EditDates(baseModal.BaseModal):
 		min_length=1, max_length=2,
 		required=False
 	)
-	def __init__(self, *, p_opData: OperationData):
+	def __init__(self, *, p_opData: OperationData, p_liveOps:list = None):
+		self.vLiveOps:list[OperationData] = p_liveOps
 		super().__init__(p_opData=p_opData, p_title="Edit Dates")
 
 	# Where the fun happens!
@@ -51,9 +52,22 @@ class EditDates(baseModal.BaseModal):
 			tzinfo=datetime.timezone.utc
 		)
 
+		if newDateTime < datetime.datetime.now(datetime.timezone.utc):
+			await pInteraction.response.send_message("Date cannot be in the past!", ephemeral=True)
+			return
+
+
+		for liveOps in self.vLiveOps:
+			if liveOps.messageID == self.vOpData.messageID:
+				continue
+
+			if liveOps.date == newDateTime and liveOps.name == self.vOpData.name:
+				await pInteraction.response.send_message("This edit matches an existing live event!  Re-Edit the date/time values.", ephemeral=True)
+
+
 		self.vOpData.date = newDateTime
 
-		await pInteraction.response.defer()
+		await pInteraction.response.send_message("New date set succesfully.", ephemeral=True)
 
 
 
