@@ -10,6 +10,7 @@ from datetime import datetime, time
 import botData.settings as Settings
 import botUtils
 from auraxium.ps2 import Character as PS2Character
+from auraxium.ps2 import MapRegion as PS2Facility
 import pickle
 
 
@@ -211,6 +212,7 @@ class CommanderStatus(Enum):
 	Init = -10		# Init: Commander has been created.
 	Standby = 0 	# Standby: Commander has been set up and waiting.
 	WarmingUp = 10	# Warming Up: Updates the commander post with connections modal.
+	GracePeriod = 15# Grace Period: The time just before an event properly starts, for event attendance.
 	Started = 20 	# Started: Ops has been started (either manually or by bot.)
 	Debrief = 30	# Debrief: Pre-End stage, users are given a reactionary View to provide feedback
 	Ended = 40		# Ended: User has ended Ops,  auto-cleanup.
@@ -241,21 +243,21 @@ class PS2SessionKDA:
 
 	NOTE: DO NOT adjust `__version`
 	"""
-	__version = -1
+	__version:int = -1
 
-	kills = 0
-	killedAllies = 0
-	killedSquad = 0
-	assists = 0
-	vehiclesDestroyed = 0
+	kills:int = 0
+	killedAllies:int = 0
+	killedSquad:int = 0
+	assists:int = 0
+	vehiclesDestroyed:int = 0
 
-	deathTotal = 0
-	deathByEnemies = 0
-	deathByAllies = 0
-	deathBySquad = 0
+	deathTotal:int = 0
+	deathByEnemies:int = 0
+	deathByAllies:int = 0
+	deathBySquad:int = 0
 
 
-
+@dataclass
 class PS2SessionEngineer:
 	"""
 	# PS2 SESSION : ENGINEER SPECIFIC DATA
@@ -264,12 +266,13 @@ class PS2SessionEngineer:
 
 	NOTE: DO NOT adjust `__version`.
 	"""
-	__version = -1
+	__version:int = -1
 
-	repairScore = 0
-	resupplyScore = 0
+	repairScore:int = 0
+	resupplyScore:int = 0
 
 
+@dataclass
 class PS2SessionMedic:
 	"""
 	# PS2 SESSION : MEDIC SPECIFIC DATA
@@ -278,9 +281,9 @@ class PS2SessionMedic:
 
 	NOTE: DO NOT adjust `__version`.
 	"""
-	__version = -1
-	revives = 0
-	heals = 0
+	__version:int = -1
+	revives:int = 0
+	heals:int = 0
 
 
 @dataclass
@@ -323,8 +326,10 @@ class Participant:
 
 	# DATA
 	discordID : int = 0
-	bIsTracking : bool = True
+	bAttended: bool = False
+	bWasLate: bool = False
 	bPS2Online : bool = False # Set to true by aurax event.
+	bInEventChannel: bool = False # Set to true when a user is in one of the event channels.
 	lastCheckedName : str = "" # Last Checked name: skips searching for a PS2 character if this is the same.
 
 	def __repr__(self) -> str:
@@ -440,6 +445,17 @@ class EventID:
 
 
 
+@dataclass
+class FacilityData:
+	"""# FACILITY DATA
+	Information pertaining to a facility defense or capture.
+	"""
+	facilityID:int = 0
+	timestamp:datetime = None
+	facilityObj:PS2Facility = None
+	participants:int = 0
+
+
 
 @dataclass
 class EventPoint():
@@ -468,14 +484,21 @@ class ForFunVehicleDeath:
 	Small data object for vehicle death for-fun events: 
 	Used to ensure only one event is broadcast since the DEATH trigger will be called for each participants death.
 	"""
-	# Killer Vehicle ID: Probably redundant, but here anyway.
-	killerVehicleID:int = -1
-	# Killer Character ID: PS2 Character ID of the killer.
-	killerCharID: int = -1
+	# Killer/Driver Vehicle ID: Probably redundant, but here anyway.
+	driverVehicleID:int = -1
+	# Killer/Driver Character ID: PS2 Character ID of the killer.
+	driverCharID: int = -1
 
 	# For discord purposes: Killer and Killed mentions.
-	killerMention:str = ""
+	driverMention:str = ""
 	killedMentions:str = ""
+
+	# Message: the randomly message chosen randomly by the OpsEventTracker
+	message:str = ""
+
+	# Has Set Schedule Task: Should be set to true on first call, creates a delayed task on the Commander to post a message.
+	# Delay is to ensure all (or most of) the users involved has their death event register.
+	bHasSetSchedTask = False
 
 
 	#############################################################
@@ -843,7 +866,7 @@ class ForFunData:
 		"Got on _USER's bus.  That was a *grave* mistake.",
 	]
 
-	# Galaxy Death by: When a user(s) is killed by being in someone elses galaxy 
+	# Galaxy Death by: When a user(s) (_USER) is killed by being in someone elses galaxy (_USERBY) 
 	galaxyDeathBy = [
 		"_USER just went splat after _USERBY forgot which way is up.",
 		"_USER is awaiting a bonus check after _USERBY crashed their galaxy.\n\n**Again.**",

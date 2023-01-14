@@ -158,13 +158,14 @@ class SanityCheck():
 			for selectOpt in Roles.addRoles_games3:
 				if not SanityCheck.RoleInRoles(selectOpt.value, allRoles):
 					BUPrint.LogError(p_titleStr="INVALID ROLE |  Role Selector: Games 3", p_string=selectOpt.value)
-					bFailedCheck = True
+					bFailedCheck = True 
 
 		if bFailedCheck:
 			if BotSettings.bDebugEnabled:
-				BUPrint.LogError(p_titleStr="ROLES FAILED CHECK", p_string="One or more roles has an invalid value.")
+				BUPrint.LogError(p_titleStr="ROLES FAILED CHECK", p_string="One or more roles has an invalid value.\n\n")
 			else:
 				raise BadRoleError()
+
 
 
 	def RoleInRoles(p_roleNameOrID:str, p_RolesList:list[Role]):
@@ -253,6 +254,6 @@ class SanityCheck():
 
 		if bFailedCheck:
 			if BotSettings.bDebugEnabled:
-				BUPrint.LogError(p_titleStr="CHANNELS FAILED CHECK", p_string="One or more channels has an invalid value.")
+				BUPrint.LogError(p_titleStr="CHANNELS FAILED CHECK", p_string="One or more channels has an invalid value.\n\n")
 			else:
 				raise BadChannelError

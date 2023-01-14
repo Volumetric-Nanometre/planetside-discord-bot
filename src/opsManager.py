@@ -804,6 +804,10 @@ class OperationManager():
 				BUPrint.Debug("Unable to get Commander for this event.")
 				return
 
+			if commander.commanderMsg == None:
+				BUPrint.Debug("Commander is setting up, ignore.")
+				return
+
 			await commander.GenerateInfo()
 			await commander.UpdateParticipants() 
 			await commander.GenerateCommander() # Updates connections.

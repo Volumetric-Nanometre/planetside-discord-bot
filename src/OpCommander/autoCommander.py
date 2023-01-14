@@ -42,9 +42,10 @@ class AutoCommander(commands.Cog):
 		Checks if user is in any live ops, and updates their commander if present.
 		"""
 
-		if len(opsManager.OperationManager.vLiveCommanders) != 0:
+		if opsManager.OperationManager.vLiveCommanders.__len__() != 0:
 			for commander in opsManager.OperationManager.vLiveCommanders:
-				await commander.GenerateCommander()
+				if not commander.bIgnoreStateChange:
+					await commander.GenerateCommander()
 
 
 

@@ -20,7 +20,6 @@ from datetime import timedelta
 from OpCommander.events import OpsEventTracker
 from botData.dataObjects import CommanderStatus, OpsStatus, Participant, Session, OpFeedback
 
-# import botUtils
 from botUtils import GetGuild, GetDiscordTime
 from botUtils import BotPrinter as BUPrint
 from botUtils import ChannelPermOverwrites as ChanPermOverWrite
@@ -31,11 +30,9 @@ from botData.settings import Commander as commanderSettings
 from botData.settings import Messages as botMessages
 from botData.settings import Directories, UserLib, NewUsers, Channels
 
-from botData.dataObjects import OperationData, User, OpRoleData, PS2EventTrackOptions
+from botData.dataObjects import OperationData, User, OpRoleData, PS2EventTrackOptions, ForFunData, ForFunVehicleDeath
 
-import userManager
-
-import opsManager
+import userManager, opsManager
 
 async def StartCommander(p_opData: OperationData):
 	"""
@@ -71,8 +68,8 @@ async def StartCommander(p_opData: OperationData):
 
 	BUPrint.Debug(f"Starting commander for {p_opData.fileName}!")
 	vNewCommander = Commander(p_opData)
-	await vNewCommander.CommanderSetup()
 	opsManager.OperationManager.vLiveCommanders.append(vNewCommander)
+	await vNewCommander.CommanderSetup()
 	# Don't call `commander.GenerateCommander()` here! CommanderSetup handles this.
 	
 	return 0
@@ -97,7 +94,9 @@ class Commander():
 		self.vFeedback = OpFeedback()
 		self.bFeedbackTooLarge = False # Set to true if feedback is too large for an embed.
 		self.bHasSoftEnded = False # Set to true if soft ended (debriefed.)
+		self.bAttendanceChecked = False # When true and a participants attendance isn't already `True`, participant is marked late.
 		self.trueStartTime: datetime = None # Set when the event is started.
+		self.bIgnoreStateChange = False # Ignore State Change: should be used to check whether to perform discord actions based on state changes (eg, voice state change when moving users).
 
 		# Auraxium client & Op event tracker
 		self.vAuraxClient:auraxium.EventClient = None
@@ -179,41 +178,7 @@ class Commander():
 			await self.CreateCategory()
 			await self.CreateTextChannels()
 			await self.CreateVoiceChannels()
-			
-			# Setup Alerts
-			BUPrint.Debug("Configuring Scheduler...")
-
-			if commanderSettings.bAutoAlertsEnabled:
-				intervalTime = 0
-				if commanderSettings.bAutoStartEnabled:
-					intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
-				else:
-					# Event started manually, set interval from time now; if event isn't in the past.
-					timeUntilOps:timedelta = datetime.datetime.now(tz=datetime.timezone.utc) - self.vOpData.date
-					if timeUntilOps > 0:
-						intervalTime = timeUntilOps.seconds * 60
-				
-				# Set last interval as op start datetime; so that first interval is subtracted from it
-				lastInterval = self.vOpData.date
-
-				setIntervals = 0
-				if intervalTime != 0:
-					while setIntervals < commanderSettings.autoAlertCount:
-						lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
-
-						self.alertTimes.append(lastInterval)
-						BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
-						self.scheduler.add_job( Commander.SendAlertMessage, 'date', run_date=lastInterval, args=[self] )
-						setIntervals += 1
-			
-			
-			# Setup AutoStart
-			if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
-				BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
-				self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self], id="CommanderAutoStart")
-
-	
-			self.scheduler.start()
+			self.CreatePreStartScheduleTasks()
 
 
 			# Update Signup Post with new Status.
@@ -227,12 +192,10 @@ class Commander():
 			# Call first Participant Update before posting commander, so connections field shows correct list of participants.
 			await self.UpdateParticipants()
 
-
 			# Setup Connections Refresh
 			if self.vOpData.options.bIsPS2Event:
 				BUPrint.Debug("Creating login triggers for current participant list.")
-				self.vOpsEventTracker.participants = self.participants
-				await self.vOpsEventTracker.CreateLoginTriggers()
+				await self.vOpsEventTracker.CreateLoginTriggers(self.participants)
 
 
 			#Post standby commander, to set commander messageID; all future calls should use GenerateCommander instead.
@@ -341,6 +304,7 @@ class Commander():
 				)
 
 
+
 	async def CreateVoiceChannels(self):
 		"""
 		# CRETE VOICE CHANNELS
@@ -413,7 +377,62 @@ class Commander():
 					BUPrint.Debug(f"No existing channel for {newChannel} found.  Creating new voice channel!")
 					await self.vCategory.create_voice_channel(name=newChannel)
 	
-	
+
+	def UserInEventChannel(self, p_participant:Participant):
+		"""# USER IN EVENT CHANNEL
+		Checks if the participant is inside the event channel(s), and sets their `bDiscordVoice` accordingly.
+		"""
+		if p_participant.discordUser.voice == None:
+			p_participant.bInEventChannel = False
+			return
+
+		if p_participant.discordUser.voice.channel in self.vCategory.voice_channels:
+			p_participant.bInEventChannel = True
+			return
+
+		p_participant.bInEventChannel = False
+
+		
+
+
+	def CreatePreStartScheduleTasks(self):
+		"""# CREATE PRESTART SCHEDULE TASKS
+		
+		Creates the scheduled tasks for pre-started commanders:
+		- Auto Alerts
+		- Auto Start
+		"""
+		# Setup Alerts
+		BUPrint.Debug("Configuring Scheduler...")
+		if commanderSettings.bAutoAlertsEnabled:
+			intervalTime = 0
+			if commanderSettings.bAutoStartEnabled:
+				intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
+			else:
+				# Event started manually, set interval from time now; if event isn't in the past.
+				timeUntilOps:timedelta = datetime.datetime.now(tz=datetime.timezone.utc) - self.vOpData.date
+				if timeUntilOps > 0:
+					intervalTime = timeUntilOps.seconds * 60
+			
+			# Set last interval as op start datetime; so that first interval is subtracted from it
+			lastInterval = self.vOpData.date
+			setIntervals = 0
+			if intervalTime != 0:
+				while setIntervals < commanderSettings.autoAlertCount:
+					lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
+					self.alertTimes.append(lastInterval)
+					BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
+					self.scheduler.add_job( Commander.SendAlertMessage, 'date', run_date=lastInterval, args=[self] )
+					setIntervals += 1
+		
+		
+		# Setup AutoStart
+		if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
+			BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
+			self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self], id="CommanderAutoStart")
+
+		self.scheduler.start()
+
 
 
 	async def RemoveChannels(self):
@@ -476,7 +495,6 @@ class Commander():
 
 
 
-
 	async def GenerateAlertMessage(self):
 		"""
 		# GENERATE ALERT MESSAGE
@@ -494,21 +512,8 @@ class Commander():
 		vMessageTitle = f"**REMINDER: {self.vOpData.name} STARTS {GetDiscordTime( self.vOpData.date, DateFormat.Dynamic )}**"
 		# Dynamically set strings.
 		vMessagePings = ""
-		notTrackedParticipants = ""
 		vMessage = ""
 
-
-		for participant in self.participants:
-			BUPrint.Debug(participant)
-			if not participant.bIsTracking:
-				notTrackedParticipants += f"{participant.discordUser.mention} "
-
-
-		if notTrackedParticipants != "":
-			if self.vOpData.options.bIsPS2Event:
-				vMessage += f"**ATTENTION**\n{notTrackedParticipants}\n{botMessages.noMatchingPS2Char}\n\n"
-			else:
-				vMessage += f"**ATTENTION**\n{notTrackedParticipants}\n{botMessages.nonPS2TrackReqsNotMet}\n\n"
 
 		if commanderSettings.bAutoMoveVCEnabled:
 			vMessage += f"\n\n*{botMessages.OpsAutoMoveWarn}*\n\n"
@@ -536,7 +541,6 @@ class Commander():
 
 
 
-
 	async def GenerateStartAlertMessage(self):
 		"""
 		# GENERATE START ALERT MESSAGE
@@ -544,23 +548,9 @@ class Commander():
 		"""
 		vParticipantsStr = self.GetParticipantMentions()
 
-		vMessage = f"**{self.vOpData.name} HAS STARTED!**\n\n{vParticipantsStr}\n"
-
-		notTrackedParticipants = ""
-
-		for participant in self.participants:
-			if not participant.bIsTracking:
-				notTrackedParticipants += f"{participant.discordUser.mention} "
-
-		if notTrackedParticipants != "":
-			if self.vOpData.options.bIsPS2Event:
-				vMessage += f"\n\n\n**ATTENTION**\n{notTrackedParticipants}\n{botMessages.noMatchingPS2Char}\n\n"
-			else:
-				vMessage += f"\n\n\n**ATTENTION**\n{notTrackedParticipants}\n{botMessages.nonPS2TrackReqsNotMet}\n\n"
-		
+		vMessage = f"**{self.vOpData.name} HAS STARTED!**\n\n{vParticipantsStr}\n"		
 
 		return vMessage
-
 
 
 
@@ -605,7 +595,7 @@ class Commander():
 
 		Updates `self.participants` to match with the users in the opData.
 
-		This also calls `loadParticipantData`, and `UpdateParticipantTracking`.
+		This also calls `loadParticipantData`.
 		"""
 		vParticipantIDs = self.vOpData.GetParticipantIDs()
 		BUPrint.Debug(f"Updating Participants : {vParticipantIDs}")
@@ -645,11 +635,8 @@ class Commander():
 				participant.userSession.date = self.vOpData.date
 
 
-		await self.UpdateParticipantTracking()
-
 		if self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.WarmingUp:
-			self.vOpsEventTracker.participants = self.participants
-			await self.vOpsEventTracker.CreateLoginTriggers()
+			await self.vOpsEventTracker.CreateLoginTriggers(self.participants)
 
 
 
@@ -678,95 +665,7 @@ class Commander():
 			return
 
 		# Mismatch found, remake trigger.
-		await self.vOpsEventTracker.CreateLoginTriggers()
-
-
-
-	async def UpdateParticipantTracking(self):
-		"""
-		# UPDATE PARTICIPANT TRACKING
-
-		If enabled, recursively check participants and enable tracking depending on the setting.
-
-		If tracking is enabled event has started and tracking is disabled for the user, they are considered non-attended.
-		"""
-		BUPrint.Debug("Updating user tracking...")
-		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled and self.vOpData.options.bIsPS2Event:
-			BUPrint.Debug("Tracking Enabled: Event is PS2.")
-			for participantObj in self.participants:
-				participantObj.bIsTracking = True
-
-				if participantObj.ps2Char == None and commanderSettings.trackEvent.value >= PS2EventTrackOptions.InGameOnly.value:
-					BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now disabled")
-					participantObj.bIsTracking = False
-					continue
-				
-				try:
-					if commanderSettings.trackEvent == PS2EventTrackOptions.InGameOnly:
-						
-						if participantObj.bPS2Online:
-							participantObj.bIsTracking = True
-							BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now Enabled")
-					
-					
-					elif commanderSettings.trackEvent == PS2EventTrackOptions.InGameAndDiscordVoice:
-					
-						if participantObj.bPS2Online and participantObj.discordUser.voice != None:
-							# Make sure user is in Op channel:
-							if participantObj.discordUser.voice.channel in self.vCategory.voice_channels:
-								participantObj.bIsTracking = True
-								BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now Enabled")
-							else:
-								BUPrint.Debug(f"{participantObj.discordUser.display_name} User is in voice channel that is not related to the event.")
-								participantObj.bIsTracking = False
-								BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now disabled")
-
-				except auraxium.errors.AuraxiumException as vError:
-					BUPrint.LogErrorExc("Unable to determine if user is online.", vError)
-		
-
-		elif commanderSettings.trackEvent != PS2EventTrackOptions.Disabled and not self.vOpData.options.bIsPS2Event:
-			BUPrint.Debug("Tracking Enabled: Event is not PS2. Only checking if player is in voice channel...")
-			for participantObj in self.participants:
-				if participantObj.discordUser.voice != None:
-					if participantObj.discordUser.voice.channel in self.vCategory.voice_channels:
-						participantObj.bIsTracking = True
-						BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now ENABLED ({participantObj.bIsTracking})")
-
-					else:
-						participantObj.bIsTracking = False
-						BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now DISABLED ({participantObj.bIsTracking})")
-
-				else:
-					BUPrint.Debug(f"Tracking for {participantObj.discordUser.display_name} is now DISABLED ({participantObj.bIsTracking})")
-					participantObj.bIsTracking = False
-
-
-		# REMOVE NON TRACKED ("unattended/late") PARTICIPANTS 
-		if self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.Started and commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
-			BUPrint.Debug("Ops started, checking participant tracking status.")
-
-			for participant in self.participants:
-				if participant.bIsTracking == False:
-					BUPrint.Debug(f"Participant: {participant.discordUser.display_name} was untracked and thus marked as not participating.")
-					self.participants.remove(participant)
-
-					if botSettings.botFeatures.UserLibrary and participant.libraryEntry != None:
-						participant.libraryEntry.eventsMissed += 1
-						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
-
-
-		elif not self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.Started and commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
-			BUPrint.Debug("Non PS2 Ops started, checking participant tracking status.")
-
-			for participant in self.participants:
-				if participant.bIsTracking == False:
-					BUPrint.Debug(f"Participant: {participant.discordUser.display_name} was untracked and thus marked as not participating.")
-					self.participants.remove(participant)
-
-					if botSettings.botFeatures.UserLibrary and participant.libraryEntry != None:
-						participant.libraryEntry.eventsMissed += 1
-						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
+		await self.vOpsEventTracker.CreateLoginTriggers(self.participants)
 
 
 
@@ -809,7 +708,6 @@ class Commander():
 					userManager.UserLibrary.SaveEntry(vNewEntry)
 				else:
 					BUPrint.Debug("LoadParticipantData: Autocreate is disabled.")
-					participantObj.bIsTracking = False
 
 			if participantObj.ps2Char == None and self.vOpData.options.bIsPS2Event:
 				BUPrint.Debug("	-> PS2 Character not set, setting...")
@@ -847,7 +745,6 @@ class Commander():
 
 			if playerChar == None:
 				BUPrint.Debug("	-> No PS2 character found.")
-				p_participant.bIsTracking = False
 				p_participant.lastCheckedName = charName
 				return
 
@@ -1022,6 +919,8 @@ class Commander():
 		vStatusStr = f"{commanderSettings.connIcon_discord} | {commanderSettings.connIcon_voice} | {commanderSettings.connIcon_ps2}\n"
 
 		for participant in self.participants:
+			self.UserInEventChannel(participant)
+
 			vPlayersStr += f"{participant.discordUser.display_name}\n"
 			
 			BUPrint.Debug(f"Status of {participant.discordUser.display_name}: {participant.discordUser.status}")
@@ -1033,8 +932,11 @@ class Commander():
 
 			if participant.discordUser.voice == None:
 				vStatusStr += f"{commanderSettings.connIcon_voiceDisconnected} | "
-			else:
+			elif participant.bInEventChannel:
 				vStatusStr += f"{commanderSettings.connIcon_voiceConnected} | "
+			else:
+				vStatusStr += f"{commanderSettings.connIcon_voiceNotEventChan} | "
+
 
 
 			if participant.ps2Char != None:
@@ -1353,10 +1255,16 @@ class Commander():
 		# If early start; stop connection refresh & autostart
 		self.scheduler.remove_all_jobs()
 
+		await self.UpdateParticipants()
+
 		# Add UpdateParticipant refresh after grace period
 		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
 			gracePeriodTime = self.vOpData.date + dateutil.relativedelta.relativedelta(minutes= commanderSettings.gracePeriod)
-			self.scheduler.add_job( Commander.UpdateParticipantTracking, 'date', run_date=gracePeriodTime, args=[self] )
+			self.scheduler.add_job( Commander.ValidateAttendance, 'date', run_date=gracePeriodTime, args=[self] )
+
+			if self.vOpData.options.bIsPS2Event:
+				await self.vOpsEventTracker.CreateLoginTriggers(self.participants)
+				self.vOpsEventTracker.Start()
 
 			if commanderSettings.dataPointInterval != 0:
 				self.scheduler.add_job( OpsEventTracker.NewEventPoint, 
@@ -1372,19 +1280,11 @@ class Commander():
 			BUPrint.Debug("Moving VC connected participants")
 			await self.MoveUsers(p_moveToStandby=True)
 
-		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
-			await self.UpdateParticipantTracking()
-			if self.vOpData.options.bIsPS2Event:
-				self.vOpsEventTracker.participants = self.participants
-				self.vOpsEventTracker.Start()
-
-
-		await self.UpdateParticipants()
-
 
 		await self.SendAlertMessage(p_opStart=True)
 	
 		self.vOpData.status = OperationData.status.started
+		self.vCommanderStatus = CommanderStatus.Started
 	
 		vOpMan = opsManager.OperationManager()
 	
@@ -1392,6 +1292,52 @@ class Commander():
 	
 		await self.GenerateCommander()
 		self.trueStartTime = datetime.datetime.now(tz=datetime.timezone.utc)
+
+
+	def ValidateAttendance(self):
+		"""# VALIDATE ATTENDANCE
+		Iterates through the participants and sets the attended bool according to the tracking rule.
+		"""
+		bIsPs2Event = self.vOpData.options.bIsPS2Event
+		
+		for participant in self.participants:
+			#  Non PS2 game, does voice only.
+			if not bIsPs2Event and commanderSettings.markedPresent != PS2EventTrackOptions.Disabled:
+				if participant.discordUser.voice != None:
+					self.SetUserAttendedAndLate(participant)
+					continue
+
+
+			# PS2 Events:
+			if commanderSettings.markedPresent == PS2EventTrackOptions.InGameOnly:
+				if participant.bPS2Online:
+					self.SetUserAttendedAndLate(participant)
+					self.bAttendanceChecked = True
+					continue
+
+			if commanderSettings.markedPresent == PS2EventTrackOptions.InGameAndDiscordVoice:
+				if participant.bPS2Online and participant.discordUser.voice != None:
+					self.SetUserAttendedAndLate(participant)
+					self.bAttendanceChecked = True
+					continue
+		
+		BUPrint.Debug("\nATTENDANCE CHECK COMPLETE")
+		self.bAttendanceChecked = True
+
+
+
+	def SetUserAttendedAndLate(self, p_participant: Participant):
+		"""# SET USER ATTENDED AND LATE
+		Convenience function to avoid repetitious code.
+		Sets whether the participant was late or just attended.
+		"""
+		if self.bAttendanceChecked and not p_participant.bAttended:
+			p_participant.bAttended = True
+			p_participant.bWasLate = True
+
+		else:
+			p_participant.bAttended = True
+
 
 
 
@@ -1421,7 +1367,7 @@ class Commander():
 
 		if botSettings.botFeatures.UserLibrary:
 			for participant in self.participants:
-				if participant.bIsTracking:
+				if participant.bAttended:
 					if participant.libraryEntry != None:
 						BUPrint.Info(f"Updating session information for: {participant.discordUser.display_name}")
 						if not self.vOpData.options.bIsPS2Event:
@@ -1433,13 +1379,12 @@ class Commander():
 						participant.libraryEntry.sessions.append(participant.userSession)
 						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
 					
-					else: BUPrint.Debug(f"{participant.discordUser.display_name} has no library entry!  Cannot update sessions.")
-				else:
-					BUPrint.Debug(f"{participant.discordUser.display_name} has tracking disabled.")
+					else: 
+						BUPrint.Debug(f"{participant.discordUser.display_name} has no library entry!  Cannot update sessions.")
 	
 
 
-	async def EndOperation(self):
+	async def EndOperation(self, p_isBotShutdown:bool = False):
 		"""
 		# END OPERATION
 		Removes the live Op from the Operations manager, 
@@ -1463,7 +1408,7 @@ class Commander():
 
 		BUPrint.Info(f"Operation {self.vOpData.name} has ended.")
 
-		if bOpStarted and botSettings.botFeatures.UserLibrary:
+		if bOpStarted and botSettings.botFeatures.UserLibrary and not p_isBotShutdown:
 			# Query recruit participants.
 			for participant in self.participants:
 				if participant.libraryEntry != None:
@@ -1481,6 +1426,8 @@ class Commander():
 		if not commanderSettings.bAutoMoveVCEnabled and p_moveToStandby:
 			BUPrint.Debug("Auto move disabled.")
 			return
+
+		self.bIgnoreStateChange = True
 		
 		vGuild:discord.Guild = await GetGuild(self.vBotRef)
 
@@ -1488,11 +1435,14 @@ class Commander():
 
 		if fallbackChannel == None:
 			fallbackChannel = await vGuild.fetch_channel(Channels.eventMovebackID)
+
 			if fallbackChannel == None:
 				BUPrint.Info("ATTENTION!  Invalid Auto Move-back Channel ID provided!")
 				fallbackChannel = await vGuild.fetch_channel(Channels.voiceFallbackID)
+
 				if fallbackChannel == None:
 					BUPrint.Info("ATTENTION! Invalid fallback channel ID provided!  Unable to automatically move users.")
+					self.bIgnoreStateChange = False
 					return
 
 		vConnectedUsers = []
@@ -1509,25 +1459,44 @@ class Commander():
 			for voiceChannel in self.vCategory.voice_channels:
 				vConnectedUsers += voiceChannel.members
 
-
+		vMovedUsers = 0
 		user: discord.Member
 		for user in vConnectedUsers:
 			try:
 				if p_moveToStandby:
 					BUPrint.Debug(f"Moving {[user.display_name]} to standby channel ({self.standbyChn.name})")
 					await user.move_to(channel=self.standbyChn)
+					vMovedUsers += 1
+
 				else:
 					BUPrint.Debug(f"Moving {[user.display_name]} to fallback channel ({fallbackChannel.name})")
 					await user.move_to(channel=fallbackChannel)
+					vMovedUsers += 1
+
 			except discord.Forbidden as vError:
 				BUPrint.LogErrorExc("Invalid access to move member!", vError)
-				return
+				vMovedUsers += 1
+				continue
 			except Exception as vError:
 				BUPrint.LogErrorExc(f"Unable to move member {user.display_name} to Channel (Standby Chn: {p_moveToStandby}).", vError)
-				return
+				vMovedUsers += 1
+				continue
+
+			if vMovedUsers == vConnectedUsers.__len__():
+				self.bIgnoreStateChange = False
 
 
+	def ForFunAddVehicleDeathBroadcast(self, p_event:ForFunVehicleDeath):
+		delayedTime = datetime.datetime.now() + dateutil.relativedelta.relativedelta(seconds=10)
+		self.scheduler.add_job( Commander.ForFunBroadcastVehicleDeath, 'date', run_date=delayedTime, args=[self, p_event])
 
+
+	async def ForFunBroadcastVehicleDeath(self, p_event:ForFunVehicleDeath):
+		"""# FOR FUN: BROADCAST VEHICLE DEATH
+		Function which broadcasts a vehicle induced death.
+		"""
+		vPS2Channel = self.vBotRef.get_channel( Channels.ps2TextID )
+		await vPS2Channel.send( content=p_event.message.replace("_USERBY", p_event.driverMention).replace("_USER", p_event.killedMentions) )
 
 
 ############  COMMANDER BUTTON CLASSES
@@ -1587,7 +1556,7 @@ class Commander_btnNotify(discord.ui.Button):
 class Commander_btnEnd(discord.ui.Button):
 	def __init__(self, p_commanderParent:Commander):
 		self.vCommander:Commander = p_commanderParent
-		super().__init__(label="END", emoji="🛑", row=0)
+		super().__init__(label="END", emoji="🛑", row=0, style=discord.ButtonStyle.danger)
 
 	async def callback(self, p_interaction:discord.Interaction):
 		# End the Ops:

@@ -522,6 +522,7 @@ def PrintSettings(bGetOnly = False):
 	vString += "\nCHANNELS\n"
 	vString += f"	> Bot Admin:	{Channels.botAdminID}\n"
 	vString += f"	> General:	{Channels.generalID}\n"
+	vString += f"	> PS2 Text:	{Channels.ps2TextID}\n"
 	vString += f"	> Rules:	{Channels.ruleID}\n"
 	vString += f"	> Gate:		{Channels.gateID}\n"
 	vString += f"	> Voice Fallback:{Channels.voiceFallbackID}\n"

@@ -129,7 +129,7 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 
 
 	async def CheckReactions(self, p_data:discord.RawReactionActionEvent):
-		if p_data.channel_id != settings.UserLib.quoteChannelID:
+		if p_data.channel_id != settings.Channels.quoteID:
 			# Not correct channel.
 			return
 

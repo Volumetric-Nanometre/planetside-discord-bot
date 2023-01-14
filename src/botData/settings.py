@@ -404,7 +404,7 @@ class Commander:
 
 	# Grace Period: The time after an ops has started before participants are re-evaluated and marked non attending if they fail the requirements for markedPresent.
 	# Event tracking starts after this time.
-	gracePeriod = 10 # Minutes
+	gracePeriod = 1 # Minutes
 
 	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
 	bAutoStartEnabled = True
@@ -454,6 +454,7 @@ class Commander:
 		# Discord Voice
 	connIcon_voice = "🎧" 
 	connIcon_voiceConnected = "🟢"
+	connIcon_voiceNotEventChan = "🟡"
 	connIcon_voiceDisconnected = "🔴"
 		# Planetside2
 	connIcon_ps2 = "🎮"

@@ -117,7 +117,7 @@ class Bot(commands.Bot):
 
         BUPrint.Info(f"	> Ending {len(self.vOpsManager.vLiveCommanders)} running events...")
         for liveOp in self.vOpsManager.vLiveCommanders:
-            await liveOp.EndOperation()
+            await liveOp.EndOperation(True)
         
         BUPrint.Info("Closing bot connections")
         await self.close()
