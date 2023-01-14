@@ -42,15 +42,18 @@ class EditDates(baseModal.BaseModal):
 	# Where the fun happens!
 	async def on_submit(self, pInteraction: discord.Interaction):
 		BUPrint.Debug("Edit Dates Modal submitted, creating new date...")
-
-		newDateTime = datetime.datetime(
-			year=int(self.txtYear.value),
-			month=int(self.txtMonth.value),
-			day=int(self.txtDay.value),
-			hour=int(self.txtHour.value),
-			minute=int(self.txtMinute.value),
-			tzinfo=datetime.timezone.utc
-		)
+		try:
+			newDateTime = datetime.datetime(
+				year=int(self.txtYear.value),
+				month=int(self.txtMonth.value),
+				day=int(self.txtDay.value),
+				hour=int(self.txtHour.value),
+				minute=int(self.txtMinute.value),
+				tzinfo=datetime.timezone.utc
+			)
+		except ValueError:
+			await pInteraction.response.send_message("Invalid date given!", ephemeral=True)
+			return
 
 		if newDateTime < datetime.datetime.now(datetime.timezone.utc):
 			await pInteraction.response.send_message("Date cannot be in the past!", ephemeral=True)
@@ -63,9 +66,10 @@ class EditDates(baseModal.BaseModal):
 
 			if liveOps.date == newDateTime and liveOps.name == self.vOpData.name:
 				await pInteraction.response.send_message("This edit matches an existing live event!  Re-Edit the date/time values.", ephemeral=True)
-
+				return
 
 		self.vOpData.date = newDateTime
+
 
 		await pInteraction.response.send_message("New date set succesfully.", ephemeral=True)
 
