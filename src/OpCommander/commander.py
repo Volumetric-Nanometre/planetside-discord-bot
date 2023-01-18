@@ -14,8 +14,8 @@ import re
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.schedulers import SchedulerNotRunningError
-import datetime, dateutil.relativedelta
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
+from dateutil.relativedelta import relativedelta
 
 from OpCommander.events import OpsEventTracker
 from botData.dataObjects import CommanderStatus, OpsStatus, Participant, Session, OpFeedback
@@ -32,7 +32,9 @@ from botData.settings import Directories, UserLib, NewUsers, Channels
 
 from botData.dataObjects import OperationData, User, OpRoleData, PS2EventTrackOptions, ForFunData, ForFunVehicleDeath
 
-import userManager, opsManager
+import opsManager
+# from userManager import UserLibrary, User
+import userManager
 
 async def StartCommander(p_opData: OperationData):
 	"""
@@ -69,8 +71,8 @@ async def StartCommander(p_opData: OperationData):
 	BUPrint.Debug(f"Starting commander for {p_opData.fileName}!")
 	vNewCommander = Commander(p_opData)
 	opsManager.OperationManager.vLiveCommanders.append(vNewCommander)
-	await vNewCommander.CommanderSetup()
-	# Don't call `commander.GenerateCommander()` here! CommanderSetup handles this.
+	await vNewCommander.SetupCommander()
+	# Don't call functions to send/update commander info or commander messages, as setup calls these functions.
 	
 	return 0
 
@@ -92,7 +94,6 @@ class Commander():
 		self.vOpData : OperationData = p_opData
 		self.vCommanderStatus = CommanderStatus.Init
 		self.vFeedback = OpFeedback()
-		self.bFeedbackTooLarge = False # Set to true if feedback is too large for an embed.
 		self.bHasSoftEnded = False # Set to true if soft ended (debriefed.)
 		self.bAttendanceChecked = False # When true and a participants attendance isn't already `True`, participant is marked late.
 		self.trueStartTime: datetime = None # Set when the event is started.
@@ -106,11 +107,11 @@ class Commander():
 			BUPrint.Debug("Event is PS2 related, creating tracker & client...")
 			self.vAuraxClient = auraxium.EventClient(service_id=botSettings.ps2ServiceID)
 			self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
-			self.vOpsEventTracker.updateParentFunction = self.GenerateCommander
+			self.vOpsEventTracker.updateParentFunction = self.UpdateCommanderLive
 
 		# Alert & Autostart Scheduler
 		self.scheduler = AsyncIOScheduler()
-		self.alertTimes:list[datetime.datetime] = [] # Saved to be displayed in Info embed
+		self.alertTimes:list[datetime] = [] # Saved to be displayed in Info embed
 
 		#DiscordElements:
 		self.commanderInfoMsg : discord.Message = None # Message object for the Info embed.
@@ -129,289 +130,105 @@ class Commander():
 		self.soberdogFeedbackMsg: discord.Message = None # Message for the soberdogs Feedback.
 
 
-
-	async def GenerateCommander(self):
+	async def SetupCommander(self):
+		"""# SETUP COMMANDER:
+		- Create the category and its channels.
+		- send the initial info & commander messages.
+		- Setup scheduler: auto alerts.
+		- setup scheduler: auto start
 		"""
-		# GENERATE COMMANDER
-
-		Updates an existing Commander, using the current status.
-		The commander does not include the INFO embed, since it does not need to be updated.
-
-		`commanderMsg` must be a valid discord.Message before this is called.
-
-		If the Ops has not started, no embeds are added.  
-		"""
-		vMessageView = self.GenerateView_Commander()
-		vEmbeds:list = []
-		vMessageContent = "**OP COMMANDER**\n\n"
-		
-		# Pre-Started display
-		if self.vCommanderStatus.value == CommanderStatus.WarmingUp.value:
-			vEmbeds.append (await self.GenerateEmbed_Connections())
-			if commanderSettings.bAutoAlertsEnabled:
-				vMessageContent += botMessages.commanderAutoStart
-
-		elif self.vCommanderStatus == CommanderStatus.Started:
-			vEmbeds.append( await self.GenerateEmbed_Connections())
-			if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
-				vEmbeds.append( self.GenerateEmbed_Session() )
-		
-		elif self.vCommanderStatus == CommanderStatus.Debrief:
-			# vEmbeds.append(self.GenerateEmbed_Session())
-			vEmbeds.append(self.GenerateEmbed_Feedback())
-
-
-		await self.commanderMsg.edit(content=vMessageContent, view=vMessageView, embeds=vEmbeds)
-
-
-
-	async def CommanderSetup(self):
-		"""
-		# COMMANDER SETUP
-		Sets up the commander for the operation (category & channels), should only be called once.
-		"""
-		if(self.vCommanderStatus == CommanderStatus.Init):
-			BUPrint.Info("Operation Commander first run setup...")
-			# Perform first run actions.
-
-			# Create category and channels.
-			await self.CreateCategory()
-			await self.CreateTextChannels()
-			await self.CreateVoiceChannels()
-			self.CreatePreStartScheduleTasks()
-
-
-			# Update Signup Post with new Status.
-			self.vOpData.status = OperationData.status.prestart
-			vOpMan = opsManager.OperationManager()
-			await vOpMan.UpdateMessage(self.vOpData)
-
-			BUPrint.Debug("	-> Posting Ops Info")
-			await self.GenerateInfo()
-
-			# Call first Participant Update before posting commander, so connections field shows correct list of participants.
-			await self.UpdateParticipants()
-
-			# Setup Connections Refresh
-			if self.vOpData.options.bIsPS2Event:
-				BUPrint.Debug("Creating login triggers for current participant list.")
-				await self.vOpsEventTracker.CreateLoginTriggers(self.participants)
-
-
-			#Post standby commander, to set commander messageID; all future calls should use GenerateCommander instead.
-			self.vCommanderStatus = CommanderStatus.WarmingUp
-
-			BUPrint.Debug("	-> Posting Commander")
-			vCommanderMsg = f"**COMMANDER ON STANDBY**\n"
-			if commanderSettings.bAutoStartEnabled:
-				vCommanderMsg += botMessages.commanderAutoStart
-			self.commanderMsg =  await self.commanderChannel.send(vCommanderMsg, view=self.GenerateView_Commander(), embeds=[await self.GenerateEmbed_Connections()])
-
-
-
-		else:
-			BUPrint.Info("Commander has already been set up!")
-
-
-
-	async def CreateCategory(self):
-		"""
-		# CREATE CATEGORY
-		Creates a category to self-contain the Op.
-		If an existing category with the same name exists, that is used instead.
-
-		## RETURN: `bool` True if successful.
-		"""
-		vGuild:discord.Guild = await GetGuild(self.vBotRef)
-		
-		for category in vGuild.categories:
-			if category.name.lower() == self.vOpData.name.lower():
-				self.vCategory = category
-				BUPrint.Debug("Existing category with matching name found.  Using it instead.")
-				return True
-
-		# No existing category, create one.
-		if self.vCategory == None:
-			BUPrint.Debug("No existing category with matching name, creating as normal")
-
-			if self.vCategory == None:
-				BUPrint.Debug("	-> Create category.")
-				try:
-					self.vCategory = await vGuild.create_category(
-						name=f"{self.vOpData.name}",
-						reason=f"Creating category for {self.vOpData.fileName}",
-						overwrites=ChanPermOverWrite.level3
-					)
-				except discord.Forbidden as error:
-					BUPrint.LogErrorExc("	-> Unable to create category; invalid permissions!", error)
-					return False
-				except discord.HTTPException as error:
-					BUPrint.LogErrorExc("	-> Invalid form", error)
-					return False
-				except TypeError as error:
-					BUPrint.LogErrorExc("	-> Invalid permission overwrites", error)
-					return False
-
-
-
-	async def CreateTextChannels(self):
-		"""
-		# CREATE TEXT CHANNELS
-		Creates text channels used for the Operation.
-		If existing channels are found, they are used instead.
-		"""
-		
-		bFoundCommander = False
-		bFoundNotif = False
-		# Find existing Commander & Notif channels
-		for txtChannel in self.vCategory.text_channels:
-			if txtChannel.name.lower() == commanderSettings.defaultChannels.opCommander.lower():
-				BUPrint.Debug("Existing op commander channel found in category, using that instead.")
-				self.commanderChannel = txtChannel
-				await self.commanderChannel.purge()
-				bFoundCommander = True
-
-			if txtChannel.name.lower() == commanderSettings.defaultChannels.notifChannel.lower():
-				BUPrint.Debug("Existing notification channel found in category, using that instead.")
-				self.notifChn = txtChannel
-				await self.notifChn.purge()
-				bFoundNotif = True
-
-			if bFoundNotif and bFoundCommander:
-				BUPrint.Debug("Found Commander and Notification channels. Exiting loop.")
-				break
-
-		# Manually create Commander & Notif channel if not already present
-		if self.commanderChannel == None:
-			self.commanderChannel = await self.vCategory.create_text_channel(
-				name=commanderSettings.defaultChannels.opCommander,
-				overwrites=ChanPermOverWrite.level2
-			)
-
-		if self.notifChn == None:
-			self.notifChn = await self.vCategory.create_text_channel(
-				name=commanderSettings.defaultChannels.notifChannel,
-				overwrites=ChanPermOverWrite.level3_readOnly
-			)
-
-		# Add non-existing channels for custom text channels
-		txtChannelName:str
-		for txtChannelName in commanderSettings.defaultChannels.textChannels:
-			if txtChannelName != "" and txtChannelName.lower() not in self.vCategory.text_channels:
-				await self.vCategory.create_text_channel(
-					name=txtChannelName,
-					overwrites=ChanPermOverWrite.level3
-				)
-
-
-
-	async def CreateVoiceChannels(self):
-		"""
-		# CRETE VOICE CHANNELS
-		Creates voice channels used for the Ops.
-		Voice channels include persistent and custom entries.
-		"""
-		# Create always present voice channels:
-		bAlreadyExists = False
-		for existingChannel in self.vCategory.voice_channels:
-			if existingChannel.name.lower() == commanderSettings.defaultChannels.standByChannel.lower():
-				bAlreadyExists = True
-				BUPrint.Debug("Existing standby channel found.")
-				self.standbyChn = existingChannel
-				break
-
-		if self.standbyChn == None:
-			self.standbyChn = await self.vCategory.create_voice_channel(name=commanderSettings.defaultChannels.standByChannel)
-
-		BUPrint.Debug("	-> Creating default chanels")
-		if len(commanderSettings.defaultChannels.persistentVoice) != 0:
-			for newChannel in commanderSettings.defaultChannels.persistentVoice:
-				if newChannel == "":
-					return
-
-				bAlreadyExists = False
-				for existingChannel in self.vCategory.voice_channels:
-					if existingChannel.name == newChannel:
-						bAlreadyExists = True
-						BUPrint.Debug(f"Existing channel for: {newChannel} found.")
-						break
-
-				if not bAlreadyExists:
-					BUPrint.Debug(f"No existing channel for {newChannel} found.  Creating new voice channel!")
-					channel:discord.VoiceChannel = await self.vCategory.create_voice_channel(name=newChannel)
-
-
-		# Create custom voice channels if present
-		if len(self.vOpData.voiceChannels) != 0 and self.vOpData.voiceChannels[0] != "":
-			BUPrint.Debug("	-> Voice channels specified...")
-
-			for newChannel in self.vOpData.voiceChannels:
-				BUPrint.Debug(f"	-> Adding channel: {newChannel}")
-
-				bAlreadyExists = False
-				for existingChannel in self.vCategory.voice_channels:
-					if existingChannel.name.lower() == newChannel.lower():
-						bAlreadyExists = True
-						BUPrint.Debug(f"Existing channel for: {newChannel} found.")
-						break
-
-				if not bAlreadyExists:
-					BUPrint.Debug(f"No existing channel for {newChannel} found.  Creating new voice channel!")
-					await self.vCategory.create_voice_channel(name=newChannel)
-		
-		
-		else: # No custom voice channels given, use default
-		
-			BUPrint.Debug("	-> No voice channels specified, using defaults...")
-			for newChannel in commanderSettings.defaultChannels.voiceChannels:
-				BUPrint.Debug(f"	-> Adding channel: {newChannel}")
-	
-				bAlreadyExists = False
-				for existingChannel in self.vCategory.voice_channels:
-					if existingChannel.name == newChannel:
-						bAlreadyExists = True
-						BUPrint.Debug(f"Existing channel for: {newChannel} found.")
-						break
-
-				if not bAlreadyExists:
-					BUPrint.Debug(f"No existing channel for {newChannel} found.  Creating new voice channel!")
-					await self.vCategory.create_voice_channel(name=newChannel)
-	
-
-
-	def SetUserInEventChannel(self, p_participant:Participant):
-		"""# USER IN EVENT CHANNEL
-		Checks if the participant is inside the event channel(s), and sets their `bDiscordVoice` accordingly.
-		"""
-		if p_participant.discordUser.voice == None:
-			p_participant.bInEventChannel = False
+		if self.vCommanderStatus.value >= CommanderStatus.Standby.value:
+			BUPrint.LogError(p_titleStr="CANNOT SETUP COMMANDER | ", p_string="Commander has been set up already.")
 			return
 
-		if p_participant.discordUser.voice.channel in self.vCategory.voice_channels:
-			p_participant.bInEventChannel = True
+		await self.CreateChannels()
+		self.CreateScheduleTasks_Prestart()
+		await self.UpdateParticipants()
+
+		# Update Signup Post:
+		self.vOpData.status = OpsStatus.prestart
+		self.vCommanderStatus = CommanderStatus.WarmingUp
+		await opsManager.OperationManager().UpdateMessage(self.vOpData)
+		await self.UpdateCommander()
+
+
+
+	async def StartEvent(self):
+		""" # START EVENT
+		Officially starts the event; 
+		- Updates the signup message
+		- Moves users to standby (if enabled)
+		"""
+		if self.vCommanderStatus.value > CommanderStatus.WarmingUp.value:
+			BUPrint.Info("Commander has started already, skipping!")
 			return
 
-		p_participant.bInEventChannel = False
+		BUPrint.Info(f"Event: {self.vOpData.name} started!")
+		self.scheduler.remove_all_jobs()
 
+		self.vCommanderStatus = CommanderStatus.Started
+		self.vOpData.status = OpsStatus.started
+		await opsManager.OperationManager().UpdateMessage(self.vOpData)
+
+		await self.MoveUsers(True)
+
+		if commanderSettings.markedPresent != PS2EventTrackOptions.Disabled:
+			self.scheduler.add_job(Commander.CheckAttendance, 'date', run_date=(datetime.now(tz=timezone.utc) + timedelta(minutes=commanderSettings.gracePeriod)), args=[self])
+
+		await self.UpdateCommander()
+
+
+
+	async def EndEventSoft(self):
+		"""# END EVENT SOFT:
+		Should be called when the event has stopped, but before closing the event entirely.
+		"""
+		await self.vAuraxClient.close()
+		self.scheduler.shutdown()
+		self.bHasSoftEnded = True
+		self.vCommanderStatus = CommanderStatus.Debrief
+
+		if botSettings.botFeatures.UserLibrary:
+			for participant in self.participants:
+				if participant.libraryEntry != None:
+					if participant.bAttended:
+						participant.libraryEntry.eventsAttended += 1
+					else:
+						participant.libraryEntry.eventsMissed += 1
+					userManager.UserLibrary.SaveEntry(participant.libraryEntry)
+			
+
+
+	async def EndEvent(self):
+		"""# END EVENT
+		Officially ends the event, moving users back into the normal channel (either ps2 or fallback), and removes the operation from the OpManager."""
+		if not self.bHasSoftEnded:
+			await self.EndEventSoft()
+
+		await self.MoveUsers(False)
+		await self.DeleteChannels()
+
+		# Only remove operation if event had actually started, else don't, in the event the bot has shutdown before event starts.
+		if self.vCommanderStatus.value >= CommanderStatus.Debrief.value:
+			await opsManager.OperationManager.RemoveOperation(p_opData=self.vOpData)
+
+		BUPrint.Info(f"Commander for event {self.vOpData.name} has ended!")
+
+
+	def CreateScheduleTasks_Prestart(self):
+		"""# CREATE SCHEDULED TASKS: PRESTART
 		
-
-
-	def CreatePreStartScheduleTasks(self):
-		"""# CREATE PRESTART SCHEDULE TASKS
-		
-		Creates the scheduled tasks for pre-started commanders:
+		Creates the scheuled task for pre-start commanders:
 		- Auto Alerts
 		- Auto Start
 		"""
-		# Setup Alerts
-		BUPrint.Debug("Configuring Scheduler...")
 		if commanderSettings.bAutoAlertsEnabled:
 			intervalTime = 0
 			if commanderSettings.bAutoStartEnabled:
 				intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
 			else:
 				# Event started manually, set interval from time now; if event isn't in the past.
-				timeUntilOps:timedelta = datetime.datetime.now(tz=datetime.timezone.utc) - self.vOpData.date
+				timeUntilOps:timedelta = datetime.now(tz=timezone.utc) - self.vOpData.date
 				if timeUntilOps > 0:
 					intervalTime = timeUntilOps.seconds * 60
 			
@@ -420,382 +237,394 @@ class Commander():
 			setIntervals = 0
 			if intervalTime != 0:
 				while setIntervals < commanderSettings.autoAlertCount:
-					lastInterval = lastInterval - dateutil.relativedelta.relativedelta(minutes=intervalTime)
+					lastInterval = lastInterval - relativedelta(minutes=intervalTime)
 					self.alertTimes.append(lastInterval)
 					BUPrint.Debug(f"AutoAlert Interval: {lastInterval}")
-					self.scheduler.add_job( Commander.SendAlertMessage, 'date', run_date=lastInterval, args=[self] )
+					self.scheduler.add_job( Commander.SendReminder, 'date', run_date=lastInterval, args=[self] )
 					setIntervals += 1
 		
 		
 		# Setup AutoStart
 		if self.vOpData.options.bAutoStart and commanderSettings.bAutoStartEnabled:
 			BUPrint.Debug(f"Commander set to Start Operation at {self.vOpData.date}")
-			self.scheduler.add_job( Commander.StartOperation, 'date', run_date=self.vOpData.date, args=[self], id="CommanderAutoStart")
+			self.scheduler.add_job( Commander.StartEvent, 'date', run_date=self.vOpData.date, args=[self], id="CommanderAutoStart")
 
 		self.scheduler.start()
 
 
 
-	async def RemoveChannels(self):
-		"""
-		# REMOVE CHANNELS
-		Removes the channels and category related to the Ops.
-		"""
-		BUPrint.Debug("Removing Channels")
-
-		# Get all connected users.
-		userList = []
-		voiceChannel: discord.VoiceChannel
-		for voiceChannel in self.vCategory.voice_channels:
-			userList += voiceChannel.members
-
-		# Get fallback channel		
-		user:discord.Member
-		fallbackChannel = self.vBotRef.get_channel(Channels.voiceFallbackID)
-
-		# Move connected users to fallback channel
-		for user in userList:
-			BUPrint.Debug(f"Attempting to move {user.display_name} to fallback channel.")
-			try:
-				await user.move_to(channel=fallbackChannel, reason="Op Commander ending: moving user from Ops channel to fallback.")
-			except discord.errors.Forbidden:
-				BUPrint.Info(f"Invalid permission to move {user.display_name}!")
-			except discord.errors.HTTPException:
-				BUPrint.Info(f"Discord failed to move {user.display_name}")
-
-		# Remove channels
-		for voiceChannel in self.vCategory.voice_channels:
-			try:
-				await voiceChannel.delete(reason="Op Commander Ending: removing voice channels.")
-			except discord.errors.Forbidden:
-				BUPrint.Info("Invalid permission to remove voice channels!")
-			except discord.errors.NotFound:
-				BUPrint.Info("Voice channel not found.  Presumably already removed.")
-			except discord.errors.HTTPException:
-				BUPrint.Info(f"Discord failed to remove voice channel: {voiceChannel.name}")
-
-
-		for textChannel in self.vCategory.text_channels:
-			try:
-				await textChannel.delete(reason="Op Commander ending: removing text channels.")
-			except discord.Forbidden:
-				BUPrint.Info("Invalid permission to remove text channels!")
-			except discord.errors.NotFound:
-				BUPrint.Info("Text channel not found.  Presumably already removed.")
-			except discord.errors.HTTPException:
-				BUPrint.Info(f"Discord failed to remove text channel: {voiceChannel.name}")
-
-
-		# Remove empty category
-		try:
-			await self.vCategory.delete(reason="Op Commander ending: removing category.")
-		except discord.errors.Forbidden:
-			BUPrint.Info("Invalid permission to remove category!")
-		except discord.errors.HTTPException:
-			BUPrint.Info(f"Discord failed to remove category: {self.vCategory.name}")
-
-
-
-	async def GenerateAlertMessage(self):
-		"""
-		# GENERATE ALERT MESSAGE
-		Convenience function to generate a pre-formatted message string for pre-start alerts.
-		"""
-		vRoleMentionPing = ""
-		if len(self.vOpData.pingables) != 0:
-			vGuild:discord.Guild = await GetGuild(self.vBotRef)
-
-			for rolePing in self.vOpData.pingables:
-				discordRole:discord.Role = discord.utils.find(lambda role: role.name.lower() == rolePing.lower(), vGuild.roles)
-				if discordRole != None:
-					vRoleMentionPing += f"{discordRole.mention} "
-
-		vMessageTitle = f"**REMINDER: {self.vOpData.name} STARTS {GetDiscordTime( self.vOpData.date, DateFormat.Dynamic )}**"
-		# Dynamically set strings.
-		vMessagePings = ""
-		vMessage = ""
-
-
-		if commanderSettings.bAutoMoveVCEnabled:
-			vMessage += f"\n\n*{botMessages.OpsAutoMoveWarn}*\n\n"
-
-
-		bAvailableSpace = False
-		for opRole in self.vOpData.roles:
-			if len(opRole.players) < opRole.maxPositions and opRole.maxPositions > 0:
-				vMessage += f"**{opRole.roleName}** currently has **{opRole.maxPositions - len(opRole.players)}** available spaces!\n"
-				bAvailableSpace = True
-				continue
-			
-			if opRole.maxPositions < 0:
-				vMessage += f"{opRole.roleName} is **open**!"
-				bAvailableSpace = True
-
-		if bAvailableSpace:
-			vMessage += f"{vMessage}\n*Spaces listed above were true at the time this notification was sent.*\n"
-			vMessagePings = f"{vRoleMentionPing}|{self.GetParticipantMentions()}"
-		else:
-			vMessagePings = self.GetParticipantMentions()
-
-
-		return f"{vMessageTitle}\n{vMessagePings}\n\n{vMessage}"
-
-
-
-	async def GenerateStartAlertMessage(self):
-		"""
-		# GENERATE START ALERT MESSAGE
-		Convenience function to generate a pre-formatted message string for ops Started alert.
-		"""
-		vParticipantsStr = self.GetParticipantMentions()
-
-		vMessage = f"**{self.vOpData.name} HAS STARTED!**\n\n{vParticipantsStr}\n"		
-
-		return vMessage
-
-
-
-	async def SendAlertMessage(self, p_opStart:bool = False):
-		"""
-		# SEND ALERT MESSAGE
-		Set p_opStart to TRUE to send an Op Started alert instead.
-		"""
-		if self.lastStartAlert != None:
-			BUPrint.Debug("Removing previous alert message.")
-			await self.lastStartAlert.delete()
-
-		await self.UpdateParticipants()
-		
-		BUPrint.Info(f"Sending Alert message for {self.vOpData.name}")
-		if p_opStart: # Send START alert.
-			self.lastStartAlert = await self.notifChn.send( await self.GenerateStartAlertMessage() )
-		else: # Send REMINDER alert
-			self.lastStartAlert = await self.notifChn.send(content=await self.GenerateAlertMessage(), view=self.GenerateView_Alerts() )
-
-
-
-	def GetParticipantMentions(self):
-		"""
-		# GET PARTICIPANT MENTIONS
-
-		Returns a string of `member.mention` for all participants.
-		"""
-		vMentionStr = ""
-
-		for participantObj in self.participants:
-			if participantObj.discordUser != None:
-				vMentionStr += f"{participantObj.discordUser.mention} "
-
-		return vMentionStr
-
-
-
 	async def UpdateParticipants(self):
+		"""# UPDATE PARTICIPANTS
+		Updates the commander participants from the OpData.
+		Will update the info and connections embed, and call to regenerate login.
 		"""
-		# UPDATE PARTICIPANTS
+		bRequiresUpdate = False # First check to make sure an update is required; times when it does not include a user just changing roles.
+		vGuild:discord.Guild = await GetGuild(self.vBotRef)
 
-		Updates `self.participants` to match with the users in the opData.
 
-		This also calls `loadParticipantData`.
-		"""
-		vParticipantIDs = self.vOpData.GetParticipantIDs()
-		BUPrint.Debug(f"Updating Participants : {vParticipantIDs}")
+		vOpDataPlayerIDs = self.vOpData.GetParticipantIDs() # Grab to avoid repetitious getting.
+		vCommanderPlayerIDs = [participant.discordID for participant in self.participants]
+		BUPrint.Debug(f"Commander Player IDs: {vCommanderPlayerIDs}")
 
-		# FIRST RUN:
-		if len(self.participants) == 0:
-			BUPrint.Debug("	-> Updating Participants: First Run")
 
-			for userID in vParticipantIDs:
-				newParticipant = Participant(discordID=userID)
-				self.participants.append(newParticipant)
+		# First run		
+		if self.participants.__len__() == 0:
+			bRequiresUpdate = True
 
+			for userID in vOpDataPlayerIDs:
+				member = vGuild.get_member(userID)
+				if member != None:
+					self.participants.append( Participant(discordID=userID, discordUser=member) )
 		else:
-			BUPrint.Debug("	-> Checking resigned participants")
-			# Check if current participant has resigned & remove.
-			for vParticipantObj in self.participants:
-				if vParticipantObj.discordID not in vParticipantIDs:
-					BUPrint.Debug(f"Participant: {vParticipantObj.discordID} not in list of Participant IDs, removing from list.")
-					self.participants.remove(vParticipantObj)
 
-			BUPrint.Debug("	-> Checking for new participants")
-			# Check if list of participant IDs is not in self.participants.
-			for participantID in vParticipantIDs:
-				if participantID not in vParticipantIDs:
-					BUPrint.Debug(f"Participant {participantID} is being added")
-					newParticipant = Participant(discordID=participantID)
-					self.participants.append(newParticipant)
-
-	
-		await self.LoadParticipantData()
-
-		# Only reset participant `session`` if event hasn't started.
-		if self.vCommanderStatus == CommanderStatus.WarmingUp:
+			# Check to see if Commander participants is outdated
 			for participant in self.participants:
-				participant.userSession = Session()
-				participant.userSession.bIsPS2Event = self.vOpData.options.bIsPS2Event
-				participant.userSession.date = self.vOpData.date
+				if participant.discordID not in vOpDataPlayerIDs:
+					self.participants.remove(participant)
 
+					bRequiresUpdate = True
 
-		if self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.WarmingUp:
-			await self.vOpsEventTracker.CreateLoginTriggers(self.participants)
-
-
-
-	async def RefreshPS2LoginWatch(self):
-		"""# REFRESH PS2 LOGIN WATCH:
-		Checks to make sure there's a difference in participants.  
+			# Check to see if new participants need to be added
+			for newParticipantID in vOpDataPlayerIDs:
+				if newParticipantID not in vCommanderPlayerIDs:
+					member = vGuild.get_member(newParticipantID)
+					if member != None:
+						self.participants.append( Participant(discordID=newParticipantID, discordUser=member) )
+					bRequiresUpdate = True
 		
-		If there is, clears the old trigger for watching planetside2 login/logouts.
-		Then re-create it using the new participant list.
-
-		An event where this is called and there's no difference in participants: a user changes role.
-		"""
-		participantIDs = self.vOpData.GetParticipantIDs()
-		bMismatchDetected = False
-
-		for participant in self.participants:
-			# If any occurance of a user no longer in participant IDs, reconstruct the list.
-			if participant.discordID not in participantIDs:
-				bMismatchDetected = True
-				BUPrint.Debug(f"{participant.discordUser.display_name} no longer in list of participant IDs.  Reconstructing list.")
-				break
-
-
-		if not bMismatchDetected:
-			BUPrint.Debug("No mismatch found, continue using old participant list.")
+		if not bRequiresUpdate:
+			BUPrint.Debug("Participants Updated: No Update required.")
 			return
 
-		# Mismatch found, remake trigger.
-		await self.vOpsEventTracker.CreateLoginTriggers(self.participants)
+
+		# UPDATE PARTICIPANTS
+		vLibrariesToLoad:list[Participant] = [participant for participant in self.participants if participant.libraryEntry == None ]
+		if botSettings.botFeatures.UserLibrary:
+			await self.UpdateParticipants_UserLibs(vLibrariesToLoad)
+		
+		if self.vOpData.options.bIsPS2Event:
+		
+			vPS2CharactersToLoad:list[Participant] = [participant 
+				for participant in self.participants 
+				if participant.libraryEntry == None or participant.ps2CharID == -1
+			]
+		
+			await self.UpdateParticiants_PS2Chars(vPS2CharactersToLoad)
+		
+			await self.vOpsEventTracker.CreateLoginTriggers(vPS2CharactersToLoad)
+		
+
+		BUPrint.Debug("Participants Updated!")
 
 
 
-	async def LoadParticipantData(self):
+	async def UpdateParticiants_PS2Chars(self, p_participantsToUpdate:list[Participant]):
+		"""# UPDATE PARTICIPANTS: PS2 CHARS
+		Attempts to load the ps2 character objects for the passed participants.
+
+		Called from within `UpdateParticipants`.
+
+		NOTE: `UpdateParticipants_UserLibs` should be called before this.
 		"""
-		# LOAD PARTICIPANT DATA
+		BUPrint.Debug("	-> Getting PS2 Character IDs")
 
-		Recursively checks all Participant objects and loads them if they're not already populated.
-		"""
-		vGuild = await GetGuild(self.vBotRef)
+		for participant in p_participantsToUpdate:
 
-		BUPrint.Debug("Loading participant data...")
-		for participantObj in self.participants:
-			BUPrint.Debug(f"User with ID: {participantObj.discordID}")
+			if participant.libraryEntry != None and participant.libraryEntry.ps2ID != -1:
+				participant.ps2CharID = participant.libraryEntry.ps2ID
+				BUPrint.Debug(f"Participant {participant.discordUser.display_name} has a set PS2 character ID. Using it...")
+				continue
 
-			if participantObj.discordUser == None:
-				BUPrint.Debug("	-> Discord User not set, getting...")
-				participantObj.discordUser = vGuild.get_member(participantObj.discordID)
-
-			if participantObj.libraryEntry == None and botSettings.botFeatures.UserLibrary:
-				BUPrint.Debug("	-> Library Entry not set. Loading...")
-				participantObj.LibraryEntry = userManager.UserLibrary.LoadEntry(participantObj.discordID)
-
-
-			if participantObj.libraryEntry == None and botSettings.botFeatures.UserLibrary:
-				vNewEntry = User(discordID=participantObj.discordUser.id)
-				if userManager.UserLibrary.HasEntry(participantObj.discordID):
-					BUPrint.Debug("Loading Participant Data: Loading data.")
-					participantObj.libraryEntry = userManager.UserLibrary.LoadEntry(participantObj.discordID)
-
-				elif UserLib.bCommanderCanAutoCreate:
-					BUPrint.Debug("Load Participant Data: No entry, creating one...")
-					# Check if user has recruit role and apply isRecruit accordingly.
-					vRecruitRole = vGuild.get_role(NewUsers.recruitRole)
-
-					if vRecruitRole in participantObj.discordUser.roles:
-						vNewEntry.bIsRecruit = True
-
-					participantObj.LibraryEntry = vNewEntry
-					userManager.UserLibrary.SaveEntry(vNewEntry)
-				else:
-					BUPrint.Debug("LoadParticipantData: Autocreate is disabled.")
-
-			if participantObj.ps2Char == None and self.vOpData.options.bIsPS2Event:
-				BUPrint.Debug("	-> PS2 Character not set, setting...")
-				participantObj.ps2Char = await self.GetParticipantPS2Char(participantObj)
-
-
-
-	async def GetParticipantPS2Char(self, p_participant: Participant):
-		"""
-		# GET PARTICIPANT PLANETSIDE 2 CHARACTER
-		If an existing library entry is present, it is used to get the character name.
-		If no library entry is found, or the player name is blank, the participants display name is used instead.
-
-		## RETURNS:
-		`auraxium.ps2.Character` for the participant.
-		"""
-
-
-		bExistingLibraryEntry = True
-		if p_participant.libraryEntry == None:
-			bExistingLibraryEntry = False
-
-
-		if not bExistingLibraryEntry or p_participant.libraryEntry.ps2Name == "":
-			charName = re.sub(r'\[\w\w\w\w\]', "", p_participant.discordUser.display_name )
+			charName = re.sub(r'\[\w\w\w\w\]', "", participant.discordUser.display_name )
 			charName = charName.strip()
+			
+			if participant.libraryEntry == None and botSettings.botFeatures.UserLibrary:
+				participant.libraryEntry = User(discordID=participant.discordID)
 
-			if charName == p_participant.lastCheckedName:
-				BUPrint.Debug("User hasn't renamed since last check.")
-				return None
+				if participant.libraryEntry.ps2ID == -1:
+					if charName == participant.lastCheckedName:
+						BUPrint.Debug("Participant name is same as last checked name.  Skipping...")
+						continue
 
+					vPlayerChar = await self.vAuraxClient.get_by_name(auraxium.ps2.Character, charName)
+					
+					if vPlayerChar == None:
+						BUPrint.Debug(f"{participant.discordUser.display_name}'s name does not match a PS2 character!")
+						continue
+					participant.ps2CharID = vPlayerChar.id
+					
+					
+					participant.libraryEntry.ps2ID = vPlayerChar.id
+					participant.libraryEntry.ps2Name = charName
 
-			BUPrint.Debug(f"Searching for PS2 Character: {charName}")
-			playerChar = await self.vAuraxClient.get_by_name(auraxium.ps2.Character, charName)				
+					if UserLib.bCommanderCanAutoCreate:
+						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
 
-			if playerChar == None:
-				BUPrint.Debug("	-> No PS2 character found.")
-				p_participant.lastCheckedName = charName
-				return
+					participant.ps2CharID = vPlayerChar.id
 
 			else:
-				BUPrint.Debug("	-> PS2 Character found!")
-				p_participant.libraryEntry = User(discordID=p_participant.discordID, ps2Name=charName)
+				vPlayerChar = await self.vAuraxClient.get_by_name(auraxium.ps2.Character, charName)	
 				
-				if UserLib.bCommanderCanAutoCreate:
-					BUPrint.Debug("Saving new user Entry:")
-					p_participant.SaveParticipant()
+				if vPlayerChar == None:
+					BUPrint.Debug(f"Participant {participant.discordUser.display_name} doesn't have a name that matches a PS2 character.")
+					continue
+				else:
+					participant.ps2CharID = vPlayerChar.id
+		
+			participant.lastCheckedName = charName
 
-				return playerChar
 
-		else: # Name already exists in userManager.UserLibrary
-			BUPrint.Debug(f"	-> Character name is already set: {p_participant.libraryEntry.ps2Name}")
-			playerChar = await self.vAuraxClient.get_by_name(auraxium.ps2.Character, p_participant.libraryEntry.ps2Name)
-			if playerChar != None:
-				return playerChar
 
+	async def UpdateParticipants_UserLibs(self, p_participantsToUpdate:list[Participant]):
+		"""# UPDATE PARTICIPANTS: USER LIBRARY
+
+		Called from within `UpdateParticipants`.
 	
-	
-	async def GenerateInfo(self):
+		Attempts to load the library object for the passed participants.
 		"""
-		# GENERATE INFO:
-		Sends/Updates the Info embed.
-		"""	
+		for participant in p_participantsToUpdate:
+			participant.libraryEntry = userManager.UserLibrary.LoadEntry(participant.discordID)
+
+
+
+	async def UpdateCommanderInfo(self):
+		"""# UPDATE COMMANDER INFO:
+		Updates the commaner's info message.
+
+		If no message is present, this function creates one.
+		"""
 		if self.commanderInfoMsg == None:
-			vGuild = await GetGuild(self.vBotRef)
-
-			opString = f"*OPERATION INFORMATION for {self.vOpData.name}*"
-			managingUser = vGuild.get_member(self.vOpData.managedBy)
-
-			if managingUser != None:
-				opString = f"{managingUser.mention} {opString}"
-	
-			self.commanderInfoMsg = await self.commanderChannel.send(content=opString, embed=self.GenerateEmbed_OpInfo() )
+			self.commanderInfoMsg = await self.commanderChannel.send(content=f"{self.vOpData.managedBy}", embed=self.CreateEmbed_Info())
 		else:
-			try:
-				await self.commanderInfoMsg.edit(embed=self.GenerateEmbed_OpInfo())
-			except discord.NotFound:
-				BUPrint.Info("Message not found but posted?  Reposting...")
-				self.commanderInfoMsg = await self.commanderChannel.send(embed=self.GenerateEmbed_OpInfo() )
+			await self.commanderInfoMsg.edit(embed=self.CreateEmbed_Info())
 
+	
 
+	async def UpdateCommanderLive(self):
+		"""# UPDATE COMMANDER: LIVE
+		Updates the connections/sessions message.
 
-	def GenerateEmbed_OpInfo(self):
+		If no message is present, this function creates one.
 		"""
-		# GENERATE EMBED : OpInfo
+		vEmbeds = [self.CreateEmbed_Connections()]
 
-		Creates an Embed for Operation Info.
+		if self.vOpData.options.bIsPS2Event:
+			vEmbeds.append( self.CreateEmbed_Session() )
+
+		if self.commanderMsg == None:
+			self.commanderMsg = await self.commanderChannel.send(content="**OP COMMANDER**", embeds=vEmbeds, view=self.CreateCommanderView())
+		else:
+			await self.commanderMsg.edit(embeds=vEmbeds, view=self.CreateCommanderView())
+
+
+
+	async def UpdateCommander(self):
+		"""# UPDATE COMMANDER
+		Convenience function that calls both update functions.
+		"""
+		BUPrint.Debug("Updating entire commander")
+		await self.UpdateCommanderInfo()
+		await self.UpdateCommanderLive()
+
+
+
+	async def MoveUsers(self, p_isMovingToStandby: bool):
+		"""# MOVE USERS
+		Parameter: p_isMovingToStandby: when true, users are moved to the standby.
+			When false, users are moved to the event end channel instead.
+
+		Regardless of auto-vc move setting, when moving to event end channel users are always moved, since the channels will be removed.
+		"""
+		if p_isMovingToStandby and not commanderSettings.bAutoMoveVCEnabled:
+			BUPrint.Debug("Automove is disabled for moving to standby channel.")
+			return
+
+		vUsersToMove:list[discord.Member] = []
+		vParticipantIDs = self.vOpData.GetParticipantIDs()
+		vGuild = await GetGuild(self.vBotRef)
+
+		if p_isMovingToStandby:
+			for voiceChannel in vGuild.voice_channels:
+				for member in voiceChannel.members:
+					if member.id in vParticipantIDs:
+						vUsersToMove.append(member)
+		else:
+			for voiceChannel in self.vCategory.voice_channels:
+				for member in voiceChannel.members:
+					vUsersToMove.append(member)
+
+
+		movebackChannel = None
+		if self.vOpData.options.bIsPS2Event:
+			movebackChannel = vGuild.get_channel(Channels.eventMovebackID)
+		else:
+			movebackChannel = vGuild.get_channel(Channels.voiceFallbackID)
+		
+		try:
+			for member in vUsersToMove:
+				if p_isMovingToStandby:
+					await member.move_to(self.standbyChn)
+				else:
+					await member.move_to(movebackChannel)
+		except discord.Forbidden as error:
+			BUPrint.LogErrorExc("Invalid permission to move user.", error)
+			return
+		except discord.HTTPException as error:
+			BUPrint.LogError("Discord encountered an error while attempting to move a user.", error)
+			return
+			
+
+
+	def CheckAttendance(self):
+		"""# CHECK ATTENDANCE
+		Iterates through the current participants and sets their attended/late booleans.
+		"""
+		if not botSettings.botFeatures.UserLibrary or commanderSettings.markedPresent == PS2EventTrackOptions.Disabled:
+			BUPrint.Debug("User Library (or attendance checking) disabled, skipping attendance")
+			return
+
+		for participant in  self.participants:
+			# IN GAME ONLY:
+			if commanderSettings.markedPresent == PS2EventTrackOptions.InGameOnly:
+				if participant.bPS2Online:
+					if self.bAttendanceChecked:
+						participant.bAttended = True
+						participant.bWasLate = True
+					else:
+						participant.bAttended = True
+				continue
+
+
+			if commanderSettings.markedPresent == PS2EventTrackOptions.InGameAndDiscordVoice:
+				if participant.bPS2Online and participant.discordUser.voice != None:
+					if participant.discordUser.voice.channel in self.vCategory.voice_channels:
+						if self.bAttendanceChecked:
+							participant.bAttended = True
+							participant.bWasLate = True
+						else:
+							participant.bAttended = True
+				
+				continue
+
+
+
+	async def CreateChannels(self):
+		"""# CREATE CHANNELS:
+		Creates the commander channels, including both voice and text channels.
+		If existing category and channels are found, they are used instead.
+		"""
+		vGuild = await GetGuild(self.vBotRef)
+		try:
+			for category in vGuild.categories:
+				if category.name.lower() == self.vOpData.name.lower():
+					self.vCategory = category
+			
+			if self.vCategory == None:
+				BUPrint.Debug("No existing category found, creating new one.")
+				self.vCategory = await vGuild.create_category(
+					name=self.vOpData.name,
+					reason=f"Creating category for {self.vOpData.name} event",
+					overwrites=ChanPermOverWrite.level3
+				)
+
+			vChannelsToCreate:list[str] = []
+
+			# CREATE TEXT CHANNELS:
+			for channel in self.vCategory.text_channels:
+				if channel.name.lower() == commanderSettings.defaultChannels.notifChannel.lower():
+					self.notifChn = channel
+					BUPrint.Debug("Existing Notification Channel found.")
+
+				elif channel.name.lower() == commanderSettings.defaultChannels.opCommander.lower():
+					self.commanderChannel = channel
+					BUPrint.Debug("Existing Commander Channel found.")
+
+			# Commander Channel
+			if self.commanderChannel == None:
+				self.commanderChannel = await self.vCategory.create_text_channel(
+					name=commanderSettings.defaultChannels.opCommander,
+					overwrites=ChanPermOverWrite.level2
+					)
+
+			# Notifications channel
+			if self.notifChn == None:
+				self.notifChn = await self.vCategory.create_text_channel(
+					name=commanderSettings.defaultChannels.notifChannel,
+					overwrites=ChanPermOverWrite.level3_readOnly
+					)
+			
+
+			# CREATE VOICE CHANNELS
+			existingVoiceChannels = [voiceChan.name for voiceChan in self.vCategory.voice_channels]
+
+			if self.vOpData.voiceChannels.__len__() == 0:
+				vChannelsToCreate = commanderSettings.defaultChannels.voiceChannels + commanderSettings.defaultChannels.persistentVoice
+				BUPrint.Debug(f"Voice Channels not specified, using default: {vChannelsToCreate}")
+			else:
+				vChannelsToCreate = self.vOpData.voiceChannels + commanderSettings.defaultChannels.persistentVoice
+				BUPrint.Debug(f"Voice Channels specified, creating: {vChannelsToCreate}")
+
+			# Create standby:
+			for channel in self.vCategory.voice_channels:
+				if channel.name == commanderSettings.defaultChannels.standByChannel:
+					self.standbyChn = channel
+					break
+
+			if self.standbyChn == None:
+				self.standbyChn = await self.vCategory.create_voice_channel(commanderSettings.defaultChannels.standByChannel)
+				
+			
+			# Create normal channels:
+			BUPrint.Debug(f"Chanels to create: {vChannelsToCreate}")
+			for chanToCreate in vChannelsToCreate:
+				if chanToCreate not in existingVoiceChannels and chanToCreate != "":
+					await self.vCategory.create_voice_channel(name=chanToCreate)
+		
+		except discord.Forbidden as error:
+			BUPrint.LogErrorExc("Invalid permission to create channels.", error)
+			return
+		except discord.HTTPException as error:
+			BUPrint.LogErrorExc("Discord failed to create the channels.", error)
+			return
+
+
+
+	async def DeleteChannels(self):
+		"""# DELETE CHANELS
+		Should be called AFTER moveUsers.
+		Deletes the voice channels, then the text channels before finally removing the category itself.
+		"""
+		BUPrint.Debug(f"Removing channels for {self.vCategory.name}")
+
+		for voiceChan in self.vCategory.voice_channels:
+			try:
+				await voiceChan.delete()
+			except discord.Forbidden as error:
+				BUPrint.LogErrorExc("Invalid permissions to delete channels!", error)
+				continue
+			except discord.HTTPException as error:
+				BUPrint.LogErrorExc(f"Discord failed to delete a channel {voiceChan.name}!", error)
+				continue
+
+		for textChan in self.vCategory.text_channels:
+			try:
+				await textChan.delete()
+			except discord.Forbidden as error:
+				BUPrint.LogErrorExc("Invalid permissions to delete channels!", error)
+				continue
+			except discord.HTTPException as error:
+				BUPrint.LogErrorExc(f"Discord failed to delete a channel {textChan.name}!", error)
+				continue
+
+		if self.vCategory.text_channels.__len__() == 0 and self.vCategory.voice_channels.__len__() == 0:
+			await self.vCategory.delete()
+
+
+
+	def CreateEmbed_Info(self):
+		"""# CREATE EMBED: INFO
+		
+		Creates and returns an embed containing op info.
 		"""
 		vEmbed = discord.Embed(colour=Colours.commander.value, title=f"**OPERATION INFO** | {self.vOpData.name}")
 
@@ -827,11 +656,6 @@ class Commander():
 			value=f"{GetDiscordTime(self.vOpData.date, DateFormat.DateTimeLong)}\n{vTempStr}", 
 			inline=True
 		)
-
-		# vEmbed.add_field(
-		# 	name="OPTIONS", 
-		# 	value=vTempStr
-		# )
 		
 		vTempStr = "Auto Alerts Disabled"
 		if commanderSettings.bAutoAlertsEnabled:
@@ -906,25 +730,20 @@ class Commander():
 
 
 
-	async def GenerateEmbed_Connections(self):
+	def CreateEmbed_Connections(self):
+		"""# CREATE EMBED: CONNECTIONS
+		
+		Creates and returns an embed containing participant connection information.
 		"""
-		# GENERATE EMBED : OpInfo
-
-		Creates an Embed for player connections.
-		"""
-		# await self.UpdateParticipants()
-
 		vEmbed = discord.Embed(colour=discord.Colour.from_rgb(200, 200, 255), title="CONNECTIONS", description="Discord and PS2 connection information for participants.")
 
 		vPlayersStr = "\u200b\n"
 		vStatusStr = f"{commanderSettings.connIcon_discord} | {commanderSettings.connIcon_voice} | {commanderSettings.connIcon_ps2}\n"
 
 		for participant in self.participants:
-			self.SetUserInEventChannel(participant)
 
 			vPlayersStr += f"{participant.discordUser.display_name}\n"
 			
-			BUPrint.Debug(f"Status of {participant.discordUser.display_name}: {participant.discordUser.status}")
 			if participant.discordUser.status == discord.Status.offline:
 				vStatusStr += f"{commanderSettings.connIcon_discordOffline} | "
 			else:
@@ -939,8 +758,7 @@ class Commander():
 				vStatusStr += f"{commanderSettings.connIcon_voiceNotEventChan} | "
 
 
-
-			if participant.ps2Char != None:
+			if participant.libraryEntry != None and participant.libraryEntry.ps2ID != -1:
 				if participant.bPS2Online == True:
 					vStatusStr += f"{commanderSettings.connIcon_ps2Online}"
 				else:
@@ -956,218 +774,150 @@ class Commander():
 
 			vStatusStr += "\n"
 
-
-
 		vEmbed.add_field(name="PLAYERS", value=vPlayersStr)
 		vEmbed.add_field(name=f"STATUS:", value=vStatusStr)
 
-		vEmbed.set_footer(text=f"Last update: {datetime.datetime.now()}")
+		vEmbed.set_footer(text=f"Last update: {datetime.now(tz=timezone.utc)}")
 
 		return vEmbed
 
 
 
-	def GenerateEmbed_Session(self):
+	def CreateEmbed_Session(self):
+		"""# GENERATE EMBED: Session
+		Creates and returns an embed containing session information.
+		Only shows if the operation is for Planetside 2.
 		"""
-		# GENERATE EMBED : Session
+		vTempStr = ""
+		vEmbed = discord.Embed(colour=discord.Colour.from_rgb(200, 200, 255), title="SESSION", 
+		description=f"Status: {self.vCommanderStatus.name} | DataPoints: {str(self.vOpsEventTracker.eventPoints.__len__())}")
 
-		Creates an Embed for displaying session stats.
-		"""
-		vEmbed = discord.Embed(colour=discord.Colour.from_rgb(200, 200, 255), title="SESSION", description="Displays session stats.")
+		vEmbed.add_field(
+			name="Facilities...",
+			value=f"Captured: {self.vOpsEventTracker.facilitiesCaptured}\nDefended: {self.vOpsEventTracker.faciltiiesDefended}",
+			inline=True
+		)
 
-		vEmbed.add_field(name="Empty field", value="empty field")
+		if self.vOpsEventTracker.facilityFeed.__len__() != 0:
+			for feedEntry in self.vOpsEventTracker.facilityFeed:
+				vTempStr += f"{feedEntry}\n"
+				vTempStr = vTempStr[:1024]
+		
+			vEmbed.add_field(
+				name="Facility Feed",
+				value=vTempStr,
+				inline= True
+			)
 
-
-		vEmbed.set_footer(text=f"Last update: {datetime.datetime.now()}")
+		vEmbed.set_footer(text=f"Last update: {datetime.now(tz=timezone.utc)}")
 		return vEmbed
 
 
 
-	def GenerateEmbed_Feedback(self):
+	async def SendReminder(self):
+		"""# SEND REMINDER:
+		Sends a reminder to the notification channel, only including nessecery pings.
 		"""
-		# GENERATE EMBED : Feedback
+		roleMentions = [f"{role.mention} " for role in self.vBotRef.get_guild(botSettings.discordGuild).roles if role.name in self.vOpData.pingables ]
 
-		Creates an Embed for displaying player provided feedback, offering anonymity.
-		"""
-		vEmbed = discord.Embed(title="FEEDBACK", description="Player provided feedback")
+		vParticipantMentions = self.GetParticipantMentions()
+		spareSpaces = ""
 
-		tempStr = ""
-		for entry in self.vFeedback.generic:
-			if entry != "" and entry != "\n":
-				tempStr += f"{entry}\n"
+		for role in self.vOpData.roles:
+			if role.players.__len__() < role.maxPositions or role.maxPositions < 0:
+				spareSpaces += f"**Role:** {role.roleName} has {role.maxPositions - role.players.__len__()} available spots!\n"
+
+		# Compile message
+		vMessage = f"**REMINDER** | {self.vOpData.name} starts in {GetDiscordTime(self.vOpData.date)}!"
 		
-		if tempStr != "" and entry != "\n":
-			if len(tempStr) > 1024:
-				tempStr = tempStr[:1000] + "..."
-				self.bFeedbackTooLarge = True
-			vEmbed.add_field(name="General", value=tempStr, inline=False)
+		if vParticipantMentions != "":
+			vMessage += f"\n\nPlease ensure you are online and ready to go, {vParticipantMentions}"
 
+		if commanderSettings.bAutoMoveVCEnabled:
+			vMessage += f"{botMessages.OpsAutoMoveWarn}\n"
 		
-		tempStr = ""
-		for entry in self.vFeedback.forSquadmates:
-			if entry != "" and entry != "\n":
-				tempStr += f"{entry}\n"
-		
-		if tempStr != "" and entry != "\n":
-			if len(tempStr) > 1024:
-				tempStr = tempStr[:1000] + "..."
-				self.bFeedbackTooLarge = True
-			vEmbed.add_field(name="To Squad Mates", value=tempStr, inline=False)
+		if spareSpaces != "":
+			vMessage += "\n\n**ATTENTION** "
+			for pingableRole in roleMentions:
+				vMessage += f"{pingableRole}"
+
+			vMessage += f"\nThe following roles still have open spaces!\n{spareSpaces}"
 
 
-		tempStr = ""
-		for entry in self.vFeedback.forSquadLead:
-			if entry != "" and entry != "\n":
-				tempStr += f"{entry}\n"
-		
-		if tempStr != "" and entry != "\n":
-			if len(tempStr) > 1024:
-				tempStr = tempStr[:1000] + "..."
-				self.bFeedbackTooLarge = True
-			vEmbed.add_field(name="To Squad Lead", value=tempStr, inline=False)
-
-
-		tempStr = ""
-		for entry in self.vFeedback.forPlatLead:
-			if entry != "" and entry != "\n":
-				tempStr += f"{entry}\n"
-		
-		if tempStr != "" and entry != "\n":
-			if len(tempStr) > 1024:
-				tempStr = tempStr[:1000] + "..."
-				self.bFeedbackTooLarge = True
-			vEmbed.add_field(name="To Platoon Lead", value=tempStr, inline=False)
-
-		if self.bFeedbackTooLarge:
-			vEmbed.add_field(name="OVERFLOW WARNING", value=botMessages.feedbackOverflow)
-
-		return vEmbed
-
-
-
-	def GenerateView_UserFeedback(self):
-		"""
-		GENERATE VIEW: User Feedback:
-
-		Creates a view providing a button to users to send feedback.
-		"""
 		vView = discord.ui.View(timeout=None)
-		vView.add_item( Commander_btnGiveFeedback(self) )
+		vView.add_item( discord.ui.Button(
+				label="Go to signup",
+				url=self.vOpData.jumpURL
+			) 
+		)
 
-		return vView
+		if self.lastStartAlert != None:
+			await self.lastStartAlert.delete()
+
+		self.lastStartAlert = await self.notifChn.send(content=vMessage, view=vView)
 
 
 
-	async def GenerateFeedback(self):
+	async def SendStartedAlert(self):
+		"""# SEND STARTED ALERT
+		Sends an alert notification only including 
 		"""
-		# GENERATE FEEDBACK
-		Sends/Updates the feedback message.
-		"""
+		vParticipantMentions = self.GetParticipantMentions()
 
-		# vFeedbackEmbed = self.GenerateEmbed_Feedback()
-		vFeedbackMsg = "**FEEDBACK:**\n"
-		for feedback in self.vFeedback.generic:
-			if feedback != "":
-				vFeedbackMsg += f"{feedback}\n"
+		if self.lastStartAlert != None:
+			await self.lastStartAlert.delete()
 
-		if self.vOpData.options.bIsPS2Event:
-			vFeedbackMsg += "**FOR SQUADMATES:**\n"
-			for feedback in self.vFeedback.forSquadmates:
-				if feedback != "":
-					vFeedbackMsg += f"{feedback}\n"
-
-			vFeedbackMsg += "**FOR SQUAD LEAD:**\n"
-			for feedback in self.vFeedback.forSquadLead:
-				if feedback != "":
-					vFeedbackMsg += f"{feedback}\n"
-
-			vFeedbackMsg += "**FOR PLATOON LEAD:**\n"
-			for feedback in self.vFeedback.forPlatLead:
-				if feedback != "":
-					vFeedbackMsg += f"{feedback}\n"
-
-		feedbackFile = discord.File( self.vFeedback.SaveToFile(f"{Directories.feedbackPrefix}{self.vOpData.fileName}") )
-
-		if self.vOpData.options.bUseSoberdogsFeedback:
-			if self.soberdogFeedbackMsg == None:
-				# self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(embed=vFeedbackEmbed, file=feedbackFile)
-				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(content=vFeedbackMsg, file=feedbackFile)
-
-			else:
-				await self.soberdogFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
-
-
+		if vParticipantMentions.__len__() == 0:
+			self.lastStartAlert = await self.notifChn.send(f"{self.vOpData.name} is starting!")
 		else:
-			if self.notifFeedbackMsg == None:
-				self.notifFeedbackMsg = await self.notifChn.send(content=vFeedbackMsg, file=feedbackFile)
-			
-			else:
-				await self.notifFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
-
-
-		await self.GenerateCommander()
+			self.lastStartAlert = await self.notifChn.send(f"**ATTENTION** {vParticipantMentions}, {self.vOpData.name} has *started!*")
 
 
 
-
-	async def SetupFeedback(self):
+	def AuraxClientUnavailableRetry(self):
+		"""# AURAX CLIENT UNAVAILABLE: RETRY
+		Called from the event tracker when adding triggers, if the service is unavailable.
+		Creates a new task that recalls create triggers with a delay of x minutes.
 		"""
-		# SETUP FEEDBACK
-		Performs the initial set up required to post and send a debrief feedback message.
+		self.scheduler.add_job(
+			OpsEventTracker.CreateTriggers,
+			"date", run_date=datetime.now(timezone.utc) + timedelta(minutes=5),
+			args=[self.vOpsEventTracker]
+		)
 
-		This includes setting the forum variable via finding, and thread variable via creation.
 
-		This does NOT post a message and thus, does not set soberdogsFeedbackMsg.
-		It DOES however create the SoberDogs forum thread.
 
-		If using soberdogs but it isn't found or postable, fallback to using the default (off).
+	def GetParticipantMentions(self, p_getAll:bool = False):
+		"""# GET PARTICIPANT MENTIONS
+		Returns a string of participant mentions, matching the Commander settings.
+		The list only includes mentions for users who are not matching the setting (or all, if disabled)
+
+		### Parameters:
+		- p_getAll: when true, gets all participant mentions.  Defaults to false.
 		"""
-		await self.EndOperationSoft()
-		
-		if not self.vOpData.options.bUseSoberdogsFeedback:
-			BUPrint.Debug("Not using SoberDogs feedback.  No setup needed.")
-			return
-		
-		if self.soberdogFeedbackForum == None:
-			vAllForums = self.vBotRef.guilds[0].forums
-			forum: discord.ForumChannel
-			for forum in vAllForums:
-				if forum.id == Channels.soberFeedbackID:
-					self.soberdogFeedbackForum = forum
-					break
-			
-			if self.soberdogFeedbackForum == None:
-				BUPrint.Info("Unable to find Soberdogs Feedback Forum, falling back to default.")
-				self.vOpData.options.bUseSoberdogsFeedback = False
-				return
-			
-			vManagingUser = ""
-			if self.vOpData.managedBy != "":
-				vManagingUser = self.vBotRef.get_user( self.vOpData.managedBy ).mention
-	
-			try:
-				self.soberdogFeedbackThread = await self.soberdogFeedbackForum.create_thread(
-														name=f"{self.vOpData.date.year}-{self.vOpData.date.month}-{self.vOpData.date.day} Soberdogs",
-														auto_archive_duration=None,
-														reason="Soberdogs Debrief post",
-														content=f"Managed By: {vManagingUser}\n{self.GetParticipantMentions()}"
-														)
+		vParticipantMentions:list[str]
 
-			except discord.Forbidden:
-				BUPrint.Info("Invalid permissions for posting threads! Falling back to default")
-				self.vOpData.options.bUseSoberdogsFeedback = False
-				return
+		if p_getAll or commanderSettings.markedPresent == PS2EventTrackOptions.Disabled:
+			vParticipantMentions = [ f"{participant.discordUser.mention} " for participant in self.participants]
 
-			except discord.HTTPException as vException:
-				BUPrint.LogErrorExc("Failed to start a new thread; falling back to default.", vException)
-				self.vOpData.options.bUseSoberdogsFeedback = False
-				return
+		elif commanderSettings.markedPresent == PS2EventTrackOptions.InGameOnly:
+			vParticipantMentions = [ f"{participant.discordUser.mention} " for participant in self.participants if not participant.bPS2Online ]
+
+		elif commanderSettings.markedPresent == PS2EventTrackOptions.InGameAndDiscordVoice:
+			vParticipantMentions = [ f"{participant.discordUser.mention} " for participant in self.participants if not participant.bPS2Online or participant.discordUser.voice == None]
+
+
+		returnStr = ""
+		for mention in vParticipantMentions:
+			returnStr += mention
+
+		return returnStr
 
 
 
-	def GenerateView_Commander(self):
+	def CreateCommanderView(self):
 		"""
-		# GENERATE VIEW: COMMANDER
+		# CREATE COMMANDER VIEW
 
 		Creates a commander view.  Buttons status are updated depending on Op Status
 
@@ -1191,7 +941,7 @@ class Commander():
 			newView.add_item(btnNotify)
 
 		# Ops Started:
-		elif self.vCommanderStatus.value == CommanderStatus.Started.value:
+		elif self.vCommanderStatus == CommanderStatus.Started:
 			btnStart.disabled = True
 			btnDebrief.disabled = False
 			btnEnd.disabled = False
@@ -1199,7 +949,7 @@ class Commander():
 			newView.add_item(btnEnd)
 
 		# Debrief:
-		elif self.vCommanderStatus.value == CommanderStatus.Debrief.value:
+		elif self.vCommanderStatus == CommanderStatus.Debrief:
 			btnStart.disabled = True
 			btnDebrief.disabled = True
 			btnEnd.disabled = False
@@ -1218,286 +968,57 @@ class Commander():
 
 
 
-	def GenerateView_Alerts(self):
-		"""
-		# GENERATE VIEW: Alerts
-		Generates a view with a button to jump to the related signup post.
-		"""
-		vView = discord.ui.View()
-		btnJump = discord.ui.Button(label="Jump to signup", url=self.vOpData.jumpURL, row=0)
+	async def CreateFeedback(self):
+		"""# CREATE FEEDBACK
+		Takes the feedback provided and sends it to the appropriate channel, then updates the commander."""
+		vFeedbackMsg = "**FEEDBACK:**\n"
+		for feedback in self.vFeedback.generic:
+			if feedback != "":
+				vFeedbackMsg += f"{feedback}\n"
 
-		vView.add_item(btnJump)
-
-		return vView
-
-
-
-	async def StartOperation(self):
-		"""
-		# START OPERATION
-		Modifies and updates op signup post.
-		
-		Modifies commander status, then updates commander.
-		
-		Starts tracking, if enabled.
-
-		If no participants are in the event, it is ended instead.
-		"""
-		if self.vOpData.status.value >= OperationData.status.started.value or self.vCommanderStatus.value >= CommanderStatus.Started.value:
-			BUPrint.Debug("Operation has already been started. Skipping.")
-			return
-
-
-		if len(self.participants) == 0:
-			BUPrint.Info(f"No participants for {self.vOpData.name}. Ending event.")
-			await self.EndOperation()
-			return
-
-		# If early start; stop connection refresh & autostart
-		self.scheduler.remove_all_jobs()
-
-		await self.UpdateParticipants()
-
-		# Add UpdateParticipant refresh after grace period
-		if commanderSettings.trackEvent != PS2EventTrackOptions.Disabled:
-			gracePeriodTime = self.vOpData.date + dateutil.relativedelta.relativedelta(minutes= commanderSettings.gracePeriod)
-			self.scheduler.add_job( Commander.ValidateAttendance, 'date', run_date=gracePeriodTime, args=[self] )
-
-			if self.vOpData.options.bIsPS2Event:
-				await self.vOpsEventTracker.CreateLoginTriggers(self.participants)
-				self.vOpsEventTracker.Start()
-
-			if commanderSettings.dataPointInterval != 0:
-				self.scheduler.add_job( OpsEventTracker.NewEventPoint, 
-					"interval", 
-					seconds=commanderSettings.dataPointInterval,
-					end_date=self.vOpData.date,
-					args=[self.vOpsEventTracker],
-					id="newDataPoint"
-				)
-
-
-		if commanderSettings.bAutoMoveVCEnabled:
-			BUPrint.Debug("Moving VC connected participants")
-			await self.MoveUsers(p_moveToStandby=True)
-
-
-		await self.SendAlertMessage(p_opStart=True)
-	
-		self.vOpData.status = OperationData.status.started
-		self.vCommanderStatus = CommanderStatus.Started
-	
-		vOpMan = opsManager.OperationManager()
-	
-		await vOpMan.UpdateMessage(self.vOpData)
-	
-		await self.GenerateCommander()
-		self.trueStartTime = datetime.datetime.now(tz=datetime.timezone.utc)
-
-
-	def ValidateAttendance(self):
-		"""# VALIDATE ATTENDANCE
-		Iterates through the participants and sets the attended bool according to the tracking rule.
-		"""
-		bIsPs2Event = self.vOpData.options.bIsPS2Event
-		
-		for participant in self.participants:
-			#  Non PS2 game, does voice only.
-			if not bIsPs2Event and commanderSettings.markedPresent != PS2EventTrackOptions.Disabled:
-				if participant.discordUser.voice != None:
-					self.SetUserAttendedAndLate(participant)
-					continue
-
-
-			# PS2 Events:
-			if commanderSettings.markedPresent == PS2EventTrackOptions.InGameOnly:
-				if participant.bPS2Online:
-					self.SetUserAttendedAndLate(participant)
-					self.bAttendanceChecked = True
-					continue
-
-			if commanderSettings.markedPresent == PS2EventTrackOptions.InGameAndDiscordVoice:
-				if participant.bPS2Online and participant.discordUser.voice != None:
-					self.SetUserAttendedAndLate(participant)
-					self.bAttendanceChecked = True
-					continue
-		
-		BUPrint.Debug("\nATTENDANCE CHECK COMPLETE")
-		self.bAttendanceChecked = True
-
-
-
-	def SetUserAttendedAndLate(self, p_participant: Participant):
-		"""# SET USER ATTENDED AND LATE
-		Convenience function to avoid repetitious code.
-		Sets whether the participant was late or just attended.
-		"""
-		if self.bAttendanceChecked and not p_participant.bAttended:
-			p_participant.bAttended = True
-			p_participant.bWasLate = True
-
-		else:
-			p_participant.bAttended = True
-
-
-
-
-	async def EndOperationSoft(self):
-		"""
-		# SOFT END OPERATION
-		Performs minor cleanup, during debrief.
-		"""
 		if self.vOpData.options.bIsPS2Event:
-			await self.vOpsEventTracker.Stop()
-		
-		try:
-			self.scheduler.shutdown()
-		except SchedulerNotRunningError:
-			BUPrint.Debug("Scheduler not started.")
+			vFeedbackMsg += "**FOR SQUADMATES:**\n"
+			for feedback in self.vFeedback.forSquadmates:
+				if feedback != "":
+					vFeedbackMsg += f"{feedback}\n"
 
-		self.bHasSoftEnded = True
-		vDuration: datetime.timedelta
-		if self.trueStartTime != None:
-			vDuration = datetime.datetime.now(tz=datetime.timezone.utc) - self.trueStartTime
+			vFeedbackMsg += "**FOR SQUAD LEAD:**\n"
+			for feedback in self.vFeedback.forSquadLead:
+				if feedback != "":
+					vFeedbackMsg += f"{feedback}\n"
+
+			vFeedbackMsg += "**FOR PLATOON LEAD:**\n"
+			for feedback in self.vFeedback.forPlatLead:
+				if feedback != "":
+					vFeedbackMsg += f"{feedback}\n"
+
+		feedbackFile = discord.File( self.vFeedback.SaveToFile(f"{Directories.feedbackPrefix}{self.vOpData.fileName}") )
+
+		if vFeedbackMsg.__len__() > 2000: # greater than discords max message limit
+			vFeedbackMsg = vFeedbackMsg[:1900] + "\n\n**Feedback is too large!**\nDownload file to see entire message."
+
+
+		if self.vOpData.options.bUseSoberdogsFeedback:
+			if self.soberdogFeedbackMsg == None:
+				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(content=vFeedbackMsg, file=feedbackFile)
+
+			else:
+				await self.soberdogFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
+
+		# Guard catch; allows suberdogs feedback to be updated since its a persistent channel, but prevents errors when not soberfeedback
+		if self.vCommanderStatus.Ended:
+			BUPrint.Debug("User submitting feedback after event has ended, returning.")
+			return
+
 		else:
-			BUPrint.Info("Event in pre-start; not adding to stats.")
-			return
-
-		if bool(not commanderSettings.bSaveNonPS2ToSessions and not self.vOpData.options.bIsPS2Event) or commanderSettings.trackEvent == PS2EventTrackOptions.Disabled:
-			return
-
-		if botSettings.botFeatures.UserLibrary:
-			for participant in self.participants:
-				if participant.bAttended:
-					if participant.libraryEntry != None:
-						BUPrint.Info(f"Updating session information for: {participant.discordUser.display_name}")
-						if not self.vOpData.options.bIsPS2Event:
-							participant.userSession.bIsPS2Event = False
-						participant.userSession.duration = vDuration.seconds / 3600
-						participant.libraryEntry.eventsAttended += 1
-						participant.userSession.eventName = self.vOpData.name
-
-						participant.libraryEntry.sessions.append(participant.userSession)
-						userManager.UserLibrary.SaveEntry(participant.libraryEntry)
-					
-					else: 
-						BUPrint.Debug(f"{participant.discordUser.display_name} has no library entry!  Cannot update sessions.")
-	
+			if self.notifFeedbackMsg == None:
+				self.notifFeedbackMsg = await self.notifChn.send(content=vFeedbackMsg, file=feedbackFile)
+			
+			else:
+				await self.notifFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
 
 
-	async def EndOperation(self, p_isBotShutdown:bool = False):
-		"""
-		# END OPERATION
-		Removes the live Op from the Operations manager, 
-		then cleans up the Op Commander.
-		"""
-		bOpStarted = bool(self.vCommanderStatus.value > CommanderStatus.Started.value)
-
-		if not self.bHasSoftEnded:
-			await self.EndOperationSoft()
-
-		# Removes the operation posting if the event has started.
-		if bOpStarted:
-			vOpMan = opsManager.OperationManager()
-			await vOpMan.RemoveOperation(self.vOpData)
-
-		# Move users before removing channels.
-		await self.MoveUsers(p_moveToStandby=False)
-		
-		# Yeetus deleetus the category; as if it never happened!
-		await self.RemoveChannels()
-
-		BUPrint.Info(f"Operation {self.vOpData.name} has ended.")
-
-		if bOpStarted and botSettings.botFeatures.UserLibrary and not p_isBotShutdown:
-			# Query recruit participants.
-			for participant in self.participants:
-				if participant.libraryEntry != None:
-					if participant.libraryEntry.bIsRecruit:
-						await userManager.UserLibrary.QueryRecruit(participant.libraryEntry)
-
-
-
-	async def MoveUsers(self, p_moveToStandby:bool = True):
-		"""
-		# MOVE USERS
-		Moves currently connected users to the standby channel.
-		`p_moveToStandby` : If false, users are instead moved to the fallback channel.
-		"""
-		if not commanderSettings.bAutoMoveVCEnabled and p_moveToStandby:
-			BUPrint.Debug("Auto move disabled.")
-			return
-
-		self.bIgnoreStateChange = True
-		
-		vGuild:discord.Guild = await GetGuild(self.vBotRef)
-
-		fallbackChannel = vGuild.get_channel(Channels.eventMovebackID)
-
-		if fallbackChannel == None:
-			fallbackChannel = await vGuild.fetch_channel(Channels.eventMovebackID)
-
-			if fallbackChannel == None:
-				BUPrint.Info("ATTENTION!  Invalid Auto Move-back Channel ID provided!")
-				fallbackChannel = await vGuild.fetch_channel(Channels.voiceFallbackID)
-
-				if fallbackChannel == None:
-					BUPrint.Info("ATTENTION! Invalid fallback channel ID provided!  Unable to automatically move users.")
-					self.bIgnoreStateChange = False
-					return
-
-		vConnectedUsers = []
-
-		if p_moveToStandby: # Moving signed up users to standby
-			vParticipantIDs = self.vOpData.GetParticipantIDs()
-			for voiceChannel in vGuild.voice_channels:
-				for user in voiceChannel.members:
-					if user.id in vParticipantIDs:
-						vConnectedUsers.append(user)
-
-
-		else: # Moving users in event channels to fallback.
-			for voiceChannel in self.vCategory.voice_channels:
-				vConnectedUsers += voiceChannel.members
-
-		vMovedUsers = 0
-		user: discord.Member
-		for user in vConnectedUsers:
-			try:
-				if p_moveToStandby:
-					BUPrint.Debug(f"Moving {[user.display_name]} to standby channel ({self.standbyChn.name})")
-					await user.move_to(channel=self.standbyChn)
-					vMovedUsers += 1
-
-				else:
-					BUPrint.Debug(f"Moving {[user.display_name]} to fallback channel ({fallbackChannel.name})")
-					await user.move_to(channel=fallbackChannel)
-					vMovedUsers += 1
-
-			except discord.Forbidden as vError:
-				BUPrint.LogErrorExc("Invalid access to move member!", vError)
-				vMovedUsers += 1
-				continue
-			except Exception as vError:
-				BUPrint.LogErrorExc(f"Unable to move member {user.display_name} to Channel (Standby Chn: {p_moveToStandby}).", vError)
-				vMovedUsers += 1
-				continue
-
-			if vMovedUsers == vConnectedUsers.__len__():
-				self.bIgnoreStateChange = False
-
-
-	def ForFunAddVehicleDeathBroadcast(self, p_event:ForFunVehicleDeath):
-		delayedTime = datetime.datetime.now() + dateutil.relativedelta.relativedelta(seconds=10)
-		self.scheduler.add_job( Commander.ForFunBroadcastVehicleDeath, 'date', run_date=delayedTime, args=[self, p_event])
-
-
-	async def ForFunBroadcastVehicleDeath(self, p_event:ForFunVehicleDeath):
-		"""# FOR FUN: BROADCAST VEHICLE DEATH
-		Function which broadcasts a vehicle induced death.
-		"""
-		vPS2Channel = self.vBotRef.get_channel( Channels.ps2TextID )
-		await vPS2Channel.send( content=p_event.message.replace("_USERBY", p_event.driverMention).replace("_USER", p_event.killedMentions) )
+		await self.UpdateCommanderLive()
 
 
 ############  COMMANDER BUTTON CLASSES
@@ -1510,7 +1031,7 @@ class Commander_btnStart(discord.ui.Button):
 	async def callback(self, p_interaction:discord.Interaction):
 		await p_interaction.response.defer(ephemeral=True, thinking=True)
 		
-		await self.vCommander.StartOperation()
+		await self.vCommander.StartEvent()
 
 		try:
 			await p_interaction.edit_original_response(content="Event Started!")
@@ -1527,17 +1048,11 @@ class Commander_btnDebrief(discord.ui.Button):
 	async def callback(self, p_interaction:discord.Interaction):
 		self.vCommander.vCommanderStatus = CommanderStatus.Debrief
 		# Updates the commander view.
-		# await p_interaction.response.send_message("Debrief Started...", ephemeral=True)
-		await p_interaction.response.defer()
-
-		await self.vCommander.GenerateCommander()
-
-
-		await self.vCommander.SetupFeedback()
-		await self.vCommander.GenerateFeedback()
-
-		vView = self.vCommander.GenerateView_UserFeedback()
-		await self.vCommander.notifChn.send(f"{self.vCommander.GetParticipantMentions()}\n\nUse this button to provide feedback!", view=vView)
+		await p_interaction.response.send_message("Debrief Started...", ephemeral=True)
+		# await p_interaction.response.defer()
+		feedbackView = discord.ui.View(timeout=None)
+		feedbackView.add_item(Commander_btnGiveFeedback(self.vCommander))
+		await self.vCommander.notifChn.send(f"{self.vCommander.GetParticipantMentions(True)}\n\nUse this button to provide feedback!", view=feedbackView)
 
 
 
@@ -1548,8 +1063,8 @@ class Commander_btnNotify(discord.ui.Button):
 		super().__init__(label="NOTIFY", emoji="📨", row=0)
 
 	async def callback(self, p_interaction:discord.Interaction):
-		await self.vCommander.SendAlertMessage()
-		await p_interaction.response.defer()
+		await self.vCommander.SendReminder()
+		await p_interaction.response.send_message("Reminder sent!", ephemeral=True)
 	
 
 
@@ -1568,7 +1083,7 @@ class Commander_btnEnd(discord.ui.Button):
 		if commanderRef != None:
 			opsManager.OperationManager.vLiveCommanders.remove(commanderRef)
 		
-		await self.vCommander.EndOperation()
+		await self.vCommander.EndEvent()
 
 
 
@@ -1597,9 +1112,6 @@ class Commander_btnDownloadFeedback(discord.ui.Button):
 		vFilePath = self.vCommander.vFeedback.SaveToFile(self.vCommander.vOpData.fileName)
 		if vFilePath != "":
 			vMessage = ""
-
-			if self.vCommander.vOpData.options.bUseSoberdogsFeedback and self.vCommander.bFeedbackTooLarge:
-				vMessage = "**NOTE:** This file will also be uploaded to the matching thread when the event is ended."
 
 			await p_interaction.response.send_message(f"{vMessage}\nDownload feedback here:", file=discord.File(vFilePath))
 		else:
@@ -1670,7 +1182,8 @@ class FeedbackModal(discord.ui.Modal):
 				self.parentCommander.vFeedback.forSquadLead[self.foundUserID] = self.txt_squadLead.value
 				self.parentCommander.vFeedback.forPlatLead[self.foundUserID] = self.txt_platLead.value
 
-		await self.parentCommander.GenerateFeedback()
+
+		await self.parentCommander.CreateFeedback()
 		await pInteraction.response.send_message("Thank you, your feedback has been submited!", ephemeral=True)
 
 

@@ -220,6 +220,8 @@ class OperationManager():
 
 	Holds list of saved op file names, and their corresponding opData object.
 	Should be used to manage Op related messages, including creation, deletion and editing.
+
+	All functions are static.
 	"""
 	vLiveOps: list[OperationData] = [] # List of Live Ops (botData.OperationData)
 	vLiveCommanders:list [OpCommander.commander.Commander] = []
@@ -257,15 +259,12 @@ class OperationManager():
 				await self.UpdateMessage(vOpData)
 
 
-	def SetBotRef(p_botRef):
-		OperationManager.vBotRef = p_botRef
-
-
 
 	def GetOps():
 		"""
 		RETURN - Type: list(str), containing filenames of current Live Ops.
 		
+		Not called from instance
 		"""
 		botUtils.BotPrinter.Debug("Getting Ops list...")
 		return botUtils.FilesAndFolders.GetFiles( botSettings.Directories.liveOpsDir, ".bin")
@@ -427,6 +426,9 @@ class OperationManager():
 	def SaveToFile(p_opsData: OperationData):
 		"""
 		# SAVE TO FILE:
+		
+		Not called from instance
+
 		Saves the Operation Data to file.
 		DO NOT GetLock or Release, this function does that for you!
 		
@@ -466,6 +468,9 @@ class OperationManager():
 	def LoadFromFile(p_opFilePath):
 		"""
 		# LOAD FROM FILE:
+		
+		Not called from instance
+
 		Does not differentiate between Default or Live ops, it merely loads an OpData and returns the object!
 
 		Creates and Releases lock files.
@@ -819,9 +824,8 @@ class OperationManager():
 				BUPrint.Debug("Commander is setting up, ignore.")
 				return
 
-			await commander.GenerateInfo()
 			await commander.UpdateParticipants() 
-			await commander.GenerateCommander() # Updates connections.
+			await commander.UpdateCommander()
 
 
 
@@ -845,6 +849,9 @@ class OperationManager():
 	def RemoveUser(p_opData:OperationData, p_userToRemove:str):
 		"""
 		# REMOVE USER:
+		
+		Not called from instance
+
 		Iterates over all roles (including reserve) and removes the player ID if present.
 		"""
 		if p_userToRemove in p_opData.reserves:
@@ -859,6 +866,9 @@ class OperationManager():
 	def FindCommander(p_opdata:OperationData):
 		"""
 		# FIND COMMANDER
+		
+		Not called from instance
+
 		Will iterate through the live commanders for a matching opdata and return the found commander.
 		"""
 		if len(OperationManager.vLiveCommanders):

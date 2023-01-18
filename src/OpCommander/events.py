@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from auraxium.event import EventClient, Trigger, PlayerLogin, PlayerLogout, GainExperience, VehicleDestroy
 from auraxium.ps2 import Character, Vehicle, MapRegion
+from auraxium.errors import ServiceUnavailableError
 from auraxium import event
 
 from datetime import datetime, timezone
@@ -29,8 +30,9 @@ class OpsEventTracker():
 	"""
 	def __init__(self, p_aurClient: EventClient) -> None:
 		self.auraxClient = p_aurClient
-		self.updateParentFunction = None
-		self.parentSendForFunVehicleDeath = None
+		self.updateParentFunction:callable = None
+		self.parentSendForFunVehicleDeath:callable = None
+		self.parentReupdateTriggers:callable = None
 
 		self.participants:list[Participant] = []
 		self.triggerList:list[Trigger] = []
@@ -40,6 +42,9 @@ class OpsEventTracker():
 		# LAST FACILITY DEFENDED/CAPTURED
 		self.lastFacilityDefended:FacilityData = None
 		self.lastFacilityCaptured:FacilityData = None
+		# Stored to avoid needing to calculate total capture/defends by iterating over eventPoints.
+		self.facilitiesCaptured = 0
+		self.faciltiiesDefended = 0
 		self.facilityFeed:list[str] = [] # Feed of facility capture/defends with dates.
 
 		self.forFunVehicleDeaths: list[ForFunVehicleDeath]
@@ -88,6 +93,10 @@ class OpsEventTracker():
 		self.participants = p_newParticipantList
 		BUPrint.Debug(f"Creating Login/Out Triggers, for :{self.participants}")
 
+		if len(p_newParticipantList) == 0:
+			BUPrint.Debug("Participant list is empty. Not creating login triggers.")
+			return
+
 		if self.loginTrigger != None:
 			BUPrint.Debug("Removing old Login trigger...")
 			self.auraxClient.remove_trigger(self.loginTrigger, keep_websocket_alive=True)
@@ -96,19 +105,21 @@ class OpsEventTracker():
 			BUPrint.Debug("Removing old LogOut trigger...")
 			self.auraxClient.remove_trigger(self.logOutTrigger, keep_websocket_alive=True)
 
-		if len(self.participants) == 0:
-			BUPrint.Debug("Participant list is empty. Not creating login triggers.")
+
+
+		vCharList:list[int] = [participant.ps2CharID for participant in self.participants if participant.ps2CharID != -1]
+		BUPrint.Debug(f"	> Character Trigger List: {vCharList}")	
+
+		if vCharList.__len__() == 0:
+			BUPrint.Debug("IT FUCKED UP.")
 			return
-
-		vCharList:list[int] = []
+		
+		
+		# Check status if player, incase they were already online when causing an update.
 		for participant in self.participants:
-			if participant.ps2Char != None:
-				BUPrint.Debug(f"	> {participant.ps2Char} added to trigger character list.")
-				vCharList.append(participant.ps2Char.id)
-
-				# Check status if player, incase they were already online when causing an update.
-				if not participant.bPS2Online:
-					participant.bPS2Online = await participant.ps2Char.is_online()
+			if not participant.bPS2Online and participant.ps2CharID != -1:
+				character = await self.auraxClient.get_by_id(Character, participant.libraryEntry.ps2ID)
+				if character != None: participant.bPS2Online = await character.is_online()
 
 		
 
@@ -138,7 +149,7 @@ class OpsEventTracker():
 		this is a convenience function to be called from the respective individual functions.
 		"""
 		for participant in self.participants:
-			if participant.ps2Char.id == p_charID:
+			if participant.ps2CharID == p_charID:
 				participant.bPS2Online = p_isLoggedIn
 				BUPrint.Debug(f"Participant: {participant.discordUser.display_name} updated.  Online [{p_isLoggedIn}]")
 				await self.updateParentFunction()
@@ -163,83 +174,81 @@ class OpsEventTracker():
 
 
 
-
 	def CreateTriggers(self):
 		""" # CREATE TRIGGERS
 		Creates and sets the triggers for the event.
 		"""
-		playerCharacters = []
+		playerCharacters = [participant.ps2CharID for participant in self.participants if participant.ps2CharID != -1]
 
 		if len(self.participants) == 0:
 			BUPrint.Debug("Empty participant list. Not creating full triggers.")
 			return
 
-		# Iterate through participants to get their PS2Char objects.
-		for participant in self.participants:
-			if participant.ps2Char != None:
-				playerCharacters.append(participant.ps2Char.id)
+		try:
 
+			# ENGINEER
+			# Squad Vehicle repairs
+			for eventID in EventID.eng_vehicleRepair:
+				self.auraxClient.add_trigger(
+					Trigger(
+						action=self.EngSquadVehicleRepair,
+						characters=playerCharacters,
+						event=GainExperience.filter_experience(eventID)
+					)
+				)
 
-
-		# ENGINEER
-		# Squad Vehicle repairs
-		for eventID in EventID.eng_vehicleRepair:
+			# Squad Resupply
 			self.auraxClient.add_trigger(
 				Trigger(
-					action=self.EngSquadVehicleRepair,
+					action=self.EngSquadResupply,
 					characters=playerCharacters,
-					event=GainExperience.filter_experience(eventID)
+					event=GainExperience.filter_experience(EventID.eng_resupply)
 				)
 			)
 
-		# Squad Resupply
-		self.auraxClient.add_trigger(
-			Trigger(
-				action=self.EngSquadResupply,
-				characters=playerCharacters,
-				event=GainExperience.filter_experience(EventID.eng_resupply)
+
+			# MEDIC
+			# Squad heal
+			self.auraxClient.add_trigger(
+				Trigger(
+					action=self.MedicSquadHeal,
+					characters=playerCharacters,
+					event=GainExperience.filter_experience(EventID.med_heal)
+				)
 			)
-		)
+
+			# Squad Revive
+			self.auraxClient.add_trigger(
+				Trigger(
+					action=self.MedicSquadRevive,
+					characters=playerCharacters,
+					event=GainExperience.filter_experience(EventID.med_revive)
+				)
+			)		
 
 
-		# MEDIC
-		# Squad heal
-		self.auraxClient.add_trigger(
-			Trigger(
-				action=self.MedicSquadHeal,
-				characters=playerCharacters,
-				event=GainExperience.filter_experience(EventID.med_heal)
+			# NON-SPECIFIC:
+
+			# Kill
+			self.auraxClient.add_trigger(
+				Trigger(
+					action=self.GotKill,
+					characters=playerCharacters,
+					event=GainExperience.filter_experience(EventID.kill)
+				)
 			)
-		)
 
-		# Squad Revive
-		self.auraxClient.add_trigger(
-			Trigger(
-				action=self.MedicSquadRevive,
-				characters=playerCharacters,
-				event=GainExperience.filter_experience(EventID.med_revive)
+			self.auraxClient.add_trigger(
+				Trigger(
+					action=self.Died,
+					characters=playerCharacters,
+					event="death"
+				)
 			)
-		)		
+		except ServiceUnavailableError:
+			BUPrint.LogError(p_titleStr="AURAXIUM SERVICE UNAVAILABLE", p_string="Creating scheduled task to re-run create triggers.")
+			self.p
 
-
-		# NON-SPECIFIC:
-
-		# Kill
-		self.auraxClient.add_trigger(
-			Trigger(
-				action=self.GotKill,
-				characters=playerCharacters,
-				event=GainExperience.filter_experience(EventID.kill)
-			)
-		)
-
-		self.auraxClient.add_trigger(
-			Trigger(
-				action=self.Died,
-				characters=playerCharacters,
-				event="death"
-			)
-		)
 
 
 	def GetMatchingParticipant(self, p_playerCharID:int):
@@ -250,11 +259,12 @@ class OpsEventTracker():
 		None if not found, though this occurance shouldn't happen. 
 		"""
 		for participant in self.participants:
-			if participant.ps2Char.id == p_playerCharID:
+			if participant.ps2CharID == p_playerCharID:
 				return participant 
 		
 		BUPrint.LogError(p_titleStr="Invalid participant given")
 		return None
+
 
 
 	def GetForFunVehicleEvent(self, p_killerID, p_vehicleID):
@@ -427,34 +437,19 @@ class OpsEventTracker():
 		Function to call when a player participates in a facility capture."""
 		vFacility:MapRegion = await MapRegion.get_by_id(p_event.facility_id, self.auraxClient)
 		
-		# Used to avoid repetition later.
-		vNewFacilityData = FacilityData(
-				facilityID=p_event.facility_id, 
-				timestamp=datetime.now(tz=timezone.utc),
-				facilityObj = vFacility,
-				participants=1
-			)
-
-		
 		# First facility capture.
 		if self.lastFacilityCaptured == None:
-			self.lastFacilityCaptured = vNewFacilityData
-			self.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp), DateFormat.TimeShorthand} | {vFacility.facility_name} | {vFacility.facility_type}" )
-			self.currentEventPoint.captured += 1
-			await self.updateParentFunction()
+			self.NewFacilityCapture(vFacility)
 			return
 
-		
-		
+				
 		# Existing/Current facility capture.  Ensures repeated calls (from each character) don't inflate the stats.
-		# Also ensures if the facility captured is the last one captured and is being recaptured.
+		# Also ensures if the facility captured is the last one captured and is being recaptured it's still counted.
 		if self.lastFacilityCaptured.facilityID == p_event.facility_id:
 			timeDifference = self.lastFacilityCaptured.timestamp - datetime.now()
 			if  timeDifference.total_seconds() > 900: # 15 minutes
 				BUPrint.Debug("Time difference is greater than 15 minutes.  Recaptured last capture.")
-				self.lastFacilityCaptured = vNewFacilityData
-				self.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp), DateFormat.TimeShorthand} | {vFacility.facility_name} | {vFacility.facility_type}" )
-				self.currentEventPoint.captured += 1
+				self.NewFacilityCapture(vFacility)
 				await self.updateParentFunction()
 				return
 
@@ -466,8 +461,25 @@ class OpsEventTracker():
 		
 		# If reached here, facility ID doesn't match last facility ID, thus is a new capture!
 		BUPrint.Debug("New Facility Capture!")
-		self.lastFacilityCaptured = vNewFacilityData
-		self.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp), DateFormat.TimeShorthand} | {vFacility.facility_name} | {vFacility.facility_type}" )
-		self.currentEventPoint.captured += 1
+		self.NewFacilityCapture(vFacility)
 		await self.updateParentFunction()
 
+
+	def NewFacilityCapture(self, p_facility:MapRegion):
+		"""# NEW FACILITY CAPTURE
+		Convenience function for new facility capture to avoid repetition.
+		"""
+		vNewFacilityData = FacilityData(
+				facilityID=p_facility.id, 
+				timestamp=datetime.now(tz=timezone.utc),
+				facilityObj = p_facility,
+				participants=1
+			)
+
+		self.lastFacilityCaptured = vNewFacilityData
+
+		
+		self.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp), DateFormat.TimeShorthand} | {p_facility.facility_name} | {p_facility.facility_type}" )
+		self.currentEventPoint.captured += 1
+		self.facilitiesCaptured += 1
+		# await self.updateParentFunction()

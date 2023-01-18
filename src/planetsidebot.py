@@ -76,7 +76,7 @@ class Bot(commands.Bot):
             await SanityCheck.CheckAll(p_botRef=self)
  		
 		# Objects with BOT refs
-        opsManager.OperationManager.SetBotRef(self)
+        opsManager.OperationManager.vBotRef = self
         Commander.vBotRef = self
         UserLibrary.botRef = self
         UserLib_RecruitValidationRequest.botRef = self
@@ -118,9 +118,13 @@ class Bot(commands.Bot):
         BUPrint.Info("Bot shutting down. Performing cleanup...")
         botUtils.FilesAndFolders.CleanupTemp()
 
-        BUPrint.Info(f"	> Ending {len(self.vOpsManager.vLiveCommanders)} running events...")
+        BUPrint.Info(f"	> Ending {self.vOpsManager.vLiveCommanders.__len__()} running events...")
         for liveOp in self.vOpsManager.vLiveCommanders:
-            await liveOp.EndOperation(True)
-        
+            try:
+                await liveOp.EndEvent()
+            except:
+                BUPrint.LogError(f"A problem occured while ending {liveOp.vOpData.name}", "ERROR ENDING EVENT | ")
+
+
         BUPrint.Info("Closing bot connections")
         await self.close()

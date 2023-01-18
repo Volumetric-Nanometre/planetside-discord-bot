@@ -14,7 +14,7 @@ from auraxium.ps2 import MapRegion as PS2Facility
 import pickle
 
 
-
+# # # # #  SETTINGS RELATED
 @dataclass
 class SanityCheckOptions():
 	"""
@@ -38,7 +38,6 @@ class SanityCheckOptions():
 		vString += f"		>[{self.UsedByForFun}] Used By For Fun\n"
 		vString += f"		>[{self.RestrictLevels}] Command Retriction Levels\n"
 		return vString
-
 
 
 
@@ -79,6 +78,17 @@ class UserSettings:
 
 		return vStr
 
+
+class EntryRetention(Enum):
+	"""# ENTRY RETENTION
+	Enum for the entry load setting.
+	- `always loaded` Entries are always loaded in memory.
+	- `unload after` Entries are unloaded afer x minutes.
+	- `when needed` Entries are loaded/saved only when needed.
+	"""
+	alwaysLoaded = 0
+	unloadAfter = 10
+	whenNeeded = 20
 
 
 @dataclass(frozen=True)
@@ -160,6 +170,8 @@ class User:
 
 	discordID: int = -1
 
+	# PS2 Character ID
+	ps2ID: int = -1
 	# Users PS2 Character Name
 	ps2Name: str = ""
 	# Users PS2 Character Outfit
@@ -198,6 +210,13 @@ class User:
 
 	# Settings object.
 	settings: UserSettings = field(default_factory=UserSettings)
+
+	# Used when determining if this entry should be unloaded.
+	lastAccessed: datetime = None
+	
+	# Set to true during events.
+	# Save/Load will always revert this to False 
+	bKeepLoaded:bool = False
 
 
 	############################################################################
@@ -321,7 +340,7 @@ class Participant:
 	# OBJECT REFERENCES
 	discordUser : Member = None
 	libraryEntry : User = None
-	ps2Char : PS2Character = None
+	ps2CharID : int = -1 # Backup incase UserLibrary is disabled.
 	userSession : Session = None
 
 	# DATA
@@ -333,9 +352,7 @@ class Participant:
 	lastCheckedName : str = "" # Last Checked name: skips searching for a PS2 character if this is the same.
 
 	def __repr__(self) -> str:
-		vStr = f"PARTICIPANT: {self.discordID}\n"
-		if self.ps2Char != None:
-			vStr += f"	PS2 Character: {self.ps2Char}"
+		vStr = f"\nPARTICIPANT: {self.discordID}\n"
 		if self.libraryEntry == None:
 			vStr += f"	LIBRARY ENTRY NOT SET"
 		else:
@@ -769,21 +786,25 @@ class OperationData:
 		return vOptsStr
 
 
-	def GetParticipantIDs(self):
+	def GetParticipantIDs(self) -> list[int]:
 		"""
 		# GET PARTICIPANT IDS
 		Returns all roles participants (IDs), including reserve if enabled in a list.
 		"""
-		vIDList = []
+		vIDList = [playerID for role in self.roles if self.roles.__len__() != 0 for playerID in role.players]
+		vIDList = vIDList + self.reserves
 
-		role: OpRoleData
-		for role in self.roles:
-			vIDList += role.players
+		
 
-		if self.options.bUseReserve:
-			vIDList += self.reserves
+		botUtils.BotPrinter.Debug(f"PARTICIPANT IDS: {vIDList}")
+		# role: OpRoleData
+		# for role in self.roles:
+		# 	vIDList += role.players
 
-		return vIDList
+		# if self.options.bUseReserve:
+		# 	vIDList += self.reserves
+
+		return  vIDList
 
 
 	def __repr__(self) -> str:
@@ -809,7 +830,7 @@ class DefaultChannels:
 	Name of channels used during Operations.
 	"""
 	# Text chanels created for every Op
-	textChannels:list
+	textChannels:list[str]
 	# Op Commander Channel: Name of the channel used for the Ops Commander
 	opCommander:str
 	# Notification Channel: Name of channel used to send op auto alerts and interactive debrief messages.
@@ -817,9 +838,9 @@ class DefaultChannels:
 	# Standby channel- the channel(name) users are moved into if they are connected during Ops soft start
 	standByChannel:str
 	# Persistent Voice channels are channels that are ALWAYS created for every operation
-	persistentVoice:list
+	persistentVoice:list[str]
 	# If voice channels are not specified in the ops data, these are used instead
-	voiceChannels:list
+	voiceChannels:list[str]
 
 	def __repr__(self) -> str:
 		vString = "\n"
@@ -863,7 +884,7 @@ class ForFunData:
 		"Met an unfortunate end when _USER's galaxy spontaneously exploded.",
 		"Waiting for a bonus check after _USER crashed their galaxy... again.",
 		"Died to _USER's inability to fly a skybus.",
-		"Got on _USER's bus.  That was a *grave* mistake.",
+		"Got in _USER's Galaxy.  That was a *grave* mistake.",
 	]
 
 	# Galaxy Death by: When a user(s) (_USER) is killed by being in someone elses galaxy (_USERBY) 
@@ -876,7 +897,7 @@ class ForFunData:
 		"ATTENTION!  _USERBY just obliterated _USER!\nHow you ask?  _USERBY had one too many to drink and crashed their galaxy.",
 		"_USERBY hit a stray branch with their galaxy and rooted _USER's death!",
 		"_USERBY hit a stray branch with their galaxy and killed _USER in a fiery inferno!",
-		"Who let _USERBY drink?  They did 3 loop-de-loops, flew upside down, went sideways and crashed backwards into "
+		"Who let _USERBY drink?  They did 3 loop-de-loops, flew upside down, went sideways and crashed backwards into a resupply tower.  Don't believe me?  Ask _USER!  Perhaps wait until they finish using the bucket, though."
 	]
 
 
@@ -894,12 +915,13 @@ class ForFunData:
 		"Why are you awake? Why are you awake?!",
 		"I've checked with my bar clock, and I have to disagree with you, Sir.",
 		"I've checked with my bar clock, and I must say you're positively delirious, Sir.",
-		"... You've had one too many drinks today.",
+		"... You've had one too many drinks today, _USER",
 		"Are you sure?",
 		"I'm going back to bed...",
 		"Glorious pleasantries to you too, _USER!",
-		"Morning, _USER. \nI heard you flown with Cactus recently... how was it?  They didn't _FLIGHTDEATHREASON?",
-		"Morning, _USER. \nI heard you flown with DoubleD recently... how was it?  They didn't _FLIGHTDEATHREASON?",
+		"It's 5 o'Clock somewhere. 🍷",
+		"Morning, _USER. \nI heard you flown with Cactus recently... how was it?  Did he _FLIGHTDEATHREASON?",
+		"Morning, _USER. \nI heard you flown with DoubleD recently... how was it?  Did he _FLIGHTDEATHREASON?",
 	]
 
 	morningGreetingsGif = [
@@ -923,5 +945,6 @@ class ForFunData:
 		"prematurely explode",
 		"crash into a stray tree and die in a fiery inferno",
 		"forget which way is up",
-		"have one too many to drink"
+		"have one too many to drink",
+		"manage to not crash it this time"
 	]

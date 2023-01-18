@@ -4,6 +4,7 @@ import datetime
 import time
 from sys import stderr
 from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib, CommandLimit, Roles, Channels
+from botData.dataObjects import EntryRetention
 import botData.utilityData as UtilityData
 import traceback
 import discord
@@ -545,7 +546,6 @@ def PrintSettings(bGetOnly = False):
 
 	vString += "\nNEW USER SETTINGS\n"
 	vString += f"	> Rule Message:		{NewUsers.ruleMsgID}\n"
-	vString += f"	> Recruit ID:		{NewUsers.recruitRole}\n"
 	vString += f"	> Show AddRoles Button:	{NewUsers.bShowAddRolesBtn}\n"
 	vString += f"	> Create Library Entry on Accept: {NewUsers.bCreateLibEntryOnAccept}\n"
 	vString += f"\n	> Warnings: Discord Account age: {NewUsers.newAccntWarn} months\n"
@@ -556,7 +556,6 @@ def PrintSettings(bGetOnly = False):
 	vString += "\nOP COMMANDER SETTINGS\n"
 	vString += f"	> Auto prestart:	{Commander.autoPrestart} minutes\n"
 	vString += f"	> Auto Start:		{Commander.bAutoStartEnabled}\n"
-	vString += f"	> Live Tracking:	{Commander.trackEvent.name}\n"
 	vString += f"	> Tracking Interval:	{Commander.dataPointInterval} seconds\n"
 	vString += f"	> Marked Present:	{Commander.markedPresent.name}\n"
 	vString += f"	> Auto Alerts:		{Commander.bAutoAlertsEnabled}\n"
@@ -590,6 +589,9 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Max Session Previews:	{UserLib.sessionPreviewMax}\n"
 	vString += f"	> Max Sessions Browser:	{UserLib.sessionMaxPerPage}\n"
 	vString += f"	> Remove Entry/Special on leave: {UserLib.bRemoveEntryOnLeave}/{UserLib.bRemoveSpecialEntryOnLeave}\n"
+	vString += f"	> Library Data Memory Retention: {UserLib.entryRetention.name}\n"
+	if UserLib.entryRetention == EntryRetention.unloadAfter:
+		vString += f"		> Unload After: {UserLib.entryRetention_unloadAfter} | Check Interval {UserLib.entryRetention_checkInterval}\n"
 
 	if bGetOnly:
 		return vString

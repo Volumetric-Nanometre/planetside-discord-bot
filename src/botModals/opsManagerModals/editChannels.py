@@ -32,8 +32,12 @@ class EditChannels(baseModal.BaseModal):
 	async def on_submit(self, pInteraction: discord.Interaction):
 		BUPrint.Debug("Edit Channel Modal submitted...")
 
-		self.txtVoiceChannels.value.split("\n")
-		self.vOpData.voiceChannels = self.txtVoiceChannels.value.split("\n")
+		self.vOpData.voiceChannels:str = self.txtVoiceChannels.value.split("\n")
+		# clean voice channel values
+		for voiceChanName in self.vOpData.voiceChannels:
+			voiceChanName = voiceChanName.strip()
+			if voiceChanName == "": self.vOpData.voiceChannels.remove(voiceChanName)
+			
 		self.vOpData.arguments = self.vOpData.ArgStringToList(self.txtArguments.value, "\n")
 		self.vOpData.targetChannel = self.txtTargetChanel.value
 
@@ -56,11 +60,11 @@ class EditChannels(baseModal.BaseModal):
 		BUPrint.Debug("Auto-filling modal (CHANNELS) with existing data.")
 		vTempStr: str = ""
 		for channel in self.vOpData.voiceChannels:
-			vTempStr += f"{channel}\n"		
+			if channel != "":
+				vTempStr += f"{channel}\n"		
 		self.txtVoiceChannels.default = vTempStr.strip()
 		
 		vTempStr = ""
-
 		BUPrint.Debug(f"Arguments: {self.vOpData.arguments}")
 		if self.vOpData.arguments != None:
 			for argument in self.vOpData.arguments:

@@ -44,8 +44,13 @@ class AutoCommander(commands.Cog):
 
 		if opsManager.OperationManager.vLiveCommanders.__len__() != 0:
 			for commander in opsManager.OperationManager.vLiveCommanders:
-				if not commander.bIgnoreStateChange:
-					await commander.GenerateCommander()
+				if not commander.bIgnoreStateChange and p_member.id in commander.vOpData.GetParticipantIDs():
+					for participant in commander.participants:
+						if participant.discordID == p_member.id:
+							participant.bInEventChannel = bool(p_member.voice != None and p_member.voice.channel in commander.vCategory.voice_channels)
+							break
+					
+					await commander.UpdateCommanderLive()
 
 
 

@@ -1,3 +1,6 @@
+# USER MANAGER: Holds the content for the User Library classes.
+from __future__ import annotations
+
 import discord
 import discord.ext
 from discord.ext import commands, tasks
@@ -18,7 +21,7 @@ from enum import Enum
 from botUtils import BotPrinter as BUPrint
 from botUtils import FilesAndFolders, GetDiscordTime, UserHasCommandPerms
 
-from botData.dataObjects import User, Session, OpsStatus, LibraryViewPage, UserInboxItem
+from botData.dataObjects import User, Session, OpsStatus, LibraryViewPage, UserInboxItem, EntryRetention
 
 from botData.utilityData import DateFormat
 
@@ -199,6 +202,7 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 	def __init__(self, p_botRef):
 		self.adminLevel = settings.CommandLimit.userLibraryAdmin
 		self.botRef:commands.Bot = p_botRef
+		self.UserLibRetentionTask = None
 
 		if settings.BotSettings.botFeatures.UserLibrary:
 			self.contextMenu_setAsRecruit = app_commands.ContextMenu(
@@ -219,6 +223,13 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 				)
 				self.botRef.tree.add_command(self.contextMenu_warnUser)
 				self.botRef.tree.add_command(self.contextMenu_warnMessage)
+
+			if settings.UserLib.entryRetention == EntryRetention.unloadAfter:
+
+				self.UserLibRetentionTask = tasks.Loop(coro=self.CheckEntryRetention,
+					time=None, seconds=None, hours=None,
+					minutes=settings.UserLib.entryRetention_checkInterval
+					)
 
 
 		BUPrint.Info("COG: User Library Admin loaded!")
@@ -303,6 +314,14 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 			return
 
 		await p_interaction.response.send_modal(SendWarningModal(p_message.author.id, p_message.content))
+
+
+	async def CheckEntryRetention(self):
+		vRemoveDate = datetime.now(tz=timezone.utc)
+		for entry in UserLibrary.loadedEntries.values():
+			if entry.lastAccessed + timedelta(minutes=settings.UserLib.entryRetention_unloadAfter) > vRemoveDate:
+				BUPrint.Debug(f"User Entry: {entry.discordID} unloaded from library.")
+				del UserLibrary.loadedEntries[entry.discordID]
 
 
 
@@ -439,6 +458,7 @@ class UserLibrary():
 	Functions will not require an instance.
 	"""
 	botRef:commands.Bot
+	loadedEntries: dict[int, User] = {}
 	def __init__(self):
 		pass
 
@@ -526,6 +546,10 @@ class UserLibrary():
 		vLockFile = FilesAndFolders.GetLockPathGeneric(vFilePath)
 		FilesAndFolders.GetLock(vLockFile)
 
+		# Set KeepLoaded bool to current value to be reset afterwards.
+		bKeepLoaded = p_entry.bKeepLoaded
+		p_entry.bKeepLoaded = False
+
 		try:
 			with open(vFilePath, "wb") as vFile:
 				pickle.dump(p_entry, vFile)
@@ -547,6 +571,9 @@ class UserLibrary():
 		except OSError as vError:
 			BUPrint.LogErrorExc("Unable to load special entry", vError)
 
+		p_entry.bKeepLoaded = bKeepLoaded
+		p_entry.lastAccessed = datetime.now(tz=timezone.utc)
+
 
 
 	def LoadEntry(p_userID:int):
@@ -557,11 +584,19 @@ class UserLibrary():
 		### RETURNS:
 		`User` library entry, or `None` if not found.
 		"""
+		vLibEntry:User = None
 
 		BUPrint.Debug(f"Loading Library Entry: {p_userID}")
 		if not UserLibrary.HasEntry(p_userID):
 			BUPrint.Debug(f"User with id {p_userID} has no library entry")
 			return None
+
+
+		if p_userID in UserLibrary.loadedEntries:
+			vLibEntry = UserLibrary.loadedEntries.get(p_userID)
+			vLibEntry.lastAccessed = datetime.now(tz=timezone.utc)
+			return vLibEntry
+
 
 		bIsRecruit = UserLibrary.IsRecruitEntry(p_userID)
 		vFilePath = ""
@@ -573,7 +608,6 @@ class UserLibrary():
 
 		vLockFile = FilesAndFolders.GetLockPathGeneric(vFilePath)
 		FilesAndFolders.GetLock(vLockFile)
-		vLibEntry:User = None
 
 		try:
 			with open(vFilePath, "rb") as vFile:
@@ -598,6 +632,10 @@ class UserLibrary():
 				BUPrint.LogErrorExc("Unable to load special entry", vError)
 
 
+		if settings.UserLib.entryRetention != EntryRetention.whenNeeded:
+			vLibEntry.lastAccessed = datetime.now(tz=timezone.utc)
+			UserLibrary.loadedEntries[vLibEntry.discordID] = vLibEntry
+
 		return vLibEntry
 
 
@@ -607,6 +645,8 @@ class UserLibrary():
 		Loads all entries and returns them in a list.
 
 		NOTE: Extension is stripped.
+
+		NOTE: This does NOT load all entries into the library's dictionary.
 		"""
 		vEntryList = []
 		files = FilesAndFolders.GetFiles(settings.Directories.userLibrary, ".bin")
@@ -694,12 +734,13 @@ class UserLibrary():
 
 		vOutfit = await vOutfitChar.outfit()
 
+		p_entry.ps2ID = vPlayerChar.id
 		p_entry.ps2Outfit = f"{vOutfit.name} {vOutfit.alias}"
 		p_entry.ps2OutfitJoinDate = datetime.fromtimestamp(vOutfitChar.member_since, tz=timezone.utc)
 		p_entry.ps2OutfitRank = vOutfitChar.rank
 
-		UserLibrary.SaveEntry(p_entry)
 		await vAuraxClient.close()
+		UserLibrary.SaveEntry(p_entry)	
 		return True
 
 
@@ -928,9 +969,8 @@ class LibraryViewer():
 	Class responsible for sending a viewer to see library information.
 
 	## PARAMETERS
-	`p_userID`: the user ID to view.
-
-	`p_isViewingSelf`: Whether the calling viewer is viewing themself.
+	- `p_userID`: the user ID to view.
+	- `p_isViewingSelf`: Whether the calling viewer is viewing themself.
 	"""
 	def __init__(self, p_userID:int, p_isViewingSelf:bool):
 		# Used to save a new entry.

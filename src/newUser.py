@@ -27,6 +27,7 @@ class NewUserData:
 	joinMessage : discord.Message = None
 	rulesMsg : discord.Message = None
 	ps2CharObj: auraxium.ps2.Character = None
+	ps2CharID : int = -1
 	ps2CharName : str = ""
 	ps2OutfitName: str = ""
 	ps2OutfitAlias: str = ""
@@ -299,7 +300,7 @@ class PS2NameModal(discord.ui.Modal, title="Enter your PS2 Character name"):
 		Returns true if the provided IGN is a valid character.
 		Function also fills the data object with items.
 		"""
-		BotPrinter.Debug(f"Checking player name for {pUser.name}: {pIGN}")
+		BotPrinter.Debug(f"Checking player name for {pUser.display_name}: {pIGN}")
 
 		async with auraxium.Client() as ps2Client:
 			ps2Client.service_id = botData.settings.BotSettings.ps2ServiceID
@@ -308,6 +309,7 @@ class PS2NameModal(discord.ui.Modal, title="Enter your PS2 Character name"):
 				BotPrinter.Debug("	-> Found IGN!")
 				self.userData.ps2CharObj = player
 				self.userData.ps2CharName = pIGN
+				self.userData.ps2CharID = player.id
 				vOutfit: auraxium.ps2.Outfit = await player.outfit()
 				
 				if vOutfit is None:
@@ -561,6 +563,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 			vUserLibEntry = User(
 				discordID=self.userData.userObj.id,
 				ps2Name=self.userData.ps2CharName,
+				ps2ID=self.userData.ps2CharID
 				)
 
 			if self.userData.ps2OutfitName != "":

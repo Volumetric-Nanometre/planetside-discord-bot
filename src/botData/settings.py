@@ -27,7 +27,7 @@ import pickle
 class BotSettings:
 	# TOKENS LOADED FROM .ENV FILE
 	discordToken = Env.DISCORD_TOKEN
-	discordGuild = Env.DISCORD_GUILD
+	discordGuild = int(Env.DISCORD_GUILD)
 	ps2ServiceID = Env.PS2_SVS_ID
 	botDir		 = Env.BOT_DIR
 
@@ -280,6 +280,8 @@ class CommandLimit:
 	# COMMAND LIMIT
 	Settings pertaining to each command and certain button usage in the bot;
 	Stored here to avoid needing to hunt down individual files and commands.
+
+	NOTE: Admin cog has no CommandLimit entry, because it uses the direct roleRestrict_ADMIN value.
 	"""
 	# New Users (Admin Buttons)
 	validateNewuser = CommandRestrictionLevels.level1
@@ -287,7 +289,7 @@ class CommandLimit:
 	# General User role add/remove user assignable roles (Commands)
 	userRoles = CommandRestrictionLevels.level3
 
-	# Op Manager: Add/Edit operations.
+	# Op Manager: Add/Edit operations (Commands).
 	opManager = CommandRestrictionLevels.level1
 
 	# Op Commander Start/Feedback (Commands)
@@ -301,8 +303,6 @@ class CommandLimit:
 
 	# Chat Utilities - Administrative (Commands)
 	chatUtilities = CommandRestrictionLevels.level1
-
-	# Admin cog has no CommandLimit entry, because it uses the direct roleRestrict_ADMIN value.
 
 
 
@@ -364,10 +364,6 @@ class NewUsers:
 	# Create Library Entry on Accept: When true, after a user has been accepted, automatically create a user entry for them.
 	bCreateLibEntryOnAccept = True
 
-	# Recruit Role: ID of the recruit role.  Used to automatically apply isRecruit to user entry (if above is enabled)
-	# recruitRole = 780253442605842472 # LIVE
-	recruitRole = 1060009718837411962 # DEV VALUE
-
 	# Warn if a user claims a ps2 character name with a rank equal or higher than this (numerical, lower = higher rank.)
 	outfitRankWarn = 4
 
@@ -392,9 +388,6 @@ class Commander:
 	# COMMANDER
 	Settings used by Op Commanders.
 	"""
-	# Track Event: Setting to determine which participants of a ps2 event are tracked
-	trackEvent = botData.dataObjects.PS2EventTrackOptions.InGameOnly
-
 	# Marked Present: Setting to determine when a participant is considered part of the event and their userLib entry is updated
 	markedPresent = botData.dataObjects.PS2EventTrackOptions.InGameAndDiscordVoice
 
@@ -557,6 +550,15 @@ class UserLib:
 	# USER LIBRARY
 	Settings pertaining to the behaviour of the user library.
 	"""
+	# Entry Retention: How user library entries are kept in memory: Always loaded, UnloadAfter, and WhenNeeded.
+	entryRetention = botData.dataObjects.EntryRetention.alwaysLoaded
+
+	#Entry Retention: Unload after- If `UnloadAfter` is used, entries are removed if they haven't been "got" or "saved" within this period. 
+	entryRetention_unloadAfter = 30 # minutes.
+
+	# Entry Retention: Check Interval: the interval the checking task is set to.  If `unloadAfter` is not set, this task is not added.
+	entryRetention_checkInterval = 5 # Minutes
+
 	# Enable Special Users: when true, user viewer checks for a matching ID .txt file.
 	# The contents of this file are added to the General page; only admins are able to modify this text.
 	bEnableSpecialUsers = True
@@ -574,6 +576,7 @@ class UserLib:
 	maxSavedEvents = -1
 
 	# Auto Query Recruit Time: The time(s) during the day in which all recruits are queried.
+	# Querying a recruit checks the recruit requirements, if met; they are promoted/promotion validation request is sent.
 	autoQueryRecruitTime = [
 		time(hour=10, minute=00, tzinfo=timezone.utc)
 	]
