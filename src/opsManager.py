@@ -233,6 +233,7 @@ class OperationManager():
 			self.LoadOps()
 
 
+
 	async def RefreshOps(self):
 		"""
 		# REFRESH OPS
@@ -315,8 +316,8 @@ class OperationManager():
 		if not bIsDefault: # Defaults have no message!
 			BUPrint.Debug("	-> Removing MESSAGE...")
 			vChannel: discord.TextChannel = await self.AddNewLive_GetTargetChannel(p_opsData=p_opData)
-			vMessage: discord.Message = await vChannel.fetch_message(p_opData.messageID)
 			try:
+				vMessage: discord.Message = await vChannel.fetch_message(p_opData.messageID)
 				await vMessage.delete()
 			except discord.Forbidden as error:
 				BUPrint.LogErrorExc("Unable to remove File!", error)
@@ -989,7 +990,7 @@ class OpsRoleSelector(discord.ui.Select):
 		super().__init__(placeholder="Choose a role...", options=[defaultOption])
 
 	async def callback(self, pInteraction: discord.Interaction):
-		# await pInteraction.response.defer(thinking=True, ephemeral=True)
+		await pInteraction.response.defer(thinking=True, ephemeral=True)
 
 		botUtils.BotPrinter.Debug(f"User {pInteraction.user.name} has signed up to {self.vOpsData.fileName} with role: {self.values[0]}")
 		vOpMan = OperationManager()		
@@ -1006,11 +1007,13 @@ class OpsRoleSelector(discord.ui.Select):
 				OperationManager.RemoveUser(p_opData=self.vOpsData, p_userToRemove=pInteraction.user.id)
 				OperationManager.SaveToFile(self.vOpsData)
 				await vOpMan.UpdateMessage(p_opData=self.vOpsData)
-				await pInteraction.response.send_message(content=f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!", ephemeral=True)
+				# await pInteraction.response.send_message(content=f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!", ephemeral=True)
+				await pInteraction.edit_original_response(content=f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!")
 				# No need to continue further.
 				return
 			else:
-				await pInteraction.response.send_message(content=f"You are not signed up to {self.vOpsData.name}!", ephemeral=True)
+				# await pInteraction.response.send_message(content=f"You are not signed up to {self.vOpsData.name}!", ephemeral=True)
+				await pInteraction.edit_original_response(content=f"You are not signed up to {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!")
 
 
 		if pInteraction.user.id not in vSelectedRole.players:
@@ -1018,10 +1021,11 @@ class OpsRoleSelector(discord.ui.Select):
 			vSelectedRole.players.append( pInteraction.user.id )
 			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
 			OperationManager.SaveToFile(self.vOpsData)	
-			await pInteraction.response.send_message(content=f"You have signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
+			# await pInteraction.response.send_message(content=f"You have signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You have signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
 		else:
-			await pInteraction.response.send_message(content=f"You're already signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
-
+			# await pInteraction.response.send_message(content=f"You're already signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You're already signed up as {self.values[0]} for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
 	
 	
 	def UpdateOptions(self):
@@ -1064,18 +1068,19 @@ class OpsRoleReserve(discord.ui.Button):
 		super().__init__(label="Reserve", emoji=botSettings.SignUps.reserveIcon)
 
 	async def callback(self, pInteraction: discord.Interaction):
-		# await pInteraction.response.defer(thinking=True, ephemeral=True)
+		await pInteraction.response.defer(thinking=True, ephemeral=True)
 
 		if pInteraction.user.id not in self.vOpsData.reserves:
-			await pInteraction.response.send_message(content=f"You have signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
+			# await pInteraction.response.send_message(content=f"You have signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You have signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
 			OperationManager.RemoveUser(self.vOpsData, pInteraction.user.id)
 			self.vOpsData.reserves.append(pInteraction.user.id)
 
 			vOpMan = OperationManager()
 			await vOpMan.UpdateMessage(self.vOpsData)
 		else:
-			await pInteraction.response.send_message(content=f"You have already signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
-
+			# await pInteraction.response.send_message(content=f"You have already signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You have already signed up as a reserve for {self.vOpsData.name} on {GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)}!")
 
 
 
@@ -1085,16 +1090,18 @@ class OpsRoleResign(discord.ui.Button):
 		super().__init__(label="Resign", emoji=botSettings.SignUps.resignIcon)
 
 	async def callback(self, pInteraction: discord.Interaction):
+		await pInteraction.response.defer(thinking=True, ephemeral=True)
+
 		if pInteraction.user.id in self.vOpsData.GetParticipantIDs():
 			OperationManager.RemoveUser(self.vOpsData, pInteraction.user.id)
 			OperationManager.SaveToFile(self.vOpsData)
 			vOpMan = OperationManager()
 			await vOpMan.UpdateMessage(p_opData=self.vOpsData)
-			await pInteraction.response.send_message(content=f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You have resigned from {self.vOpsData.name}({GetDiscordTime(self.vOpsData.date, DateFormat.DateShorthand)})!")
 
 
 		else:
-			await pInteraction.response.send_message(content=f"You are not signed up to {self.vOpsData.name}!", ephemeral=True)
+			await pInteraction.edit_original_response(content=f"You are not signed up to {self.vOpsData.name}!")
 
 
 
@@ -1282,7 +1289,7 @@ class OpsEditor(discord.ui.View):
 						emoji="🔓",
 						row=4)
 	async def btnFinish(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):		
-		if self.vOpsData.messageID != "":
+		if self.vOpsData != None and self.vOpsData.messageID != "":
 			vOpMan = OperationManager()
 
 			vOriginalData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath( self.vOpsData.fileName ) )

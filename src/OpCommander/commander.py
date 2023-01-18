@@ -210,7 +210,7 @@ class Commander():
 
 		# Only remove operation if event had actually started, else don't, in the event the bot has shutdown before event starts.
 		if self.vCommanderStatus.value >= CommanderStatus.Debrief.value:
-			await opsManager.OperationManager.RemoveOperation(p_opData=self.vOpData)
+			await opsManager.OperationManager().RemoveOperation(p_opData=self.vOpData)
 
 		BUPrint.Info(f"Commander for event {self.vOpData.name} has ended!")
 
@@ -408,7 +408,7 @@ class Commander():
 		"""
 		vEmbeds = [self.CreateEmbed_Connections()]
 
-		if self.vOpData.options.bIsPS2Event:
+		if self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.GracePeriod or self.vCommanderStatus.Started:
 			vEmbeds.append( self.CreateEmbed_Session() )
 
 		if self.commanderMsg == None:
@@ -635,6 +635,11 @@ class Commander():
 		else:
 			vTempStr += "Autostart *Disbaled*\n"
 
+		if commanderSettings.bAutoMoveVCEnabled:
+			vTempStr += "AutoVC Move: *Enabled*\n"
+		else:
+			vTempStr += "AutoVC Move: *Disabled*\n"
+
 		if self.vOpData.options.bUseReserve:
 			vTempStr += "Reserve: *Enabled*\n"
 		else:
@@ -645,10 +650,6 @@ class Commander():
 		else:
 			vTempStr += "Feedback: *Standard*\n"
 
-		if commanderSettings.bAutoMoveVCEnabled:
-			vTempStr += "AutoVC Move: *Enabled*\n"
-		else:
-			vTempStr += "AutoVC Move: *Disabled*\n"
 
 		# START | SIGNED UP
 		vEmbed.add_field(
@@ -809,6 +810,14 @@ class Commander():
 				inline= True
 			)
 
+		vEmbed.add_field(
+			name="KDA",
+			value="NOET YET"
+			# f"""Kills: {}
+			# Deaths: {}
+			# Assists: """
+		)
+
 		vEmbed.set_footer(text=f"Last update: {datetime.now(tz=timezone.utc)}")
 		return vEmbed
 
@@ -825,7 +834,7 @@ class Commander():
 
 		for role in self.vOpData.roles:
 			if role.players.__len__() < role.maxPositions or role.maxPositions < 0:
-				spareSpaces += f"**Role:** {role.roleName} has {role.maxPositions - role.players.__len__()} available spots!\n"
+				spareSpaces += f"**Role:** **{role.roleName}** has **{role.maxPositions - role.players.__len__()}** available spots!\n"
 
 		# Compile message
 		vMessage = f"**REMINDER** | {self.vOpData.name} starts in {GetDiscordTime(self.vOpData.date)}!"
@@ -834,14 +843,14 @@ class Commander():
 			vMessage += f"\n\nPlease ensure you are online and ready to go, {vParticipantMentions}"
 
 		if commanderSettings.bAutoMoveVCEnabled:
-			vMessage += f"{botMessages.OpsAutoMoveWarn}\n"
+			vMessage += f"/n{botMessages.OpsAutoMoveWarn}\n"
 		
 		if spareSpaces != "":
 			vMessage += "\n\n**ATTENTION** "
 			for pingableRole in roleMentions:
 				vMessage += f"{pingableRole}"
 
-			vMessage += f"\nThe following roles still have open spaces!\n{spareSpaces}"
+			vMessage += f"\nThe following roles still have open spaces!\n{spareSpaces}\n*These numbers were accurate at the time of posting.*"
 
 
 		vView = discord.ui.View(timeout=None)
@@ -967,7 +976,6 @@ class Commander():
 
 
 
-
 	async def CreateFeedback(self):
 		"""# CREATE FEEDBACK
 		Takes the feedback provided and sends it to the appropriate channel, then updates the commander."""
@@ -977,17 +985,17 @@ class Commander():
 				vFeedbackMsg += f"{feedback}\n"
 
 		if self.vOpData.options.bIsPS2Event:
-			vFeedbackMsg += "**FOR SQUADMATES:**\n"
+			vFeedbackMsg += "\n**FOR SQUADMATES:**\n"
 			for feedback in self.vFeedback.forSquadmates:
 				if feedback != "":
 					vFeedbackMsg += f"{feedback}\n"
 
-			vFeedbackMsg += "**FOR SQUAD LEAD:**\n"
+			vFeedbackMsg += "\n**FOR SQUAD LEAD:**\n"
 			for feedback in self.vFeedback.forSquadLead:
 				if feedback != "":
 					vFeedbackMsg += f"{feedback}\n"
 
-			vFeedbackMsg += "**FOR PLATOON LEAD:**\n"
+			vFeedbackMsg += "\n**FOR PLATOON LEAD:**\n"
 			for feedback in self.vFeedback.forPlatLead:
 				if feedback != "":
 					vFeedbackMsg += f"{feedback}\n"
@@ -999,6 +1007,7 @@ class Commander():
 
 
 		if self.vOpData.options.bUseSoberdogsFeedback:
+			BUPrint.Debug("using soberdogs feedback")
 			if self.soberdogFeedbackMsg == None:
 				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(content=vFeedbackMsg, file=feedbackFile)
 
@@ -1006,16 +1015,17 @@ class Commander():
 				await self.soberdogFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
 
 		# Guard catch; allows suberdogs feedback to be updated since its a persistent channel, but prevents errors when not soberfeedback
-		if self.vCommanderStatus.Ended:
+		if self.vCommanderStatus == CommanderStatus.Ended:
 			BUPrint.Debug("User submitting feedback after event has ended, returning.")
 			return
 
+		
+		BUPrint.Debug("using normal feedback")
+		if self.notifFeedbackMsg == None:
+			self.notifFeedbackMsg = await self.notifChn.send(content=vFeedbackMsg, file=feedbackFile)
+		
 		else:
-			if self.notifFeedbackMsg == None:
-				self.notifFeedbackMsg = await self.notifChn.send(content=vFeedbackMsg, file=feedbackFile)
-			
-			else:
-				await self.notifFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
+			await self.notifFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
 
 
 		await self.UpdateCommanderLive()
@@ -1047,9 +1057,11 @@ class Commander_btnDebrief(discord.ui.Button):
 
 	async def callback(self, p_interaction:discord.Interaction):
 		self.vCommander.vCommanderStatus = CommanderStatus.Debrief
+		await self.vCommander.UpdateCommanderLive()
+
 		# Updates the commander view.
 		await p_interaction.response.send_message("Debrief Started...", ephemeral=True)
-		# await p_interaction.response.defer()
+
 		feedbackView = discord.ui.View(timeout=None)
 		feedbackView.add_item(Commander_btnGiveFeedback(self.vCommander))
 		await self.vCommander.notifChn.send(f"{self.vCommander.GetParticipantMentions(True)}\n\nUse this button to provide feedback!", view=feedbackView)
@@ -1068,7 +1080,6 @@ class Commander_btnNotify(discord.ui.Button):
 	
 
 
-
 class Commander_btnEnd(discord.ui.Button):
 	def __init__(self, p_commanderParent:Commander):
 		self.vCommander:Commander = p_commanderParent
@@ -1078,7 +1089,6 @@ class Commander_btnEnd(discord.ui.Button):
 		# End the Ops:
 		await p_interaction.response.send_message("Ending Operation...", ephemeral=True)
 		
-		# Remove commander from Live list:
 		commanderRef = opsManager.OperationManager.FindCommander(self.vCommander.vOpData)
 		if commanderRef != None:
 			opsManager.OperationManager.vLiveCommanders.remove(commanderRef)
@@ -1152,17 +1162,17 @@ class FeedbackModal(discord.ui.Modal):
 	)
 
 	def __init__(self, p_parentCommander:Commander , p_callingUser:discord.User):
+		super().__init__(title="Feedback", timeout=None)
 		self.parentCommander = p_parentCommander
 		self.foundUserID = -1
 		self.bIsPS2Event = self.parentCommander.vOpData.options.bIsPS2Event
 		self.PropogateFields(p_callingUser.id)
 
-		if self.bIsPS2Event:
+		if not self.bIsPS2Event:
 			self.remove_item(self.txt_squadLead)
 			self.remove_item(self.txt_squadMates)
 			self.remove_item(self.txt_platLead)
 
-		super().__init__(title="Feedback", timeout=None)
 
 	async def on_submit(self, pInteraction:discord.Interaction):
 		if self.foundUserID == -1:
@@ -1193,8 +1203,6 @@ class FeedbackModal(discord.ui.Modal):
 		Finds the user ID and pre-sets the fields if present.
 		"""
 		feedback = self.parentCommander.vFeedback
-
-		# Get position of user:
 
 		index = 0
 		for userID in self.parentCommander.vFeedback.userID:
