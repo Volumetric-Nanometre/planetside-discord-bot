@@ -933,6 +933,7 @@ class ForFunData:
 		"It's 5 o'Clock somewhere. 🍷",
 		"Morning, _USER. \nI heard you flown with Cactus recently... how was it?  Did he _FLIGHTDEATHREASON?",
 		"Morning, _USER. \nI heard you flown with DoubleD recently... how was it?  Did he _FLIGHTDEATHREASON?",
+		"¿ɹǝpun uʍop ǝɟıl s,ʍoɥ  ¡ƃuıuɹoɯ pooƃ",
 	]
 
 	morningGreetingsGif = [
