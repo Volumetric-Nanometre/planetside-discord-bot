@@ -16,7 +16,7 @@ from botUtils import GetDiscordTime
 from botData.utilityData import DateFormat
 
 from botData.settings import ForFun
-from botData.dataObjects import EventPoint, Participant, EventID, PS2SessionKDA, PS2SessionEngineer, PS2SessionMedic, ForFunData, ForFunVehicleDeath, FacilityData
+from botData.dataObjects import EventPoint, Participant, EventID, PS2SessionKDA, PS2SessionEngineer, PS2SessionMedic, ForFunData, ForFunVehicleDeath, FacilityData, PS2EventTotals
 
 from random import choice
 
@@ -40,15 +40,13 @@ class OpsEventTracker():
 		self.logOutTrigger : Trigger = None
 
 		# LAST FACILITY DEFENDED/CAPTURED
-		self.lastFacilityDefended:FacilityData = None
-		self.lastFacilityCaptured:FacilityData = None
-		# Stored to avoid needing to calculate total capture/defends by iterating over eventPoints.
-		self.facilitiesCaptured = 0
-		self.faciltiiesDefended = 0
-		self.facilityFeed:list[str] = [] # Feed of facility capture/defends with dates.
+		# Session Stats, encapsulates KDA & facility capture/defense into a single dataclass.
+		self.sessionStats:PS2EventTotals = PS2EventTotals()
+		self.sessionStats.eventKDA = PS2SessionKDA()
 
 		self.forFunVehicleDeaths: list[ForFunVehicleDeath]
 
+		# More detailed, time set data.
 		self.eventPoints: list[EventPoint] = []
 		self.currentEventPoint:EventPoint = None
 		BUPrint.Info("Ops Event Tracker initialised!")
@@ -375,6 +373,8 @@ class OpsEventTracker():
 		vParticipant.userSession.score += p_event.amount
 		vParticipant.userSession.kda.kills += 1
 
+		self.sessionStats.eventKDA.kills += 1
+
 
 
 	async def Died(self, p_event: event.Death):
@@ -389,6 +389,7 @@ class OpsEventTracker():
 
 		# Increment death total, to account for self-caused deaths and non-player caused deaths (pain fields/fall damage) and avoid needing to caclulate later.
 		vParticipant.userSession.kda.deathTotal += 1
+		self.sessionStats.eventKDA.deathTotal += 1
 
 		# Attacker is squadmate.
 		if vAttacker != None:
@@ -396,6 +397,9 @@ class OpsEventTracker():
 
 			vParticipant.userSession.kda.deathBySquad += 1
 			vAttacker.userSession.kda.killedSquad += 1
+
+			self.sessionStats.eventKDA.killedSquad += 1
+			self.sessionStats.eventKDA.killedSquad += 1
 
 			if ForFun.bBroadcastPS2VehicleDeath or ForFun.bPS2VehicleDeathFunEvent:
 				if p_event.attacker_vehicle_id != 0:
@@ -427,8 +431,10 @@ class OpsEventTracker():
 		vAttackerPS2Char = await self.auraxClient.get_by_id(Character, p_event.attacker_character_id)
 		if vAttackerPS2Char.faction_id == 2: # NC
 			vParticipant.userSession.kda.deathByAllies += 1
+			self.sessionStats.eventKDA.deathByAllies += 1
 		else:
 			vParticipant.userSession.kda.deathByEnemies += 1
+			self.sessionStats.eventKDA.deathByEnemies += 1
 
 		# Potential to do enemy character death by name fun events here.
 
@@ -479,7 +485,7 @@ class OpsEventTracker():
 		self.lastFacilityCaptured = vNewFacilityData
 
 		
-		self.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp), DateFormat.TimeShorthand} | {p_facility.facility_name} | {p_facility.facility_type}" )
+		self.sessionStats.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp), DateFormat.TimeShorthand} | {p_facility.facility_name} | {p_facility.facility_type}" )
 		self.currentEventPoint.captured += 1
-		self.facilitiesCaptured += 1
+		self.sessionStats.facilitiesCaptured += 1
 		# await self.updateParentFunction()

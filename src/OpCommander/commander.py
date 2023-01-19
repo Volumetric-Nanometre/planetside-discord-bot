@@ -175,6 +175,9 @@ class Commander():
 		if commanderSettings.markedPresent != PS2EventTrackOptions.Disabled:
 			self.scheduler.add_job(Commander.CheckAttendance, 'date', run_date=(datetime.now(tz=timezone.utc) + timedelta(minutes=commanderSettings.gracePeriod)), args=[self])
 
+		if self.vOpData.options.bIsPS2Event:
+			self.scheduler.add_job(Commander.UpdateCommanderLive, 'interval', seconds=(commanderSettings.dataPointInterval + 5), args=[self])
+
 		await self.UpdateCommander()
 
 
@@ -793,14 +796,27 @@ class Commander():
 		vEmbed = discord.Embed(colour=discord.Colour.from_rgb(200, 200, 255), title="SESSION", 
 		description=f"Status: {self.vCommanderStatus.name} | DataPoints: {str(self.vOpsEventTracker.eventPoints.__len__())}")
 
+
 		vEmbed.add_field(
-			name="Facilities...",
-			value=f"Captured: {self.vOpsEventTracker.facilitiesCaptured}\nDefended: {self.vOpsEventTracker.faciltiiesDefended}",
-			inline=True
+			name="KDA",
+			value=
+			f"""Kills: {self.vOpsEventTracker.sessionStats.eventKDA.kills}
+			Deaths: {self.vOpsEventTracker.sessionStats.eventKDA.deathTotal}
+			 - By Squad: {self.vOpsEventTracker.sessionStats.eventKDA.deathBySquad}
+			 - Allied: {self.vOpsEventTracker.sessionStats.eventKDA.deathByAllies}
+			 - Enemies: {self.vOpsEventTracker.sessionStats.eventKDA.deathByEnemies}
+			"""
 		)
 
-		if self.vOpsEventTracker.facilityFeed.__len__() != 0:
-			for feedEntry in self.vOpsEventTracker.facilityFeed:
+		vEmbed.add_field(
+			name="Facilities...",
+			value=f"""Captured: {self.vOpsEventTracker.sessionStats.facilitiesCaptured}
+			Defended: {self.vOpsEventTracker.sessionStats.facilitiesDefended}
+			"""
+		)
+
+		if self.vOpsEventTracker.sessionStats.facilityFeed.__len__() != 0:
+			for feedEntry in self.vOpsEventTracker.sessionStats.facilityFeed:
 				vTempStr += f"{feedEntry}\n"
 				vTempStr = vTempStr[:1024]
 		
@@ -810,13 +826,6 @@ class Commander():
 				inline= True
 			)
 
-		vEmbed.add_field(
-			name="KDA",
-			value="NOET YET"
-			# f"""Kills: {}
-			# Deaths: {}
-			# Assists: """
-		)
 
 		vEmbed.set_footer(text=f"Last update: {datetime.now(tz=timezone.utc)}")
 		return vEmbed
@@ -834,7 +843,7 @@ class Commander():
 
 		for role in self.vOpData.roles:
 			if role.players.__len__() < role.maxPositions or role.maxPositions < 0:
-				spareSpaces += f"**Role:** **{role.roleName}** has **{role.maxPositions - role.players.__len__()}** available spots!\n"
+				spareSpaces += f"**{role.roleName}** has **{role.maxPositions - role.players.__len__()}** available spots!\n"
 
 		# Compile message
 		vMessage = f"**REMINDER** | {self.vOpData.name} starts in {GetDiscordTime(self.vOpData.date)}!"
@@ -843,7 +852,7 @@ class Commander():
 			vMessage += f"\n\nPlease ensure you are online and ready to go, {vParticipantMentions}"
 
 		if commanderSettings.bAutoMoveVCEnabled:
-			vMessage += f"/n{botMessages.OpsAutoMoveWarn}\n"
+			vMessage += f"\n{botMessages.OpsAutoMoveWarn}\n"
 		
 		if spareSpaces != "":
 			vMessage += "\n\n**ATTENTION** "
@@ -932,7 +941,6 @@ class Commander():
 
 		## RETURNS: `discord.ui.View`
 		"""
-
 		newView = discord.ui.View(timeout=None)
 		# Button Objects
 		btnStart = Commander_btnStart(self)

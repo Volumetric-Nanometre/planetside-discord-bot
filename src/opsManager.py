@@ -319,12 +319,12 @@ class OperationManager():
 			try:
 				vMessage: discord.Message = await vChannel.fetch_message(p_opData.messageID)
 				await vMessage.delete()
-			except discord.Forbidden as error:
-				BUPrint.LogErrorExc("Unable to remove File!", error)
+			except discord.errors.Forbidden:
+				BUPrint.LogError("Unable to remove message!")
 				return False
-			except discord.NotFound as error:
-				BUPrint.LogErrorExc("No message found.", error)
-				return False
+			except discord.errors.NotFound:
+				BUPrint.LogError("No message found.")
+				#don't return, since the message may have been manually removed.
 
 			# Remove OpData from LiveOps list
 			BUPrint.Debug("	-> Removing OpData from LiveOps...")
@@ -685,7 +685,7 @@ class OperationManager():
 
 				vSignedUpUsers: str = ""
 				if len(role.players) == 0:
-					vSignedUpUsers = "-"
+					vSignedUpUsers = "\u200b\n"
 
 				# Compact View:
 				if p_opsData.options.bUseCompact:
@@ -707,7 +707,7 @@ class OperationManager():
 
 				# Prepend role icon if not None:
 				vRoleName = ""
-				if role.roleIcon != "-" :
+				if role.roleIcon != "\u200b\n" :
 					vRoleName += f"{role.roleIcon} "
 
 				vRoleName += role.roleName 
@@ -724,7 +724,7 @@ class OperationManager():
 
 		# Add builtin RESERVE
 		if(p_opsData.options.bUseReserve):
-			vReserves = "-"
+			vReserves = "\u200b\n"
 			if len(p_opsData.reserves) > 0: vReserves = ""
 			for reserve in p_opsData.reserves:
 				vUser = self.vBotRef.get_user(int(reserve))

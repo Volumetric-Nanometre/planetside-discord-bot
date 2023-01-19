@@ -251,6 +251,8 @@ class PS2EventTrackOptions(Enum):
 	InGameAndDiscordVoice = 20
 	InGameOnDisVCAndDuration = 30
 
+
+@dataclass
 class PS2EventTotals:
 	"""# PS2 EVENT TOTALS
 	Dataclass that holds stat totals.
@@ -258,7 +260,7 @@ class PS2EventTotals:
 	The event totals are added to this stat object at the same time as the current event point & user session stats.
 	"""
 	eventKDA:PS2SessionKDA = None
-	facilityFeed:str = ""
+	facilityFeed:list[str] = field(default_factory=list)
 	facilitiesCaptured:int = 0
 	facilitiesDefended:int = 0
 
