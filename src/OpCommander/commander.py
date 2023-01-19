@@ -25,7 +25,7 @@ from botUtils import BotPrinter as BUPrint
 from botUtils import ChannelPermOverwrites as ChanPermOverWrite
 from botData.utilityData import DateFormat, Colours
 
-from botData.settings import BotSettings as botSettings
+from botData.settings import BotSettings
 from botData.settings import Commander as commanderSettings
 from botData.settings import Messages as botMessages
 from botData.settings import Directories, UserLib, NewUsers, Channels
@@ -33,7 +33,6 @@ from botData.settings import Directories, UserLib, NewUsers, Channels
 from botData.dataObjects import OperationData, User, OpRoleData, PS2EventTrackOptions, ForFunData, ForFunVehicleDeath
 
 import opsManager
-# from userManager import UserLibrary, User
 import userManager
 
 async def StartCommander(p_opData: OperationData):
@@ -41,7 +40,7 @@ async def StartCommander(p_opData: OperationData):
 	# START COMMANDER
 	Self explanitory, calling this will start the commander for the given ops file.
 	
-	Starting a commander does NOT start an Ops.  That is a different event, handled by the commander itself (if bAutoStart is enabled in both op settings and botsettings).
+	Starting a commander does NOT start an Ops.  That is a different event, handled by the commander itself (if bAutoStart is enabled in both op settings and BotSettings).
 
 	## RETURNS: `int`
 	`0` if commander has started.
@@ -105,7 +104,7 @@ class Commander():
 
 		if p_opData.options.bIsPS2Event:
 			BUPrint.Debug("Event is PS2 related, creating tracker & client...")
-			self.vAuraxClient = auraxium.EventClient(service_id=botSettings.ps2ServiceID)
+			self.vAuraxClient = auraxium.EventClient(service_id=BotSettings.ps2ServiceID)
 			self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
 			self.vOpsEventTracker.updateParentFunction = self.UpdateCommanderLive
 
@@ -191,7 +190,7 @@ class Commander():
 		self.bHasSoftEnded = True
 		self.vCommanderStatus = CommanderStatus.Debrief
 
-		if botSettings.botFeatures.UserLibrary:
+		if BotSettings.botFeatures.UserLibrary:
 			for participant in self.participants:
 				if participant.libraryEntry != None:
 					if participant.bAttended:
@@ -302,7 +301,7 @@ class Commander():
 
 		# UPDATE PARTICIPANTS
 		vLibrariesToLoad:list[Participant] = [participant for participant in self.participants if participant.libraryEntry == None ]
-		if botSettings.botFeatures.UserLibrary:
+		if BotSettings.botFeatures.UserLibrary:
 			await self.UpdateParticipants_UserLibs(vLibrariesToLoad)
 		
 		if self.vOpData.options.bIsPS2Event:
@@ -341,7 +340,7 @@ class Commander():
 			charName = re.sub(r'\[\w\w\w\w\]', "", participant.discordUser.display_name )
 			charName = charName.strip()
 			
-			if participant.libraryEntry == None and botSettings.botFeatures.UserLibrary:
+			if participant.libraryEntry == None and BotSettings.botFeatures.UserLibrary:
 				participant.libraryEntry = User(discordID=participant.discordID)
 
 				if participant.libraryEntry.ps2ID == -1:
@@ -482,7 +481,7 @@ class Commander():
 		"""# CHECK ATTENDANCE
 		Iterates through the current participants and sets their attended/late booleans.
 		"""
-		if not botSettings.botFeatures.UserLibrary or commanderSettings.markedPresent == PS2EventTrackOptions.Disabled:
+		if not BotSettings.botFeatures.UserLibrary or commanderSettings.markedPresent == PS2EventTrackOptions.Disabled:
 			BUPrint.Debug("User Library (or attendance checking) disabled, skipping attendance")
 			return
 
@@ -772,7 +771,7 @@ class Commander():
 				vStatusStr += f"{commanderSettings.connIcon_ps2Invalid}"
 
 			
-			if botSettings.botFeatures.UserLibrary:
+			if BotSettings.botFeatures.UserLibrary:
 				if participant.libraryEntry != None and participant.libraryEntry.bIsRecruit:
 					vStatusStr += f" | {commanderSettings.connIcon_ps2Recruit}"
 
@@ -836,7 +835,7 @@ class Commander():
 		"""# SEND REMINDER:
 		Sends a reminder to the notification channel, only including nessecery pings.
 		"""
-		roleMentions = [f"{role.mention} " for role in self.vBotRef.get_guild(botSettings.discordGuild).roles if role.name in self.vOpData.pingables ]
+		roleMentions = [f"{role.mention} " for role in self.vBotRef.get_guild(BotSettings.discordGuild).roles if role.name in self.vOpData.pingables ]
 
 		vParticipantMentions = self.GetParticipantMentions()
 		spareSpaces = ""
