@@ -147,8 +147,7 @@ class Roles:
 
 	# Provides a dropdown containing these roles for giving to new users.
 	newUser_roles = [ 
-		SelectOption(label="Recruit", value="780253442605842472"),
-		SelectOption(label="Test Recruit", value="1060009718837411962", description="DEV VALUE!"), # DEV VALUE!
+		SelectOption(label="Recruit", value=f"{recruit}"),
 		# SelectOption(label="TDKD", value="1050286811940921344", description="DEV VALUE!"), # Dev server RoleID
 		SelectOption(label="TDKD", value="710472193045299260"), # Live server RoleID
 		SelectOption(label="The Washed Masses", value="710502581893595166"),

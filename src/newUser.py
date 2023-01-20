@@ -12,7 +12,7 @@ from botUtils import BotPrinter, GetDiscordTime, UserHasCommandPerms, GetGuild
 from botData.utilityData import Colours, DateFormat
 
 from botData.dataObjects import User, NewUserData
-from userManager import UserLibrary
+from userManager import UserLibrary, LibraryViewer
 from roleManager import RoleManager
 
 
@@ -489,7 +489,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		if not await UserHasCommandPerms(pInteraction.user, (CommandLimit.validateNewuser), pInteraction):
 			return
 
-		vAssignedRoleName = ""
+		vAssignedRoleName = self.options[0].label
 
 		# Assign given role:
 		vGuild = await GetGuild(pInteraction.client)
@@ -501,7 +501,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		or (role.id == Roles.recruit and int(self.values[0]) == Roles.recruit) 
 		or role.id in Roles.autoAssignOnAccept]
 
-		if Roles.recruit in rolesToAssign:
+		if Roles.recruit in [role.id for role in rolesToAssign]:
 			self.userData.bIsRecruit = True
 
 
@@ -563,6 +563,9 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		if NewUserSettings.bShowAddRolesBtn:
 			vView.add_item(ShowRolesBtn(label="Click me to add roles!"))
 
+		if BotSettings.botFeatures.UserLibrary:
+			vView.add_item(ShowUserLibViewerBtn(label="View & setup your library!"))
+
 		await vGeneralChannel.send(Messages.newUserWelcome.replace("_MENTION", self.userData.userObj.mention).replace("_ROLE", vAssignedRoleName), view=vView)
 
 
@@ -573,3 +576,9 @@ class ShowRolesBtn(discord.ui.Button):
 		roleView = RoleManager(p_interaction.client, p_interaction.user, True)
 		roleView.vInteraction = p_interaction
 		await p_interaction.response.send_message( Messages.userAddingRoles, view=roleView, ephemeral=True )
+
+class ShowUserLibViewerBtn(discord.ui.Button):
+	"""A button used to show the user library for the clicking user."""
+	async def callback(self, p_interaction:discord.Interaction):
+		vLibViewer = LibraryViewer(p_interaction.user.id, True)
+		await vLibViewer.SendViewer(p_interaction=p_interaction)
