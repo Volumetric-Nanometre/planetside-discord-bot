@@ -127,14 +127,17 @@ class Roles:
 	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
 	
 	# ROLE RESTRICT: ADMIN	A special role restrict reserved specifically for those entrusted with BotAdmin. While named roleRestrict, only User IDs should be used.
-	roleRestrict_ADMIN = [182933627242283008] # LIVE VALUE: Cactus
+	roleRestrict_ADMIN = [182664228107321344, 182933627242283008] # DEV VALUE: Tiddle, Cactus
+	# roleRestrict_ADMIN = [182933627242283008] # LIVE VALUE: Cactus
 	
 	
 	# Recruit: The ID of the RECRUIT role.
-	recruit = 780253442605842472
+	recruit = 1060009718837411962 # DEV VALUE
+	# recruit = 780253442605842472 # LIVE VALUE
 
 	# Recruit Promotion: The id of the role recruits are promoted to.
-	recruitPromotion = 710472193045299260 # DrunkenDog
+	recruitPromotion = 1050286811940921344 # DEV VALUE
+	# recruitPromotion = 710472193045299260 # LIVE VALUE
 
 	# Auto Assign on Promotion: List of role IDs that are always assigned to users when their join request is accepted.
 	autoAssignOnAccept = [
@@ -145,7 +148,8 @@ class Roles:
 	# Provides a dropdown containing these roles for giving to new users.
 	newUser_roles = [ 
 		SelectOption(label="Recruit", value=f"{recruit}"),
-		SelectOption(label="Drunken Dog", value="710472193045299260"),
+		# SelectOption(label="TDKD", value="1050286811940921344", description="DEV VALUE!"), # Dev server RoleID
+		SelectOption(label="TDKD", value="710472193045299260"), # Live server RoleID
 		SelectOption(label="The Washed Masses", value="710502581893595166"),
 		SelectOption(label="The Unwashed Masses", value="719219680434192405")
 	]
@@ -153,7 +157,8 @@ class Roles:
 	# ADD ROLES - TDKD:  Roles used in the /roles command, "tdkd" role selector 
 	addRoles_TDKD = [
 		SelectOption(label="Planetside Pings", value="977873609815105596", description="Non-major PS2 events/fellow\n drunken doggos looking for company"),
-		SelectOption(label="Sober Dogs", value="745004244171620533", description="More serious, coordinated infantry events"),
+		# SelectOption(label="Sober Dogs", value="1040751250163122176", description="DEV VALUE"), # Dev value!
+		SelectOption(label="Sober Dogs", value="745004244171620533", description="More serious, coordinated infantry events"), # Live value!
 		SelectOption(label="Base Busters", value="811363100787736627", description="Base building and busting events"),
 		SelectOption(label="Armour Dogs", value="781309511532544001", description="Ground vehicle related events"),
 		SelectOption(label="Dog Fighters", value="788390750982766612", description="Small aerial vehicle related events"),
@@ -309,34 +314,42 @@ class Channels:
 	Since multiple features may use these, they're stored here to avoid duplicates and messy name inclusions.
 	"""
 	# Bot Admin: The channel administrative tasks and notifications are sent to.
-	botAdminID = -1 # LIVE VALUE
+	botAdminID = 1049424595750506527 # DEV VALUE
+	# botAdminID = -1 # LIVE VALUE
 
 	# Gate Channel: The channel considered to be the servers gate: should be viewable to new users.  It does not require chatting privilages.
 	gateID = 1041860598822096950
 
 	# Rule Channel: ID of the rule channel used to fetch the rules Message. 
-	ruleID = 913086821263626360
+	ruleID = 1049523449867022348  # DEV VALUE
+	# ruleID = 913086821263626360 # LIVE VALUE
 
 	# General Chat: ID of the general text channel.
-	generalID = 710469797439078400 # (general) 
+	generalID = 358702477962379274 # DEV VALUE
+	# generalID = 710469797439078400 # LIVE VALUE: (general) 
 
 	# Voice Fallback: A channel that users are moved to when their current one is removed (by the bot)
-	voiceFallback = 710854499782361140 # (general)
+	voiceFallbackID = 326783867036106752 # Dev value!
+	# voiceFallback = 710854499782361140 # LIVE value (general)
 
 	# Event MoveBack: ID of voice chat users are moved into after an event is over.
-	eventMovebackID = 1023703124839518338 # (planetside2)
+	eventMovebackID = 326783867036106752 # DEV VALUE
+	# eventMovebackID = 1023703124839518338 # LIVE VALUE: (planetside2)
 
 	# Protected Categories: ID of categories that cannot be deleted by chatMonitor.remove_category
-	protectedCategoriesID = [744907524418961438, 710470871214587955, 818212652601966628, 710471344411770881, 734791662798241854, 1026549992829222952, 710470038968205393, 1042450013827117087, 796885440916488252]
+	protectedCategoriesID = [360823500711395328, 360823731804831756, 1037871280709443608, 1049415497621454929] # DEV VALUE
+	# protectedCategoriesID = [744907524418961438, 710470871214587955, 818212652601966628, 710471344411770881, 734791662798241854, 1026549992829222952, 710470038968205393, 1042450013827117087, 796885440916488252] # LIVE VALUE
 
 	# Quote Channel ID: If this is not found, the event listener is not added.
-	quoteID = 1036349723059159040 # LIVE VALUE
+	quoteID = 1049523449867022348 # DEV VALUE
+	# quoteID = 1036349723059159040 # LIVE VALUE
 
 	# Sober Feedback: ID of the soberDogs feedback/debrief FORUM.
 	soberFeedbackID = 1042463290472800317
 
 	# Planetside2: ID of a planetside 2 text channel.
-	ps2TextID = 715337156255809568 # LIVE VALUE 
+	ps2TextID = 1063336834324766730 # DEV VALUE
+	# ps2TextID = 715337156255809568 # LIVE VALUE 
 
 
 
@@ -360,7 +373,8 @@ class NewUsers:
 	newAccntWarn = 3
 
 	# Rule Message ID: The id of a message which contains the server rules (if not in an embed, falls back to message content)  Make sure `Channels.ruleID` is also set.
-	ruleMsgID = 977888774530932767
+	ruleMsgID = 1049631022192537610 # DEV SERVER
+	# ruleMsgID = 977888774530932767 # LIVE SERVER
 
 	# Show Add Roles Button: When true, a button to add roles is shown in the welcome message.
 	# It is advisable to ensure the message "NewUserWelcome" reflects the presence (or lack thereof) of this button.
