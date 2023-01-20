@@ -563,7 +563,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		if NewUserSettings.bShowAddRolesBtn:
 			vView.add_item(ShowRolesBtn(label="Click me to add roles!"))
 
-		await vGeneralChannel.send(Messages.newUserWelcome.replace("_MENTION", self.userData.userObj.mention).replace("_ROLE", vAssignedRoleName))
+		await vGeneralChannel.send(Messages.newUserWelcome.replace("_MENTION", self.userData.userObj.mention).replace("_ROLE", vAssignedRoleName), view=vView)
 
 
 
