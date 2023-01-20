@@ -40,6 +40,8 @@ class OpsEventTracker():
 		self.logOutTrigger : Trigger = None
 
 		# LAST FACILITY DEFENDED/CAPTURED
+		self.lastFacilityCaptured: FacilityData = None
+		self.lastFacilityDefended: FacilityData = None
 		# Session Stats, encapsulates KDA & facility capture/defense into a single dataclass.
 		self.sessionStats:PS2EventTotals = PS2EventTotals()
 		self.sessionStats.eventKDA = PS2SessionKDA()
@@ -48,7 +50,7 @@ class OpsEventTracker():
 
 		# More detailed, time set data.
 		self.eventPoints: list[EventPoint] = []
-		self.currentEventPoint:EventPoint = None
+		self.currentEventPoint:EventPoint = EventPoint(timestamp=datetime.now(timezone.utc), activeParticipants=self.participants.__len__())
 		BUPrint.Info("Ops Event Tracker initialised!")
 
 
@@ -64,7 +66,6 @@ class OpsEventTracker():
 			return
 		
 		self.CreateTriggers()
-		self.currentEventPoint = EventPoint( timestamp=datetime.now(timezone.utc).time(), activeParticipants=len(self.participants) )
 
 		# Create KDA object.  Since every participant is capable of obtaining this; it is created for everyone, unlike the role specific objects.
 		for participant in self.participants:
@@ -109,7 +110,7 @@ class OpsEventTracker():
 		BUPrint.Debug(f"	> Character Trigger List: {vCharList}")	
 
 		if vCharList.__len__() == 0:
-			BUPrint.Debug("IT FUCKED UP.")
+			BUPrint.Debug("No Characters, not creating triggers.")
 			return
 		
 		
@@ -160,13 +161,15 @@ class OpsEventTracker():
 		"""# NEW EVENT POINT
 		Moves the current event point into the point list, and sets a new one.
 		"""
-		self.eventPoints.append(self.currentEventPoint)
+		if self.currentEventPoint != None:
+			self.eventPoints.append(self.currentEventPoint)
 		
-		stillOnline = 0
-		for participant in self.participants:
-			stillOnline += int(participant.bPS2Online)
+		stillOnline = [participant for participant in self.participants if participant.bPS2Online].__len__()
+	
 		
-		self.currentEventPoint = EventPoint(timestamp = datetime.now(timezone.utc).time(), activeParticipants = stillOnline)
+		self.currentEventPoint = EventPoint(timestamp=datetime.now(timezone.utc), activeParticipants=stillOnline)
+		# self.currentEventPoint.timestamp = datetime.now(timezone.utc)
+		# self.currentEventPoint.activeParticipants = stillOnline
 
 		BUPrint.Debug(f"New Event Point: TimeStamp:{datetime.now(timezone.utc).time()}, Active Participants: {stillOnline}")
 
@@ -175,6 +178,8 @@ class OpsEventTracker():
 	def CreateTriggers(self):
 		""" # CREATE TRIGGERS
 		Creates and sets the triggers for the event.
+
+		This does NOT include the login/out triggers which have their own function.
 		"""
 		playerCharacters = [participant.ps2CharID for participant in self.participants if participant.ps2CharID != -1]
 
@@ -235,17 +240,43 @@ class OpsEventTracker():
 					event=GainExperience.filter_experience(EventID.kill)
 				)
 			)
-
+			# Assists
+			self.auraxClient.add_trigger(
+				Trigger(
+					action=self.GotAssist,
+					characters=playerCharacters,
+					event=GainExperience.filter_experience(EventID.killAssist)
+				)
+			)
+						
+			# Death
 			self.auraxClient.add_trigger(
 				Trigger(
 					action=self.Died,
 					characters=playerCharacters,
-					event="death"
+					event="Death"
 				)
 			)
+
+			self.auraxClient.add_trigger(
+				Trigger(
+					action=self.FacilityCapture,
+					characters=playerCharacters,
+					event="PlayerFacilityCapture"
+				)
+			)
+
+			self.auraxClient.add_trigger(
+				Trigger(
+					action=self.FacilityDefense,
+					characters=playerCharacters,
+					event="PlayerFacilityDefend"
+				)
+			)
+
 		except ServiceUnavailableError:
 			BUPrint.LogError(p_titleStr="AURAXIUM SERVICE UNAVAILABLE", p_string="Creating scheduled task to re-run create triggers.")
-			self.p
+			self.parentReupdateTriggers()
 
 
 
@@ -254,25 +285,35 @@ class OpsEventTracker():
 		# GET MATCHING PARTICIPANTS
 		Gets the `Participant` object for the matching player character.
 		
-		None if not found, though this occurance shouldn't happen. 
+		None if not found, though this occurance shouldn't happen for events related to participants, it will occur for Deaths; when the attacker ID is not another participant. 
 		"""
 		for participant in self.participants:
+			if participant.ps2CharID == -1:
+				BUPrint.Debug(f"No PS2Char ID set for: {participant.ps2CharID}: Likely enemy.")
+				return None
+
+			BUPrint.Debug(f"Checking ID: {participant.ps2CharID} to: {p_playerCharID}")
 			if participant.ps2CharID == p_playerCharID:
 				return participant 
 		
-		BUPrint.LogError(p_titleStr="Invalid participant given")
 		return None
 
 
 
 	def GetForFunVehicleEvent(self, p_killerID, p_vehicleID):
+		"""# GET FOR FUN VEHICLE EVENT:
+		Checks existing vehicle events for a matching event and returns it if present.
+
+		Else, create a new event, call parent function to send (sets up scheduler on first call), then return new event.
+		"""
 		for vehicleEvent in self.forFunVehicleDeaths:
 			if vehicleEvent.driverCharID == p_killerID and vehicleEvent.driverVehicleID == p_vehicleID:
 				return vehicleEvent
 
-		# No existing event
+		# No existing event, make new one and run parent command which will post it after a delay.
 		newEvent = ForFunVehicleDeath(driverCharID=p_killerID, driverVehicleID=p_vehicleID)
 		self.forFunVehicleDeaths.append(newEvent)
+		self.parentSendForFunVehicleDeath(newEvent)
 
 		return newEvent
 
@@ -289,6 +330,7 @@ class OpsEventTracker():
 		""" # ENGINEER SQUAD VEHICLE REPAIR:
 		Event function for when a player gains experience from repairing a squad vehicle.
 		"""
+		BUPrint.Debug("Vehicle repair!")
 		vParticipant = self.GetMatchingParticipant(p_event.character_id)
 		
 		if vParticipant == None:
@@ -308,6 +350,7 @@ class OpsEventTracker():
 		""" # ENGINEER SQUAD RESUPPLY:
 		Event function for when a player gains experience from repairing a squad vehicle.
 		"""
+		BUPrint.Debug("Squad resupply!")
 		vParticipant = self.GetMatchingParticipant(p_event.character_id)
 		
 		if vParticipant == None:
@@ -327,6 +370,7 @@ class OpsEventTracker():
 		"""# MEDIC SQUAD HEAL
 		Event function for when a player gains experience from healing a squadmate.
 		"""
+		BUPrint.Debug("Squad Heals!")
 		vParticipant = self.GetMatchingParticipant(p_event.character_id)
 		
 		if vParticipant == None:
@@ -346,6 +390,7 @@ class OpsEventTracker():
 		"""# MEDIC SQUAD REVIVE
 		Event function for when a player gains experience from reviving a squadmate.
 		"""
+		BUPrint.Debug("Squad revive!")
 		vParticipant = self.GetMatchingParticipant(p_event.character_id)
 		
 		if vParticipant == None:
@@ -365,7 +410,11 @@ class OpsEventTracker():
 	def GotKill(self, p_event: event.GainExperience):
 		"""# GOT KILL:
 		Function to run when a player has gotten a kill.
+
+		Due to limitations, does not check if victim was an enemy or ally.  
+		Death event does this instead.
 		"""
+		BUPrint.Debug("Player got a kill! :o")
 		self.currentEventPoint.kills += 1
 
 		vParticipant = self.GetMatchingParticipant(p_event.character_id)
@@ -375,30 +424,53 @@ class OpsEventTracker():
 
 		self.sessionStats.eventKDA.kills += 1
 
+		
+
+
+	async def GotAssist(self, p_event: event.GainExperience):
+		"""# GOT ASSIST
+		Function to run when a player gets a kill assist.  
+		Infantry assists only (fornow(tm)).
+		"""
+		self.sessionStats.eventKDA.assists += 1
+		vParticipant = self.GetMatchingParticipant(p_event.character_id)
+
+		vParticipant.userSession.score += p_event.amount
+		vParticipant.userSession.kda.assists += 1
+
 
 
 	async def Died(self, p_event: event.Death):
 		"""# DIED
 		Function to run when a player died."""
+		BUPrint.Debug("Player died :(")
 		self.currentEventPoint.deaths += 1
 
 		vParticipant = self.GetMatchingParticipant(p_event.character_id)
 		vAttacker = self.GetMatchingParticipant(p_event.attacker_character_id)
 
-		BUPrint.Debug(f"		->{vParticipant.ps2Char} died.")
+		if vParticipant == None:
+			BUPrint.Debug(f"Participant with PS2 ID: {p_event.character_id} not found")
+			return
 
-		# Increment death total, to account for self-caused deaths and non-player caused deaths (pain fields/fall damage) and avoid needing to caclulate later.
-		vParticipant.userSession.kda.deathTotal += 1
-		self.sessionStats.eventKDA.deathTotal += 1
 
-		# Attacker is squadmate.
+		if vParticipant.ps2CharID == p_event.attacker_character_id:
+			vParticipant.userSession.kda.deathBySuicide += 1
+			self.sessionStats.eventKDA.deathBySuicide += 1
+		else:
+			# Increment death total, to account for non-player caused deaths (pain fields) and avoid needing to caclulate later.
+			vParticipant.userSession.kda.deathTotal += 1
+			self.sessionStats.eventKDA.deathTotal += 1
+
+		# Attacker is squadmate (or self).
 		if vAttacker != None:
-			BUPrint.Debug(f"{vParticipant.ps2Char} killed by squadmate: {vAttacker.ps2Char}")
+			BUPrint.Debug(f"{vParticipant.discordUser.display_name} killed by squadmate: {vAttacker.discordUser.display_name}")
+			# Only add to stats if not the same person; as the relative suicide stat is already added beforehand.
+			if vParticipant.ps2CharID != vAttacker.ps2CharID:
+				vParticipant.userSession.kda.deathBySquad += 1
+				vAttacker.userSession.kda.killedSquad += 1
 
-			vParticipant.userSession.kda.deathBySquad += 1
-			vAttacker.userSession.kda.killedSquad += 1
-
-			self.sessionStats.eventKDA.killedSquad += 1
+			self.sessionStats.eventKDA.deathBySquad += 1
 			self.sessionStats.eventKDA.killedSquad += 1
 
 			if ForFun.bBroadcastPS2VehicleDeath or ForFun.bPS2VehicleDeathFunEvent:
@@ -406,19 +478,27 @@ class OpsEventTracker():
 
 					vFunEvent = self.GetForFunVehicleEvent(p_event.attacker_character_id, p_event.attacker_vehicle_id)
 
+					bIsDriver = bool(vParticipant.ps2CharID == vAttacker.ps2CharID)
+					if bIsDriver:
+						vFunEvent.driverMention = vParticipant.discordUser.mention
+
 					# GALAXY:
 					if p_event.attacker_vehicle_id == 11:
-
-						vParticipant.userSession.funEvents.append( choice(ForFunData.galaxyDeath).replace("_USER"), vAttacker.discordUser.mention )
+						
+						if not bIsDriver:
+							vParticipant.userSession.funEvents.append( choice(ForFunData.galaxyDeath).replace("_USER"), vAttacker.discordUser.mention )
+							vFunEvent.killedMentions += f"{vParticipant.discordUser.mention} "
 						
 						if vFunEvent.message == "":
 							vFunEvent.message = choice(ForFunData.galaxyDeathBy)
-					
+
+
 
 					# SUNDERER
 					elif p_event.attacker_vehicle_id == 1:
-
-						vParticipant.userSession.funEvents.append( choice(ForFunData.partyBusDeath).replace("_USER"), vAttacker.discordUser.mention )
+						if not bIsDriver:
+							vParticipant.userSession.funEvents.append( choice(ForFunData.partyBusDeath).replace("_USER"), vAttacker.discordUser.mention )
+							vFunEvent.killedMentions += f"{vParticipant.discordUser.mention} "
 
 						if vFunEvent.message == "":
 							vFunEvent.message = choice(ForFunData.partyBusDeathBy)
@@ -428,7 +508,7 @@ class OpsEventTracker():
 
 
 		# Determine if killer character is allied or an enemy.
-		vAttackerPS2Char = await self.auraxClient.get_by_id(Character, p_event.attacker_character_id)
+		vAttackerPS2Char = await self.auraxClient.get_by_id(type_=Character, id_=p_event.attacker_character_id)
 		if vAttackerPS2Char.faction_id == 2: # NC
 			vParticipant.userSession.kda.deathByAllies += 1
 			self.sessionStats.eventKDA.deathByAllies += 1
@@ -438,11 +518,13 @@ class OpsEventTracker():
 
 		# Potential to do enemy character death by name fun events here.
 
+
+
 	async def FacilityCapture(self, p_event: event.PlayerFacilityCapture):
 		"""# FACILITY CAPTURE
 		Function to call when a player participates in a facility capture."""
-		vFacility:MapRegion = await MapRegion.get_by_id(p_event.facility_id, self.auraxClient)
-		
+		vFacility:MapRegion = await MapRegion.get_by_facility_id(facility_id=p_event.facility_id, client=self.auraxClient)
+
 		# First facility capture.
 		if self.lastFacilityCaptured == None:
 			self.NewFacilityCapture(vFacility)
@@ -460,10 +542,10 @@ class OpsEventTracker():
 				return
 
 			else: # Not new facility capture; nth call from each character.
+				BUPrint.Debug("Adding participant to facility capture.")
 				self.lastFacilityCaptured.participants += 1
 				return
 
-		
 		
 		# If reached here, facility ID doesn't match last facility ID, thus is a new capture!
 		BUPrint.Debug("New Facility Capture!")
@@ -485,7 +567,58 @@ class OpsEventTracker():
 		self.lastFacilityCaptured = vNewFacilityData
 
 		
-		self.sessionStats.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp), DateFormat.TimeShorthand} | {p_facility.facility_name} | {p_facility.facility_type}" )
+		self.sessionStats.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp, DateFormat.TimeShorthand)} | **CAPTURED** | {p_facility.facility_name} | {p_facility.facility_type}" )
 		self.currentEventPoint.captured += 1
 		self.sessionStats.facilitiesCaptured += 1
-		# await self.updateParentFunction()
+
+
+	async def FacilityDefense(self, p_event: event.PlayerFacilityDefend):
+		"""# FACILITY DEFENSE
+		Function to call when a player participates in a facility defense."""
+		vFacility:MapRegion = await MapRegion.get_by_facility_id(facility_id=p_event.facility_id, client=self.auraxClient)
+		
+		# First facility capture.
+		if self.lastFacilityDefended == None:
+			self.NewFacilityDefense(vFacility)
+			return
+
+				
+		# Existing/Current facility Defense.  Ensures repeated calls (from each character) don't inflate the stats.
+		# Also ensures if the facility defended is the last one captured and is being redefended it's still counted.
+		if self.lastFacilityDefended.facilityID == p_event.facility_id:
+			timeDifference = self.lastFacilityDefended.timestamp - datetime.now()
+			if  timeDifference.total_seconds() > 900: # 15 minutes
+				BUPrint.Debug("Time difference is greater than 15 minutes.  Recaptured last capture.")
+				self.NewFacilityDefense(vFacility)
+				await self.updateParentFunction()
+				return
+
+			else: # Not new facility defense; nth call from each character.
+				BUPrint.Debug("Not new defense, adding participant to last facility defended.")
+				self.lastFacilityDefended.participants += 1
+				return
+
+		
+		# If reached here, facility ID doesn't match last facility ID, thus is a new defense!
+		BUPrint.Debug("New Facility Defense!")
+		self.NewFacilityDefense(vFacility)
+		await self.updateParentFunction()
+
+
+	def NewFacilityDefense(self, p_facility:MapRegion):
+		"""# NEW FACILITY DEFENSE
+		Convenience function for new facility capture to avoid repetition.
+		"""
+		vNewFacilityData = FacilityData(
+				facilityID=p_facility.id, 
+				timestamp=datetime.now(tz=timezone.utc),
+				facilityObj = p_facility,
+				participants=1
+			)
+
+		self.lastFacilityDefended = vNewFacilityData
+
+		
+		self.sessionStats.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp, DateFormat.TimeShorthand)} | **DEFENDED** | {p_facility.facility_name} | {p_facility.facility_type}" )
+		self.currentEventPoint.defended += 1
+		self.sessionStats.facilitiesDefended += 1

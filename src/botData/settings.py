@@ -31,7 +31,7 @@ class BotSettings:
 	ps2ServiceID = Env.PS2_SVS_ID
 	botDir		 = Env.BOT_DIR
 
-	# BOT FEATURES:  Convenience function to Enable or Disable Cog functionality.  Any co-dependnacy will behave based on these settings.
+	# BOT FEATURES:  Convenience setting to Enable or Disable Cog functionality.  Any co-dependnacy will behave based on these settings.
 	botFeatures = botData.dataObjects.BotFeatures(
 		# Bot Admin: Enables commands specifically for administrative bot tasks (currently, just show config & shutdown)
 		BotAdmin= True,
@@ -75,8 +75,8 @@ class BotSettings:
 	# Show settings on startup: Discord: Same as above, but posts the config into bot-admin channel
 	bShowSettingsOnStartup_discord = False
 
-	"""
-	Force Role restrictions: when true, hard-coded restrictions prohibit command usage based on the roles in roleRestrict variables.
+	"""Force Role restrictions: 
+	when true, hard-coded restrictions prohibit command usage based on the roles in roleRestrict variables.
 	users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.
 	As such, this is merely a redundancy if security concerned.
 	
@@ -388,7 +388,8 @@ class Commander:
 	# COMMANDER
 	Settings used by Op Commanders.
 	"""
-	# Marked Present: Setting to determine when a participant is considered part of the event and their userLib entry is updated
+	# Marked Present: Setting to determine when a participant is considered part of the event and their userLib entry is updated.
+	# A present participant has their "attended" value updated and the session stats saved.
 	markedPresent = botData.dataObjects.PS2EventTrackOptions.InGameAndDiscordVoice
 
 	# Save Non PS2 Events to Sessions: When true, an entry for non-PS2 events is added to a users session history.
@@ -396,7 +397,6 @@ class Commander:
 	bSaveNonPS2ToSessions = True
 
 	# Grace Period: The time after an ops has started before participants are re-evaluated and marked non attending if they fail the requirements for markedPresent.
-	# Event tracking starts after this time.
 	gracePeriod = 1 # Minutes
 
 	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
@@ -412,7 +412,7 @@ class Commander:
 	bAutoMoveVCEnabled = True
 
 	# Number of minutes before an ops scheduled start the bot prestarts AutoStart enabled Ops (Non AutoStart enabled Ops require a user to use `/ops-commander` command)
-	# A buffer of 5 minutes is added to this time to ensure sufficient time for alerts.
+	# A buffer of 5 minutes is added to this time to ensure sufficient time for setup (especially in the case of a slow connection/bot).
 	autoPrestart = 45
 
 	# Data Point Interval:  Interval in seconds a new data point for event tracking is set.

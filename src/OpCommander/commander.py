@@ -30,10 +30,11 @@ from botData.settings import Commander as commanderSettings
 from botData.settings import Messages as botMessages
 from botData.settings import Directories, UserLib, NewUsers, Channels
 
-from botData.dataObjects import OperationData, User, OpRoleData, PS2EventTrackOptions, ForFunData, ForFunVehicleDeath
+from botData.dataObjects import OperationData, User, OpRoleData, PS2EventTrackOptions, PS2SessionKDA, ForFunData, ForFunVehicleDeath
 
 import opsManager
 import userManager
+from OpCommander.graphs import GraphMaker
 
 async def StartCommander(p_opData: OperationData):
 	"""
@@ -107,6 +108,8 @@ class Commander():
 			self.vAuraxClient = auraxium.EventClient(service_id=BotSettings.ps2ServiceID)
 			self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
 			self.vOpsEventTracker.updateParentFunction = self.UpdateCommanderLive
+			self.vOpsEventTracker.parentReupdateTriggers = self.AuraxClientUnavailableRetry
+			self.vOpsEventTracker.parentSendForFunVehicleDeath = self.SendForFunVehicleDeath
 
 		# Alert & Autostart Scheduler
 		self.scheduler = AsyncIOScheduler()
@@ -144,6 +147,10 @@ class Commander():
 		self.CreateScheduleTasks_Prestart()
 		await self.UpdateParticipants()
 
+		if self.vOpData.options.bIsPS2Event:
+			await self.CheckPS2OnlineAlready()
+
+
 		# Update Signup Post:
 		self.vOpData.status = OpsStatus.prestart
 		self.vCommanderStatus = CommanderStatus.WarmingUp
@@ -162,6 +169,8 @@ class Commander():
 			BUPrint.Info("Commander has started already, skipping!")
 			return
 
+		self.trueStartTime = datetime.now(timezone.utc)
+
 		BUPrint.Info(f"Event: {self.vOpData.name} started!")
 		self.scheduler.remove_all_jobs()
 
@@ -176,6 +185,9 @@ class Commander():
 
 		if self.vOpData.options.bIsPS2Event:
 			self.scheduler.add_job(Commander.UpdateCommanderLive, 'interval', seconds=(commanderSettings.dataPointInterval + 5), args=[self])
+			self.scheduler.add_job(OpsEventTracker.NewEventPoint, 'interval', seconds=commanderSettings.dataPointInterval, args=[self.vOpsEventTracker])
+			self.vOpsEventTracker.CreateTriggers()
+
 
 		await self.UpdateCommander()
 
@@ -185,8 +197,14 @@ class Commander():
 		"""# END EVENT SOFT:
 		Should be called when the event has stopped, but before closing the event entirely.
 		"""
-		await self.vAuraxClient.close()
-		self.scheduler.shutdown()
+		if self.vOpData.options.bIsPS2Event:
+			await self.vAuraxClient.close()
+			self.scheduler.shutdown()
+
+			# Sends the first messages.
+			await self.CreateFeedback()
+			
+
 		self.bHasSoftEnded = True
 		self.vCommanderStatus = CommanderStatus.Debrief
 
@@ -195,10 +213,14 @@ class Commander():
 				if participant.libraryEntry != None:
 					if participant.bAttended:
 						participant.libraryEntry.eventsAttended += 1
+						if participant.userSession != None:
+							participant.libraryEntry.sessions.append(participant.userSession)
 					else:
 						participant.libraryEntry.eventsMissed += 1
+
+					participant.userSession.duration = (datetime.now(timezone.utc) - self.trueStartTime)
 					userManager.UserLibrary.SaveEntry(participant.libraryEntry)
-			
+		
 
 
 	async def EndEvent(self):
@@ -314,6 +336,16 @@ class Commander():
 			await self.UpdateParticiants_PS2Chars(vPS2CharactersToLoad)
 		
 			await self.vOpsEventTracker.CreateLoginTriggers(vPS2CharactersToLoad)
+
+			for participant in self.participants:
+				if participant.userSession == None:
+					participant.userSession = Session(
+						eventName=self.vOpData.name,
+						date=self.trueStartTime,
+						bIsPS2Event=self.vOpData.options.bIsPS2Event
+						)
+					if self.vOpData.options.bIsPS2Event:
+						participant.userSession.kda = PS2SessionKDA()
 		
 
 		BUPrint.Debug("Participants Updated!")
@@ -328,7 +360,7 @@ class Commander():
 
 		NOTE: `UpdateParticipants_UserLibs` should be called before this.
 		"""
-		BUPrint.Debug("	-> Getting PS2 Character IDs")
+		BUPrint.Debug(f"	-> Getting PS2 Character IDs for\n{p_participantsToUpdate}")
 
 		for participant in p_participantsToUpdate:
 
@@ -410,7 +442,7 @@ class Commander():
 		"""
 		vEmbeds = [self.CreateEmbed_Connections()]
 
-		if self.vOpData.options.bIsPS2Event and self.vCommanderStatus == CommanderStatus.GracePeriod or self.vCommanderStatus.Started:
+		if self.vOpData.options.bIsPS2Event and self.vCommanderStatus.value >= CommanderStatus.GracePeriod.value:
 			vEmbeds.append( self.CreateEmbed_Session() )
 
 		if self.commanderMsg == None:
@@ -494,6 +526,7 @@ class Commander():
 						participant.bWasLate = True
 					else:
 						participant.bAttended = True
+				BUPrint.Debug(f"Participant {participant.discordUser.display_name} attended: {participant.bAttended} | Late: {participant.bWasLate}")
 				continue
 
 
@@ -505,8 +538,24 @@ class Commander():
 							participant.bWasLate = True
 						else:
 							participant.bAttended = True
-				
+				BUPrint.Debug(f"Participant {participant.discordUser.display_name} attended: {participant.bAttended} | Late: {participant.bWasLate}")
 				continue
+
+
+	async def CheckPS2OnlineAlready(self):
+		"""# CHECK PS2 ONLINE ALREADY:
+		Checks the participants at start and checks their online status.
+		
+		Needs to be checked for the times a player is already in-game before the event starts and thus will not be updated by On/Offline triggers.
+
+		It does NOT re-do the same name-checking UpdateParticipants does if there's an invalid ps2 ID.
+		"""
+		BUPrint.Debug("Checking all participant characters for online status.")
+		validParticipants = [participant for participant in self.participants if participant.ps2CharID != -1]
+
+		for participant in validParticipants:
+			vCharObj:auraxium.ps2.Character = await self.vAuraxClient.get_by_id(auraxium.ps2.Character, participant.ps2CharID)
+			participant.bPS2Online = await vCharObj.is_online()
 
 
 
@@ -799,11 +848,12 @@ class Commander():
 		vEmbed.add_field(
 			name="KDA",
 			value=
-			f"""Kills: {self.vOpsEventTracker.sessionStats.eventKDA.kills}
-			Deaths: {self.vOpsEventTracker.sessionStats.eventKDA.deathTotal}
+			f"""**Kills:** {self.vOpsEventTracker.sessionStats.eventKDA.kills}
+			
+			**Deaths:** {self.vOpsEventTracker.sessionStats.eventKDA.deathTotal}
 			 - By Squad: {self.vOpsEventTracker.sessionStats.eventKDA.deathBySquad}
-			 - Allied: {self.vOpsEventTracker.sessionStats.eventKDA.deathByAllies}
-			 - Enemies: {self.vOpsEventTracker.sessionStats.eventKDA.deathByEnemies}
+			 - By Allies: {self.vOpsEventTracker.sessionStats.eventKDA.deathByAllies}
+			 - By Enemies: {self.vOpsEventTracker.sessionStats.eventKDA.deathByEnemies}
 			"""
 		)
 
@@ -822,7 +872,7 @@ class Commander():
 			vEmbed.add_field(
 				name="Facility Feed",
 				value=vTempStr,
-				inline= True
+				inline= False
 			)
 
 
@@ -1008,6 +1058,10 @@ class Commander():
 					vFeedbackMsg += f"{feedback}\n"
 
 		feedbackFile = discord.File( self.vFeedback.SaveToFile(f"{Directories.feedbackPrefix}{self.vOpData.fileName}") )
+		
+		statGraphAll = None
+		if self.vOpData.options.bIsPS2Event:
+			statGraphAll = discord.File(GraphMaker.CreateGraphAll(self.vOpData.fileName, self.vOpsEventTracker.eventPoints))
 
 		if vFeedbackMsg.__len__() > 2000: # greater than discords max message limit
 			vFeedbackMsg = vFeedbackMsg[:1900] + "\n\n**Feedback is too large!**\nDownload file to see entire message."
@@ -1017,6 +1071,7 @@ class Commander():
 			BUPrint.Debug("using soberdogs feedback")
 			if self.soberdogFeedbackMsg == None:
 				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(content=vFeedbackMsg, file=feedbackFile)
+				await self.soberdogFeedbackThread.send(content="Stat Visualisation", file=statGraphAll)
 
 			else:
 				await self.soberdogFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
@@ -1030,6 +1085,8 @@ class Commander():
 		BUPrint.Debug("using normal feedback")
 		if self.notifFeedbackMsg == None:
 			self.notifFeedbackMsg = await self.notifChn.send(content=vFeedbackMsg, file=feedbackFile)
+			if self.vOpData.options.bIsPS2Event:
+				await self.notifChn.send(content="Stat visualisation", file=statGraphAll)
 		
 		else:
 			await self.notifFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
@@ -1037,6 +1094,23 @@ class Commander():
 
 		await self.UpdateCommanderLive()
 
+
+
+	async def SendForFunVehicleDeath(self, p_event:ForFunVehicleDeath):
+		"""# SEND FOR FUN: VEHICLE DEATH
+		Acts as double function:  
+		- If scheduled task has not yet been set, it's created and returned.
+		- If it has been set, it's ran/sent.
+		"""
+		if p_event.bHasSetSchedTask:
+			# Task has already been set; send message!
+			vGuild = await GetGuild(self.vBotRef)
+			ps2Channel = vGuild.get_channel(Channels.ps2TextID)
+			ps2Channel.send(p_event.message)
+		
+		else:
+			p_event.bHasSetSchedTask = True
+			self.scheduler.add_job(Commander.SendForFunVehicleDeath, "date", run_date=(datetime.now(timezone.utc) + timedelta(seconds=10)), args=[self, p_event])
 
 ############  COMMANDER BUTTON CLASSES
 
@@ -1063,6 +1137,8 @@ class Commander_btnDebrief(discord.ui.Button):
 		super().__init__(label="DEBRIEF", emoji="🗳️", row=0)
 
 	async def callback(self, p_interaction:discord.Interaction):
+		await self.vCommander.EndEventSoft()
+		
 		self.vCommander.vCommanderStatus = CommanderStatus.Debrief
 		await self.vCommander.UpdateCommanderLive()
 

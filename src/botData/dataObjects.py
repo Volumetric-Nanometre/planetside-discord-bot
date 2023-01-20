@@ -285,6 +285,7 @@ class PS2SessionKDA:
 	deathByEnemies:int = 0
 	deathByAllies:int = 0
 	deathBySquad:int = 0
+	deathBySuicide: int = 0
 
 
 @dataclass
@@ -470,6 +471,8 @@ class EventID:
 	eng_resupply = 55
 
 	kill = 1
+	killAssist = 2
+
 
 
 
@@ -493,8 +496,8 @@ class EventPoint():
 
 	These are updated individually to user statistics.
 	"""
-	timestamp: time = None
-	activeParticipants: int = 0
+	timestamp: datetime
+	activeParticipants: int
 
 	captured:int = 0
 	defended:int = 0
