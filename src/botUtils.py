@@ -550,12 +550,14 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Create Library Entry on Accept: {NewUsers.bCreateLibEntryOnAccept}\n"
 	vString += f"\n	> Warnings: Discord Account age: {NewUsers.newAccntWarn} months\n"
 	vString += f"	> Warnings: Outfit Rank (Ord): {NewUsers.outfitRankWarn}\n"
+	vString += f"	> AutoLock PS2 Character on Accept: {NewUsers.bLockPS2CharOnAccept}\n"
 
 
 
 	vString += "\nOP COMMANDER SETTINGS\n"
 	vString += f"	> Auto prestart:	{Commander.autoPrestart} minutes\n"
 	vString += f"	> Auto Start:		{Commander.bAutoStartEnabled}\n"
+	vString += f"	> Tracking Enabled: {Commander.bTrackingIsEnabled}"
 	vString += f"	> Tracking Interval:	{Commander.dataPointInterval} seconds\n"
 	vString += f"	> Marked Present:	{Commander.markedPresent.name}\n"
 	vString += f"	> Auto Alerts:		{Commander.bAutoAlertsEnabled}\n"

@@ -364,6 +364,9 @@ class NewUsers:
 	# Create Library Entry on Accept: When true, after a user has been accepted, automatically create a user entry for them.
 	bCreateLibEntryOnAccept = True
 
+	# Lock PS2 Character on Accept: When true (and user library enabled), disable allowing a user to change their character name via viewer config.
+	bLockPS2CharOnAccept = True
+
 	# Warn if a user claims a ps2 character name with a rank equal or higher than this (numerical, lower = higher rank.)
 	outfitRankWarn = 4
 
@@ -388,15 +391,18 @@ class Commander:
 	# COMMANDER
 	Settings used by Op Commanders.
 	"""
+	# Tracking is Enabled: When true, the PS2 tracker is used.
+	bTrackingIsEnabled = True
+
 	# Marked Present: Setting to determine when a participant is considered part of the event and their userLib entry is updated.
 	# A present participant has their "attended" value updated and the session stats saved.
-	markedPresent = botData.dataObjects.PS2EventTrackOptions.InGameAndDiscordVoice
+	markedPresent = botData.dataObjects.PS2EventAttended.InGameAndDiscordVC
 
 	# Save Non PS2 Events to Sessions: When true, an entry for non-PS2 events is added to a users session history.
 	# Because there's no stats to show, only the date, duration and a message informing it isn't for ps2 are shown.
 	bSaveNonPS2ToSessions = True
 
-	# Grace Period: The time after an ops has started before participants are re-evaluated and marked non attending if they fail the requirements for markedPresent.
+	# Grace Period: The time after an ops has started before participants are evaluated and marked non attending if they fail the requirements for markedPresent.
 	gracePeriod = 1 # Minutes
 
 	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
@@ -436,7 +442,7 @@ class Commander:
 		persistentVoice= [],
 		
 		# Voice Channels: If custom channels are not specified in the Op Data, these are used instead.
-		voiceChannels= ["Squad-Alpha", "Squad-Beta", "Squad-Charlie", "Squad-Delta"]
+		voiceChannels= ["Squad-Alpha", "Squad-Bravo", "Squad-Charlie", "Squad-Delta"]
 	)
 
 	# Icons for the CONNECTIONS embed.
@@ -684,8 +690,12 @@ class Messages:
 	# Confirmation message sent to users who have accepted the rules
 	newUserAcceptedRules = "Thank you for accepting the rules.  You may now request access!"
 
-	# Displayed after the "Welcome @mention" line when a new user is accepted.
-	newUserWelcome = "Make sure to use either the button, or the `/roles add` command to add planetside2 and other game roles!\nWe play more than just planetside, but to keep the server tidy, they are hidden with roles."
+	# Displayed when a new user is accepted.  Use _ROLE and _MENTION to have the assigned role and/or mention inserted.
+	newUserWelcome = f"""Welcome, _MENTION!
+	You have been assigned the role: _ROLE.
+	
+	Make sure to use either the button, or the `/roles add` command to add planetside2 and other game roles!
+	We play more than just planetside, but to keep the server tidy, they are hidden with roles."""
 
 	# Displayed when a user is choosing roles to ADD.
 	userAddingRoles = "Select the roles you wish to **ADD** using the dropdowns, then click update.\n\nDropdown is multiple choice."

@@ -30,7 +30,7 @@ from botData.settings import Commander as commanderSettings
 from botData.settings import Messages as botMessages
 from botData.settings import Directories, UserLib, NewUsers, Channels
 
-from botData.dataObjects import OperationData, User, OpRoleData, PS2EventTrackOptions, PS2SessionKDA, ForFunData, ForFunVehicleDeath
+from botData.dataObjects import OperationData, User, OpRoleData, PS2EventAttended, PS2SessionKDA, ForFunData, ForFunVehicleDeath
 
 import opsManager
 import userManager
@@ -103,7 +103,7 @@ class Commander():
 		self.vAuraxClient:auraxium.EventClient = None
 		self.vOpsEventTracker:OpsEventTracker = None
 
-		if p_opData.options.bIsPS2Event:
+		if p_opData.options.bIsPS2Event and commanderSettings.bTrackingIsEnabled:
 			BUPrint.Debug("Event is PS2 related, creating tracker & client...")
 			self.vAuraxClient = auraxium.EventClient(service_id=BotSettings.ps2ServiceID)
 			self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
@@ -180,8 +180,7 @@ class Commander():
 
 		await self.MoveUsers(True)
 
-		if commanderSettings.markedPresent != PS2EventTrackOptions.Disabled:
-			self.scheduler.add_job(Commander.CheckAttendance, 'date', run_date=(datetime.now(tz=timezone.utc) + timedelta(minutes=commanderSettings.gracePeriod)), args=[self])
+		self.scheduler.add_job(Commander.CheckAttendance, 'date', run_date=(datetime.now(tz=timezone.utc) + timedelta(minutes=commanderSettings.gracePeriod)), args=[self])
 
 		if self.vOpData.options.bIsPS2Event:
 			self.scheduler.add_job(Commander.UpdateCommanderLive, 'interval', seconds=(commanderSettings.dataPointInterval + 5), args=[self])
@@ -513,33 +512,50 @@ class Commander():
 		"""# CHECK ATTENDANCE
 		Iterates through the current participants and sets their attended/late booleans.
 		"""
-		if not BotSettings.botFeatures.UserLibrary or commanderSettings.markedPresent == PS2EventTrackOptions.Disabled:
-			BUPrint.Debug("User Library (or attendance checking) disabled, skipping attendance")
+		if not BotSettings.botFeatures.UserLibrary:
+			BUPrint.Debug("User Library disabled, skipping attendance")
 			return
 
 		for participant in  self.participants:
 			# IN GAME ONLY:
-			if commanderSettings.markedPresent == PS2EventTrackOptions.InGameOnly:
+			if commanderSettings.markedPresent == PS2EventAttended.InGameOnly:
 				if participant.bPS2Online:
-					if self.bAttendanceChecked:
-						participant.bAttended = True
-						participant.bWasLate = True
-					else:
-						participant.bAttended = True
-				BUPrint.Debug(f"Participant {participant.discordUser.display_name} attended: {participant.bAttended} | Late: {participant.bWasLate}")
+					self.SetParticipantAttended(participant)
+				
 				continue
 
+			# IN VOICE ONLY:
+			if  commanderSettings.markedPresent == PS2EventAttended.InDiscordVCOnly:
+				if participant.discordUser.voice.channel != None and participant.discordUser.voice in self.vCategory.voice_channels:
+					self.SetParticipantAttended(participant)
+				
+				continue
 
-			if commanderSettings.markedPresent == PS2EventTrackOptions.InGameAndDiscordVoice:
+			# IN GAME & DISCORD
+			if commanderSettings.markedPresent == PS2EventAttended.InGameAndDiscordVC:
 				if participant.bPS2Online and participant.discordUser.voice != None:
 					if participant.discordUser.voice.channel in self.vCategory.voice_channels:
-						if self.bAttendanceChecked:
-							participant.bAttended = True
-							participant.bWasLate = True
-						else:
-							participant.bAttended = True
-				BUPrint.Debug(f"Participant {participant.discordUser.display_name} attended: {participant.bAttended} | Late: {participant.bWasLate}")
+						self.SetParticipantAttended(participant)
+
 				continue
+
+			# NEVER CHECK
+			if commanderSettings.markedPresent == PS2EventAttended.NeverCheck:
+				self.SetParticipantAttended(participant)
+				continue
+
+
+
+	def SetParticipantAttended(self, p_participant:Participant):
+		"""# SET PARTICIPANT ATTENDED:
+		Convenience function that sets a users attendance to true,
+		while also setting whether the participant was late."""
+		if self.bAttendanceChecked:
+			p_participant.bWasLate = True
+
+		p_participant.bAttended = True
+		BUPrint.Debug(f"Participant {p_participant.discordUser.display_name} attended: {p_participant.bAttended} | Late: {p_participant.bWasLate}")
+
 
 
 	async def CheckPS2OnlineAlready(self):
@@ -964,14 +980,17 @@ class Commander():
 		"""
 		vParticipantMentions:list[str]
 
-		if p_getAll or commanderSettings.markedPresent == PS2EventTrackOptions.Disabled:
+		if p_getAll or commanderSettings.markedPresent == PS2EventAttended.NeverCheck or not commanderSettings.bTrackingIsEnabled:
 			vParticipantMentions = [ f"{participant.discordUser.mention} " for participant in self.participants]
 
-		elif commanderSettings.markedPresent == PS2EventTrackOptions.InGameOnly:
+		elif commanderSettings.markedPresent == PS2EventAttended.InGameOnly:
 			vParticipantMentions = [ f"{participant.discordUser.mention} " for participant in self.participants if not participant.bPS2Online ]
 
-		elif commanderSettings.markedPresent == PS2EventTrackOptions.InGameAndDiscordVoice:
-			vParticipantMentions = [ f"{participant.discordUser.mention} " for participant in self.participants if not participant.bPS2Online or participant.discordUser.voice == None]
+		elif commanderSettings.markedPresent == PS2EventAttended.InDiscordVCOnly:
+			vParticipantMentions = [ f"{participant.discordUser.mention} " for participant in self.participants if participant.discordUser.voice == None or participant.discordUser.voice not in self.vCategory.voice_channels]
+
+		elif commanderSettings.markedPresent == PS2EventAttended.InGameAndDiscordVC:
+			vParticipantMentions = [ f"{participant.discordUser.mention} " for participant in self.participants if not participant.bPS2Online or (participant.discordUser.voice == None or participant.discordUser.voice not in self.vCategory.voice_channels)]
 
 
 		returnStr = ""
@@ -1060,7 +1079,7 @@ class Commander():
 		feedbackFile = discord.File( self.vFeedback.SaveToFile(f"{Directories.feedbackPrefix}{self.vOpData.fileName}") )
 		
 		statGraphAll = None
-		if self.vOpData.options.bIsPS2Event:
+		if self.vOpData.options.bIsPS2Event and commanderSettings.bTrackingIsEnabled:
 			statGraphAll = discord.File(GraphMaker.CreateGraphAll(self.vOpData.fileName, self.vOpsEventTracker.eventPoints))
 
 		if vFeedbackMsg.__len__() > 2000: # greater than discords max message limit

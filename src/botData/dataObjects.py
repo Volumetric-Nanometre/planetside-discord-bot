@@ -4,13 +4,14 @@
 from __future__ import annotations
 
 from enum import Enum
-from discord import Member
+from discord import Member, Message
 from dataclasses import dataclass, field
 from datetime import datetime, time
 import botData.settings as Settings
 import botUtils
 from auraxium.ps2 import Character as PS2Character
 from auraxium.ps2 import MapRegion as PS2Facility
+from auraxium.ps2 import OutfitMember as PS2OutfitMember
 import pickle
 
 
@@ -219,6 +220,23 @@ class User:
 	bKeepLoaded:bool = False
 
 
+@dataclass
+class NewUserData:
+	"""# NEW USER DATA:
+	Minimal dataclass to hold data about a new user.
+	"""
+	userObj : Member = None
+	joinMessage : Message = None
+	rulesMsg : Message = None
+	ps2CharObj: PS2Character = None
+	ps2CharID : int = -1
+	ps2CharName : str = ""
+	ps2OutfitName: str = ""
+	ps2OutfitAlias: str = ""
+	ps2OutfitCharObj: PS2OutfitMember = None
+	bIsRecruit = False
+
+
 	############################################################################
 # OP COMMANDER
 class CommanderStatus(Enum):
@@ -237,19 +255,35 @@ class CommanderStatus(Enum):
 	Ended = 40		# Ended: User has ended Ops,  auto-cleanup.
 
 
-class PS2EventTrackOptions(Enum):
-	"""
-	EVENT TRACKING OPTIONS:
-	Sets the requirements for when to enable tracking a ps2 event.
-	This enum is also used for marking present, where `InGameOnDisVDAndDuration` may be used.
+# class PS2EventTrackOptions(Enum):
+# 	"""
+# 	EVENT TRACKING OPTIONS:
+# 	Sets the requirements for when to enable tracking a ps2 event.
+# 	This enum is also used for marking present, where `InGameOnDisVDAndDuration` may be used.
 
-	NOTE: To change the setting, See `botData.settings.Commander.trackEvent`.
-	NOTE: In Game, On Discord Voice And Duration; the value is the time in minutes to be used.
+# 	NOTE: To change the setting, See `botData.settings.Commander.trackEvent`.
+# 	NOTE: In Game, On Discord Voice And Duration; the value is the time in minutes to be used.
+# 	"""
+# 	Disabled = 0
+# 	InGameOnly = 10
+# 	InGameAndDiscordVoice = 20
+# 	InGameOnDisVCAndDuration = 30
+
+
+class PS2EventAttended(Enum):
+	"""# PS2 EVENT ATTENDED:
+	An enum with values to denote when a participant of an event is marked attended.
+	This is used synonymously with the UserLibrary & session saving.
+
+	NOTE: When evaluating DiscordVC, the user must be in an event channel.
+
+	A user who fails the requirements set by this enum are marked as non attending.
+	`NeverCheck`: marks anyone who signed up as attended.
 	"""
-	Disabled = 0
+	NeverCheck = 0
 	InGameOnly = 10
-	InGameAndDiscordVoice = 20
-	InGameOnDisVCAndDuration = 30
+	InDiscordVCOnly = 20
+	InGameAndDiscordVC = 30
 
 
 @dataclass
@@ -952,6 +986,7 @@ class ForFunData:
 		"https://media.tenor.com/Pb2FdndScvgAAAAd/good-morning-unhappy.gif",
 		"https://media.tenor.com/lzNPKl40wigAAAAM/figaro-pinocchio.gif",
 		"https://media.tenor.com/bT5Ha1rqXpkAAAAM/no-u-michael-scott-no-u.gif",
+		"http://giphygifs.s3.amazonaws.com/media/ANbD1CCdA3iI8/200.gif",
 	]
 
 

@@ -2,37 +2,18 @@ import discord
 from discord.ext import commands
 import auraxium
 
-import dataclasses
 import datetime, dateutil.relativedelta
 
-import botData.settings
+# import botData.settings
 from botData.settings import NewUsers as NewUserSettings
-from botData.settings import CommandLimit, Channels, Roles
+from botData.settings import CommandLimit, Channels, Roles, Messages, BotSettings
+
 from botUtils import BotPrinter, GetDiscordTime, UserHasCommandPerms, GetGuild
 from botData.utilityData import Colours, DateFormat
 
-from botData.dataObjects import User
+from botData.dataObjects import User, NewUserData
 from userManager import UserLibrary
 from roleManager import RoleManager
-
-
-
-@dataclasses.dataclass
-class NewUserData:
-	"""
-	Minimal dataclass to hold data about a new user.
-	"""
-	bIsFirstLoop = True # MUST BE TRUE ON INITIALISATION! Used during loop to not enable button on first iteration.
-	userObj : discord.Member = None
-	joinMessage : discord.Message = None
-	rulesMsg : discord.Message = None
-	ps2CharObj: auraxium.ps2.Character = None
-	ps2CharID : int = -1
-	ps2CharName : str = ""
-	ps2OutfitName: str = ""
-	ps2OutfitAlias: str = ""
-	ps2OutfitCharObj: auraxium.ps2.OutfitMember = None
-	bIsRecruit = False
 
 
 class NewUser(commands.Cog):
@@ -71,18 +52,18 @@ class NewUser(commands.Cog):
 		await gateChannel.purge(reason="Start-up/Shutdown Purge.")
 		BotPrinter.Debug("	-> Gate channel Purged.")
 
-		adminRequestChannel = self.botRef.get_channel(botData.settings.Channels.botAdminID)
+		adminRequestChannel = self.botRef.get_channel(Channels.botAdminID)
 		await adminRequestChannel.purge(reason="Startup/Shutdown Purge")
 		BotPrinter.Debug("	-> Request Channel Purged.")
 
-		await gateChannel.send(botData.settings.Messages.gateChannelDefaultMsg)
+		await gateChannel.send(Messages.gateChannelDefaultMsg)
 
 
 
 	@commands.Cog.listener("on_member_join")
 	async def promptUser(self, p_member: discord.Member):
 		if NewUserRequest.vRequestChannel == None:
-			NewUserRequest.vRequestChannel = self.botRef.get_channel(botData.settings.Channels.botAdminID)
+			NewUserRequest.vRequestChannel = self.botRef.get_channel(Channels.botAdminID)
 			if(NewUserRequest.vRequestChannel == None):
 				BotPrinter.Info("NEW USER REQUEST CHANNEL NOT FOUND!")
 				return
@@ -97,10 +78,10 @@ class NewUser(commands.Cog):
 
 			vEmbed = discord.Embed(colour=discord.Colour.from_rgb(0, 200, 50), 
 				title=f"Welcome to The Drunken Dogs, {p_member.display_name}!", 
-				description=botData.settings.Messages.newUserInfo
+				description=Messages.newUserInfo
 			) # End - vEmbed
 
-			vEmbed.add_field(name="ACCEPTANCE OF RULES", value=botData.settings.Messages.newUserRuleDeclaration, inline=True)
+			vEmbed.add_field(name="ACCEPTANCE OF RULES", value=Messages.newUserRuleDeclaration, inline=True)
 
 			vView = self.GenerateView(p_member.id)
 			gateChannel = self.botRef.get_channel(Channels.gateID)
@@ -245,7 +226,7 @@ class NewUser_MiniRules_btnAccept(discord.ui.Button):
 
 		await newUsrObj.rulesMsg.delete()
 
-		await p_interaction.response.send_message(botData.settings.Messages.newUserAcceptedRules, ephemeral=True)
+		await p_interaction.response.send_message(Messages.newUserAcceptedRules, ephemeral=True)
 
 
 
@@ -303,7 +284,7 @@ class PS2NameModal(discord.ui.Modal, title="Enter your PS2 Character name"):
 		BotPrinter.Debug(f"Checking player name for {pUser.display_name}: {pIGN}")
 
 		async with auraxium.Client() as ps2Client:
-			ps2Client.service_id = botData.settings.BotSettings.ps2ServiceID
+			ps2Client.service_id = BotSettings.ps2ServiceID
 			player: auraxium.ps2.Character = await ps2Client.get_by_name(auraxium.ps2.Character, f"{pIGN}")
 			if player is not None:
 				BotPrinter.Debug("	-> Found IGN!")
@@ -426,6 +407,7 @@ class NewUserRequest():
 		return vreturnList
 
 
+
 	async def SendRequest(self):
 		"""
 		# SEND REQUEST
@@ -499,8 +481,9 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		super().__init__(
 			custom_id=f"{self.userData.userObj.id}_joinRole",
 			placeholder="Assign a role...",
-			options=botData.settings.Roles.newUser_roles
+			options=Roles.newUser_roles
 		) # END - Init
+
 
 	async def callback(self, pInteraction: discord.Interaction):
 		if not await UserHasCommandPerms(pInteraction.user, (CommandLimit.validateNewuser), pInteraction):
@@ -512,26 +495,14 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		vGuild = await GetGuild(pInteraction.client)
 		vAllRoles = vGuild.roles
 		# vRole: discord.Role = None
-		rolesToAssign = []
+		rolesToAssign = [role
+		for role in vAllRoles
+		if role.id == int(self.values[0])
+		or (role.id == Roles.recruit and int(self.values[0]) == Roles.recruit) 
+		or role.id in Roles.autoAssignOnAccept]
 
-		for roleIndex in vAllRoles:
-			if roleIndex.id == int(self.values[0]):
-				BotPrinter.Debug("	-> ROLE MATCH")
-				rolesToAssign.append(roleIndex)
-				vAssignedRoleName = roleIndex.name
-
-				if roleIndex.id == Roles.recruit:
-					self.userData.bIsRecruit = True
-				continue
-
-			if roleIndex.id in Roles.autoAssignOnAccept:
-				rolesToAssign.append(roleIndex)
-				continue
-
-			# if roleIndex.id == NewUserSettings.recruitRole and roleIndex.name == vAssignedRoleName:
-			# 	self.userData.bIsRecruit = True
-			# 	rolesToAssign.append(roleIndex)
-			# 	continue
+		if Roles.recruit in rolesToAssign:
+			self.userData.bIsRecruit = True
 
 
 		BotPrinter.Info(f"Assigning {rolesToAssign} to {self.userData.userObj.display_name}")
@@ -559,7 +530,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 
 
 		# Create library entry, if enabled and user doesn't already have one:
-		if NewUserSettings.bCreateLibEntryOnAccept and not UserLibrary.HasEntry(self.userData.userObj.id):
+		if BotSettings.botFeatures.UserLibrary and NewUserSettings.bCreateLibEntryOnAccept and not UserLibrary.HasEntry(self.userData.userObj.id):
 			vUserLibEntry = User(
 				discordID=self.userData.userObj.id,
 				ps2Name=self.userData.ps2CharName,
@@ -573,7 +544,10 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 				vUserLibEntry.ps2OutfitRank = self.userData.ps2OutfitCharObj.rank
 				vUserLibEntry.ps2OutfitJoinDate = datetime.datetime.fromtimestamp(self.userData.ps2OutfitCharObj.member_since, datetime.timezone.utc)
 
-			self.userData.bIsRecruit = vUserLibEntry.bIsRecruit
+			vUserLibEntry.bIsRecruit = self.userData.bIsRecruit
+
+			if NewUserSettings.bLockPS2CharOnAccept:
+				vUserLibEntry.settings.bLockPS2Char = True
 
 			UserLibrary.SaveEntry(vUserLibEntry)
 
@@ -589,7 +563,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		if NewUserSettings.bShowAddRolesBtn:
 			vView.add_item(ShowRolesBtn(label="Click me to add roles!"))
 
-		await vGeneralChannel.send(f"Welcome, {self.userData.userObj.mention}!\nYou have been assigned the role: {vAssignedRoleName}.\n\n{botData.settings.Messages.newUserWelcome}", view=vView)
+		await vGeneralChannel.send(Messages.newUserWelcome.replace("_MENTION", self.userData.userObj.mention).replace("_ROLE", vAssignedRoleName))
 
 
 
@@ -598,4 +572,4 @@ class ShowRolesBtn(discord.ui.Button):
 	async def callback (self, p_interaction: discord.Interaction):
 		roleView = RoleManager(p_interaction.client, p_interaction.user, True)
 		roleView.vInteraction = p_interaction
-		await p_interaction.response.send_message( botData.settings.Messages.userAddingRoles, view=roleView, ephemeral=True )
+		await p_interaction.response.send_message( Messages.userAddingRoles, view=roleView, ephemeral=True )
