@@ -395,7 +395,7 @@ class Commander:
 
 	# Marked Present: Setting to determine when a participant is considered part of the event and their userLib entry is updated.
 	# A present participant has their "attended" value updated and the session stats saved.
-	markedPresent = botData.dataObjects.PS2EventAttended.InGameAndDiscordVC
+	markedPresent = botData.dataObjects.PS2EventAttended.InDiscordVCOnly
 
 	# Save Non PS2 Events to Sessions: When true, an entry for non-PS2 events is added to a users session history.
 	# Because there's no stats to show, only the date, duration and a message informing it isn't for ps2 are shown.
@@ -588,7 +588,7 @@ class UserLib:
 
 	# Auto Promote Enabled: When true, after a user has met the requirements, they are promoted (if appropriate role found).
 	# If False, a validation request is sent to the admin channel instead.
-	bAutoPromoteEnabled = True
+	bAutoPromoteEnabled = False
 
 	# Auto Promote Rules: A dataclass containing rules/conditions for auto promotion.
 	autoPromoteRules = botData.dataObjects.AutoPromoteRule(
@@ -597,14 +597,14 @@ class UserLib:
 		# Whether Events MUST be PS2 to be considerd.
 		bEventsMustBePS2= True,
 		# The number of events a recruit must participate in.
-		minimumEvents = 4,
+		minimumEvents = 1,
 		
 		# In Outfit For Duration: When true, a recruit must be in the ps2 outfit for the specified duration.
 		bInOutfitForDuration = True,
 		outfitDuration = relativedelta(days=7),
 
 		# In Discord For Duration: When true, a recruit must be in the discord server for the specified duration.
-		bInDiscordForDuration = True,
+		bInDiscordForDuration = False,
 		discordDuration = relativedelta(days=7)
 	)
 

@@ -269,13 +269,12 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 				vResultMessage += "Discord failed to update roles.\n"
 
 		if vUserEntry == None:
-			vNewEntry = User(discordID=p_User.id)
-			vNewEntry.bIsRecruit = True
+			vUserEntry = User(discordID=p_User.id)
 			vResultMessage += "User had no library entry! Entry was created.\n"
 		
-		else:
-			vUserEntry.bIsRecruit = True
-			vResultMessage += f"User library for {p_User.display_name} has been updated."
+		vUserEntry.bRecruitRequestedPromotion = False
+		vUserEntry.bIsRecruit = True
+		vResultMessage += f"User library for {p_User.display_name} has been updated."
 
 		UserLibrary.SaveEntry(vUserEntry)
 		vAdminChn = p_interaction.guild.get_channel( settings.Channels.botAdminID )
@@ -768,13 +767,14 @@ class UserLibrary():
 			BUPrint.LogErrorExc(f"Unable to remove file: {vPath}", error)
 
 
-	def GetRecruitRequirements(p_entry:User):
+	def GetRecruitRequirements(p_entry:User, p_asBool:bool = False):
 		"""
 		# GET RECRUIT REQUIREMENTS
 		Almost functionally equivilant to QueryRecruit, except returns a string of the user requrements and doesn't do any modification.
 
 		### RETURN 
-		# `string` of the requirements; for human reading.
+		- `string` of the requirements; for human reading.
+		- `bool` if p_asBool is true:  returns True if user meets requirements.
 		"""
 		if not p_entry.bIsRecruit:
 			return "User is not a recruit."
@@ -783,13 +783,13 @@ class UserLibrary():
 		vGuild = UserLibrary.botRef.get_guild(int(settings.BotSettings.discordGuild))
 		if vGuild == None:
 			BUPrint.Debug("Unable to get guild?")
-			return "*ERROR: Unable to get guild.*"
+			return "*ERROR: Unable to get guild.*" if not p_asBool else False
 		vDiscordUser = vGuild.get_member(p_entry.discordID)
 
 		if vDiscordUser == None:
 			BUPrint.Debug("User entry is for an invalid user.")
 			UserLibrary.RemoveEntry(p_entry)
-			return
+			return "INVALID USER!" if not p_asBool else False
 
 		bPromote = True
 		vPromoteRules = settings.UserLib.autoPromoteRules
@@ -836,7 +836,10 @@ class UserLibrary():
 			BUPrint.Debug("Not promoting user.")
 			return vRequirementsMsg
 		
-		return "Awaiting promotion!"
+		if p_asBool:
+			return bPromote
+		else:
+			return "Awaiting promotion!"
 
 
 
@@ -937,7 +940,7 @@ class UserLibrary():
 			if vRecruitRole != None and vPromotionRole != None:
 				break
 
-			if role.id == settings.NewUsers.recruitRole:
+			if role.id == settings.Roles.recruit:
 				vRecruitRole = role
 				continue
 
@@ -957,7 +960,7 @@ class UserLibrary():
 		# Notify Admin channel:
 		vAdminChn = vGuild.get_channel( settings.Channels.botAdminID )
 		if vAdminChn != None:
-			vAdminChn.send(f"User {p_member.display_name} was promoted to {vPromotionRole.name} ({vRecruitRole.name} removed)")
+			await vAdminChn.send(f"User {p_member.display_name} was promoted to {vPromotionRole.name} ({vRecruitRole.name} removed)")
 
 
 
@@ -998,7 +1001,9 @@ class LibraryViewer():
 	async def UpdateViewer(self):
 		"""
 		# SEND VIEWER
-		Updates the viewer message.
+		Updates the viewer message.  
+		
+		This is the function to call when needing to refresh the embed/view.
 		"""
 		if self.viewerMsg != None:
 			await self.viewerMsg.edit(view=self.GenerateView(), embed=self.GenerateEmbed())
@@ -1016,9 +1021,15 @@ class LibraryViewer():
 
 
 	def GenerateView(self):
+		"""# GENERATE VIEW:
+		Creates and returns a view with button assignment appropriate for the current page/userData.
+
+		When needing to update the viewer, use `UpdateViewer`.
+		"""
 		vView = LibViewer_view(self)
 		btn_configure = LibViewerBtn_setup(self)
 		btn_inbox = LibViewerBtn_inbox(self)
+		btn_promoteReq = LibViewerBtn_recruitRequestPromotion(self)
 		btn_General = LibViewerBtn_general(self)
 		btn_Ps2 = LibViewerBtn_planetside2(self)
 		btn_sessions = LibViewerBtn_sessions(self)
@@ -1029,6 +1040,11 @@ class LibraryViewer():
 		if self.bIsViewingSelf:
 			vView.add_item(btn_configure)
 			vView.add_item(btn_inbox)
+			if self.userEntry.bIsRecruit and not self.userEntry.bRecruitRequestedPromotion:
+				BUPrint.Debug("			CHECK REQUIREMENTS")
+				if UserLibrary.GetRecruitRequirements(self.userEntry, p_asBool=True):
+					vView.add_item(btn_promoteReq)
+					BUPrint.Debug("BUTON SHOULD BE ADDED. REEE")
 		vView.add_item(btn_General)
 		vView.add_item(btn_Ps2)
 		vView.add_item(btn_sessions)
@@ -1134,7 +1150,7 @@ class LibraryViewer():
 		if self.userEntry.birthday != None:
 			vEmbed.add_field(
 				name="Birthday",
-				value=f"{self.userEntry.birthday.day } of {self.userEntry.birthday.month}",
+				value=f"{self.userEntry.birthday.day } / {self.userEntry.birthday.month}",
 				inline=True
 			)
 
@@ -1357,6 +1373,23 @@ class LibViewerBtn_setup(discord.ui.Button):
 
 	async def callback (self, p_interaction:discord.Interaction):
 		await p_interaction.response.send_modal( LibViewer_ConfigureModal(self.vViewer) )
+
+
+
+class LibViewerBtn_recruitRequestPromotion(discord.ui.Button):
+	def __init__(self, p_viewer: LibraryViewer):
+		self.vViewer = p_viewer
+		super().__init__(label="Request Promotion!", row=0, style=discord.ButtonStyle.green)
+
+	async def callback(self, p_interaction:discord.Interaction):
+		vRequest = UserLib_RecruitValidationRequest( self.vViewer.userEntry )
+		await vRequest.SendRequest()
+
+		self.vViewer.userEntry.bRecruitRequestedPromotion = True
+		UserLibrary.SaveEntry(self.vViewer.userEntry)
+		await self.vViewer.UpdateViewer()
+
+		await p_interaction.response.send_message("Promotion request sent!", ephemeral=True)
 
 
 class LibViewerBtn_general(discord.ui.Button):
@@ -1650,7 +1683,7 @@ class UserLib_RecruitValidationRequest():
 
 		vUser = self.botRef.get_user(self.userEntry.discordID)
 
-		self.requestMsg = await vAdminChn.send(f"User {vUser.mention} is ready to be promoted!", view=vView)
+		self.requestMsg = await vAdminChn.send(f"**RECRUIT PROMOTION VALIDATION**\nUser {vUser.mention} has met the set criteria and is ready to be promoted!", view=vView)
 
 
 class RecruitValidationReq_btnAccept(discord.ui.Button):
@@ -1659,7 +1692,7 @@ class RecruitValidationReq_btnAccept(discord.ui.Button):
 		super().__init__(label="Promote!", style=discord.ButtonStyle.green)
 
 	async def callback(self, p_interaction:discord.Interaction):
-		vUser = self.parent.botRef.get_user(self.parent.userEntry.discordID)
+		vUser = p_interaction.guild.get_member(self.parent.userEntry.discordID)
 		
 		await UserLibrary.PromoteUser( vUser )
 
