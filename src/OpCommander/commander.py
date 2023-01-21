@@ -187,7 +187,6 @@ class Commander():
 			self.scheduler.add_job(OpsEventTracker.NewEventPoint, 'interval', seconds=commanderSettings.dataPointInterval, args=[self.vOpsEventTracker])
 			self.vOpsEventTracker.CreateTriggers()
 
-
 		await self.UpdateCommander()
 
 
@@ -210,6 +209,10 @@ class Commander():
 		if BotSettings.botFeatures.UserLibrary:
 			for participant in self.participants:
 				if participant.libraryEntry != None:
+
+					participant.userSession.date = self.trueStartTime
+					participant.userSession.duration = (datetime.now(timezone.utc) - self.trueStartTime).seconds / 3600
+
 					if participant.bAttended:
 						participant.libraryEntry.eventsAttended += 1
 						if participant.userSession != None:
@@ -217,7 +220,6 @@ class Commander():
 					else:
 						participant.libraryEntry.eventsMissed += 1
 
-					participant.userSession.duration = (datetime.now(timezone.utc) - self.trueStartTime)
 					userManager.UserLibrary.SaveEntry(participant.libraryEntry)
 		
 
@@ -526,8 +528,9 @@ class Commander():
 
 			# IN VOICE ONLY:
 			if  commanderSettings.markedPresent == PS2EventAttended.InDiscordVCOnly:
-				if participant.discordUser.voice.channel != None and participant.discordUser.voice in self.vCategory.voice_channels:
-					self.SetParticipantAttended(participant)
+				if participant.discordUser.voice != None :
+					if participant.discordUser.voice.channel in self.vCategory.voice_channels:
+						self.SetParticipantAttended(participant)
 				
 				continue
 
@@ -1104,7 +1107,7 @@ class Commander():
 		BUPrint.Debug("using normal feedback")
 		if self.notifFeedbackMsg == None:
 			self.notifFeedbackMsg = await self.notifChn.send(content=vFeedbackMsg, file=feedbackFile)
-			if self.vOpData.options.bIsPS2Event:
+			if self.vOpData.options.bIsPS2Event and commanderSettings.bTrackingIsEnabled:
 				await self.notifChn.send(content="Stat visualisation", file=statGraphAll)
 		
 		else:

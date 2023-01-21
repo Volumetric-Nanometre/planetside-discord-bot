@@ -219,6 +219,9 @@ class User:
 	# Save/Load will always revert this to False 
 	bKeepLoaded:bool = False
 
+	# Set to true when a recruit has manually requested promotion via library viewer.
+	bRecruitRequestedPromotion = False
+
 
 @dataclass
 class NewUserData:
