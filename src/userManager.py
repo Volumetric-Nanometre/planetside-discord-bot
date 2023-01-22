@@ -929,7 +929,6 @@ class UserLibrary():
 		"""
 		# PROMOTE USER
 		Applies the specified promotion role and removes the recruit role.
-		Quits
 		"""
 
 		vRecruitRole:discord.Role = None
@@ -1041,10 +1040,8 @@ class LibraryViewer():
 			vView.add_item(btn_configure)
 			vView.add_item(btn_inbox)
 			if self.userEntry.bIsRecruit and not self.userEntry.bRecruitRequestedPromotion:
-				BUPrint.Debug("			CHECK REQUIREMENTS")
 				if UserLibrary.GetRecruitRequirements(self.userEntry, p_asBool=True):
 					vView.add_item(btn_promoteReq)
-					BUPrint.Debug("BUTON SHOULD BE ADDED. REEE")
 		vView.add_item(btn_General)
 		vView.add_item(btn_Ps2)
 		vView.add_item(btn_sessions)
@@ -1328,6 +1325,8 @@ class LibraryViewer():
 			vEventString = ""
 			for event in p_session.funEvents:
 				vEventString += f"{event}\n"
+
+			vEventString = vEventString[:1024]
 			vEmbed.add_field(
 				name="Fun Events",
 				value=vEventString,

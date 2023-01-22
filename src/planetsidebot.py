@@ -25,7 +25,7 @@ from botData.sanityChecker import SanityCheck
 class Bot(commands.Bot):
 
     def __init__(self):
-        discord.utils.setup_logging()
+        discord.utils.setup_logging(root=False)
         super().__init__(command_prefix=['!'], intents=discord.Intents.all())
         
         if settings.BotSettings.bShowSettingsOnStartup:

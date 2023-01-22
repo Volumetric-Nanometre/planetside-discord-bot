@@ -435,8 +435,6 @@ class Parser():
 
 
 
-
-
 class OperationManager():
 	"""
 	# OPERATION MANAGER:
@@ -480,6 +478,7 @@ class OperationManager():
 					BUPrint.Info(f"Refreshing {vOpData}\n")
 				else:
 					BUPrint.Info(f"Refreshing {vOpData.fileName}")
+				
 				await self.UpdateMessage(vOpData)
 
 
