@@ -336,7 +336,11 @@ class Channels:
 	soberFeedbackID = 1042463290472800317
 
 	# Planetside2: ID of a planetside 2 text channel.
-	ps2TextID = 715337156255809568 # LIVE VALUE 
+	ps2TextID = 1063336834324766730 # DEV VALUE
+	# ps2TextID = 715337156255809568 # LIVE VALUE
+
+	# scheduleID = 818186731202936843
+	scheduleID = 1066527043526860800
 
 
 
@@ -505,6 +509,12 @@ class SignUps:
 
 	NOTE:  These are NOT settings for individual signups! See `botData.operations.operationOptions` for those.
 	"""
+
+	bAutoParseSchedule = True
+	"""# Auto Parse Schedule
+	When true, messages in the specified SCHEDULE channel are parsed.
+	If any matching events are found, the bot will offer to make them."""
+
 	# Auto Remove Outdated: On startup, or any call to Refresh Ops; if the event date is before the current date, remove it. 
 	bAutoRemoveOutdated = True
 	

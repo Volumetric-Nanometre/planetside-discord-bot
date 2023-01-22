@@ -249,28 +249,21 @@ class CommanderStatus(Enum):
 	
 	### Values are numerical.
 	"""
-	Init = -10		# Init: Commander has been created.
-	Standby = 0 	# Standby: Commander has been set up and waiting.
-	WarmingUp = 10	# Warming Up: Updates the commander post with connections modal.
-	GracePeriod = 15# Grace Period: The time just before an event properly starts, for event attendance.
-	Started = 20 	# Started: Ops has been started (either manually or by bot.)
-	Debrief = 30	# Debrief: Pre-End stage, users are given a reactionary View to provide feedback
-	Ended = 40		# Ended: User has ended Ops,  auto-cleanup.
+	Init = -10 
+	"""Init: Commander has been created."""
+	Standby = 0
+	"""Standby: Commander has been set up and waiting."""
+	WarmingUp = 10 
+	"""Warming Up: Updates the commander post with connections modal."""
+	GracePeriod = 15 
+	"""Grace Period: The time just before an event properly starts, for event attendance."""
+	Started = 20
+	"""Started: Ops has been started (either manually or by bot.)"""
+	Debrief = 30 
+	"""Debrief: Pre-End stage, users are given a reactionary View to provide feedback"""
+	Ended = 40
+	"""Ended: User has ended Ops,  auto-cleanup."""
 
-
-# class PS2EventTrackOptions(Enum):
-# 	"""
-# 	EVENT TRACKING OPTIONS:
-# 	Sets the requirements for when to enable tracking a ps2 event.
-# 	This enum is also used for marking present, where `InGameOnDisVDAndDuration` may be used.
-
-# 	NOTE: To change the setting, See `botData.settings.Commander.trackEvent`.
-# 	NOTE: In Game, On Discord Voice And Duration; the value is the time in minutes to be used.
-# 	"""
-# 	Disabled = 0
-# 	InGameOnly = 10
-# 	InGameAndDiscordVoice = 20
-# 	InGameOnDisVCAndDuration = 30
 
 
 class PS2EventAttended(Enum):
@@ -389,7 +382,8 @@ class Participant:
 	# OBJECT REFERENCES
 	discordUser : Member = None
 	libraryEntry : User = None
-	ps2CharID : int = -1 # Backup incase UserLibrary is disabled.
+	ps2CharID : int = -1
+	"""Used regardless of user library setting.  If library is enabled, this value is obtained from there when applicable."""
 	userSession : Session = None
 
 	# DATA
@@ -571,6 +565,19 @@ class ForFunVehicleDeath:
 
 	#############################################################
 # OPERATIONS SIGNUP
+
+@dataclass
+class SchedulerOpInfo:
+	"""# OP INFO: 
+	
+	A miniture operation info dataclass used soley for parsing the schedule.
+	"""
+	matchingOp: str = ""
+	eventName: str = ""
+	date: datetime = None
+	managingUser:str = ""
+	bCanPost:bool = False
+
 
 class OpsStatus(Enum):
 	"""
@@ -840,20 +847,12 @@ class OperationData:
 	def GetParticipantIDs(self) -> list[int]:
 		"""
 		# GET PARTICIPANT IDS
-		Returns all roles participants (IDs), including reserve if enabled in a list.
+		Returns all roles participants (Discord IDs), including reserve if enabled in a list.
 		"""
 		vIDList = [playerID for role in self.roles if self.roles.__len__() != 0 for playerID in role.players]
 		vIDList = vIDList + self.reserves
-
 		
-
 		botUtils.BotPrinter.Debug(f"PARTICIPANT IDS: {vIDList}")
-		# role: OpRoleData
-		# for role in self.roles:
-		# 	vIDList += role.players
-
-		# if self.options.bUseReserve:
-		# 	vIDList += self.reserves
 
 		return  vIDList
 
@@ -913,12 +912,15 @@ class ForFunData:
 	Strings may contian the following special replaceable substrings:
 	`_USER`: The user the string is typically about.
 	`_USERBY`: If the string is caused by another user, this is included; variable name is affixed with "By".
+	`_VEHICLE`: If the string relates to a flight death, this should be replaced with the offending vehicle (Valk/Galaxy/Lib?)
+	`_FLIGHTDEATHREASON` - Specific to morning greetings, for a little extra fun. :)
 	"""
 
 	# Party Death Bus: intended for the user library fun entries.
 	partyBusDeath = [
 		"Bought a one way ticket to Death Valley on _USER's bus.",
 		"Met an unfortunate ending when _USER's bus spontaneously exploded.",
+		"Received a lesson in 'how not to drive' by _USER.",
 	]
 	
 	# Party Bus Death By: when a user(s) is killed by being in someone elses sunderer.
@@ -928,28 +930,44 @@ class ForFunData:
 		"Attention _USER, your bus to Alive City took an unfortunate detour to Death Valley, on account of _USERBY",
 		"_USERBY forgot how to drive.  _USER found that out the hard way.",
 		"_USER made the *grave* mistake of getting into _USERBY's party bus.",
+		"Attention _USERBY!\nYou have been enrolled on a Sunderer driving course, courtesy of _USER",
+		"_USERBY forgot that wheels are supposed to touch the ground. __USER had to make use of the emergency bucket.",
+		"Dear _USERBY.\nI would like to inform you that sunderers do not fly, nor are their wheels supposed to aim upwards.\n\nSincerely, _USER",
 	]
 
-	# GalaxyDeath: Intended for user library fun entries.
-	galaxyDeath =[
-		"Met an unfortunate end when _USER's galaxy spontaneously exploded.",
-		"Waiting for a bonus check after _USER crashed their galaxy... again.",
+
+	flightDeath =[
+		"Met an unfortunate end when _USER's _VEHICLE spontaneously exploded.",
+		"Waiting for a bonus check after _USER crashed their _VEHICLE... again.",
 		"Died to _USER's inability to fly a skybus.",
-		"Got in _USER's Galaxy.  That was a *grave* mistake.",
+		"Got in _USER's _VEHICLE.  That was a *grave* mistake.",
+		"Received a lesson in 'How not to fly' by _USER."
 	]
+	#################
+	"""# FLIGHT DEATH:
+	Intended for user library entries (for fun).
+	When the player has been killed by a squadmate's (`_USER`) dying vehicle"""
 
-	# Galaxy Death by: When a user(s) (_USER) is killed by being in someone elses galaxy (_USERBY) 
-	galaxyDeathBy = [
+
+	flightDeathBy = [
 		"_USER just went splat after _USERBY forgot which way is up.",
-		"_USER is awaiting a bonus check after _USERBY crashed their galaxy.\n\n**Again.**",
-		"_USERBY forgot how to fly.  _USER paid the price.", 
-		"RIP _USER.  There's no funeral service since _USERBY is still paying their Galaxy Insurance Premium.",
-		"Really, _USER?  Next time you're in _USERBY's galaxy, familiarise yourself with the eject feature.  If you get in their galaxy again, that is.",
-		"ATTENTION!  _USERBY just obliterated _USER!\nHow you ask?  _USERBY had one too many to drink and crashed their galaxy.",
-		"_USERBY hit a stray branch with their galaxy and rooted _USER's death!",
-		"_USERBY hit a stray branch with their galaxy and killed _USER in a fiery inferno!",
-		"Who let _USERBY drink?  They did 3 loop-de-loops, flew upside down, went sideways and crashed backwards into a resupply tower.  Don't believe me?  Ask _USER!  Perhaps wait until they finish using the bucket, though."
+		"_USER is awaiting a bonus check after _USERBY crashed their _VEHICLE.\n\n**Again.**",
+		"_USERBY forgot how to fly.  _USER paid the price.",
+		"_USERBY forgot how to fly. _USER found that out the hard way.",
+		"RIP _USER.  There's no funeral service since _USERBY is still paying their _VEHICLE Insurance Premium.",
+		"Really, _USER?  Next time you're in _USERBY's _VEHICLE, familiarise yourself with the eject feature.  If you get in their _VEHICLE again, that is.",
+		"ATTENTION!  _USERBY just obliterated _USER!\nHow you ask?  _USERBY had one too many to drink and crashed their _VEHICLE.",
+		"_USERBY hit a stray branch with their _VEHICLE and rooted _USER's death!",
+		"_USERBY hit a stray branch with their _VEHICLE and killed _USER in a fiery inferno!",
+		"Who let _USERBY drink?  They did 3 loop-de-loops, flew upside down, went sideways and crashed backwards into a resupply tower.  Don't believe me?  Ask _USER!  Perhaps wait until they finish using the bucket, though.",
+		"After much deliberation, NC headquarters has deemed it appropriate to revoke _USERBY's _VEHICLE flying privilages.\n_USER, you will be sent a bonus check in due time for this incident.\n\nPlease alert us if _USERBY is seen flying a _VEHICLE again!",
+		"_USER got too comfortable in _USERBYs _VEHICLE...  \n\nCan I have some of those marshmellows?",
+		"_USER just became part of the scenery.  You can find their 'additions' right next to the burning remains of _USERBY's _VEHICLE.",
+		"Attention, _USERBY.\nYou have been enrolled on a _VEHICLE Flight training course, courtesy of _USER",
 	]
+	############
+	"""# Flight Death by:
+	When a user(s) (`_USER`) is killed by being in someone elses(`_USERBY`) galaxy/Valk (`_VEHICLE`)"""
 
 
 
@@ -975,6 +993,7 @@ class ForFunData:
 		"Morning, _USER. \nI heard you flown with DoubleD recently... how was it?  Did he _FLIGHTDEATHREASON?",
 		"¿ɹǝpun uʍop ǝɟıl s,ʍoɥ  ¡ƃuıuɹoɯ pooƃ",
 	]
+
 
 	morningGreetingsGif = [
 		"https://giphy.com/gifs/hello-hi-wave-xT9IgG50Fb7Mi0prBC",
