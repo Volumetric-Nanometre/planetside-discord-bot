@@ -391,7 +391,7 @@ class Commander:
 	bSaveNonPS2ToSessions = True
 
 	# Grace Period: The time after an ops has started before participants are evaluated and marked non attending if they fail the requirements for markedPresent.
-	gracePeriod = 1 # Minutes
+	gracePeriod = 10 # Minutes
 
 	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
 	bAutoStartEnabled = True
