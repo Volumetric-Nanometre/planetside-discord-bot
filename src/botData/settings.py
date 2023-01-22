@@ -309,7 +309,7 @@ class Channels:
 	Since multiple features may use these, they're stored here to avoid duplicates and messy name inclusions.
 	"""
 	# Bot Admin: The channel administrative tasks and notifications are sent to.
-	botAdminID = -1 # LIVE VALUE
+	botAdminID = 0 # LIVE VALUE
 
 	# Gate Channel: The channel considered to be the servers gate: should be viewable to new users.  It does not require chatting privilages.
 	gateID = 1041860598822096950

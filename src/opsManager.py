@@ -244,7 +244,7 @@ class Operations(commands.GroupCog):
 					continue
 
 				newOpData.date = postableOp.date
-				newOpData.managedBy = postableOp.managingUser
+				newOpData.managedBy = postableOp.managingUser.strip()
 
 				postableOpDatas.append(newOpData)
 				eventButtons.append( Btn_AutoPostEvent(newOpData) )
@@ -299,12 +299,15 @@ class Btn_AutoPostAll(discord.ui.Button):
 	async def callback(self, p_interaction:discord.Interaction):
 		await p_interaction.response.defer(thinking=True)
 		opMan = OperationManager()
+
+		eventsPosted = ""
 		for OpData in self.opDatas:
 			matchingOps = [existingOp for existingOp in OperationManager.vLiveOps if existingOp.name == OpData.name and existingOp.date == OpData.date]
 			if matchingOps.__len__() == 0:
 				await opMan.AddNewLiveOp(OpData)
+				eventsPosted += f"{OpData.name}\n"
 
-		await p_interaction.edit_original_response(content=f"Posted {self.opDatas.__len__()} events!")
+		await p_interaction.edit_original_response(content=f"Posted: {eventsPosted}")
 
 		if self.notifMessage != None:
 			await self.notifMessage.delete()
@@ -370,7 +373,7 @@ class Parser():
 
 			if line.__contains__("@"):
 				managingUserStart = re.search("@", line).start()
-				dayOpInfo.managingUser = line[managingUserStart:]
+				dayOpInfo.managingUser = line[managingUserStart:].replace("@", "").replace(">", "")
 				print(f"Managing user: {dayOpInfo.managingUser}")
 
 			
@@ -649,14 +652,14 @@ class OperationManager():
 			vFilePath += f"{botSettings.Directories.liveOpsDir}{p_opsData.fileName}.bin"
 		BUPrint.Debug(f"Saving file: {vFilePath}")
 		try:
-			botUtils.FilesAndFolders.GetLock(f"{vFilePath}.{botSettings.Directories.lockFileAffix}")
+			botUtils.FilesAndFolders.GetLock(f"{vFilePath}{botSettings.Directories.lockFileAffix}")
 			with open(vFilePath, "wb") as vFile:
 				pickle.dump(p_opsData, vFile)
 				BUPrint.Info("File saved sucessfully!")
-				botUtils.FilesAndFolders.ReleaseLock(f"{vFilePath}.{botSettings.Directories.lockFileAffix}")
+				botUtils.FilesAndFolders.ReleaseLock(f"{vFilePath}{botSettings.Directories.lockFileAffix}")
 		except:
 			BUPrint.LogError("Failed to save Ops Data to file!")
-			botUtils.FilesAndFolders.ReleaseLock(f"{vFilePath}.{botSettings.Directories.lockFileAffix}")
+			botUtils.FilesAndFolders.ReleaseLock(f"{vFilePath}{botSettings.Directories.lockFileAffix}")
 			return False
 		
 		# Save successful, return True.
@@ -903,20 +906,8 @@ class OperationManager():
 								botUtils.BotPrinter.LogError(f"User ID {user} is not found! Removing from data")
 								role.players.remove(user)
 
-				# Prepend role icon if not None:
-				vRoleName = ""
-				if role.roleIcon != "\u200b\n" or role.roleIcon != "-":
-					vRoleName += f"{role.roleIcon} "
-
-				vRoleName += role.roleName 
-				# Append current/max or just current depending on role settings.
-				if( int(role.maxPositions) > 0 ): 
-					vRoleName += f" ({len(role.players)}/{role.maxPositions})"
-				else:
-					vRoleName += f" ({len(role.players)})"
-
 				vEmbed.add_field(inline=True,
-				name=vRoleName,
+				name=role.GetRoleName(),
 				value=vSignedUpUsers)
 			# END of FOR loop.
 
@@ -1033,8 +1024,12 @@ class OperationManager():
 		# GET MANAGED BY
 		Returns a mentionable of a user specified to be the person running the Op.
 		"""
-		vGuild = self.vBotRef.get_guild(int(botSettings.BotSettings.discordGuild))
-		
+		vGuild = self.vBotRef.get_guild(botSettings.BotSettings.discordGuild)
+		if p_opData.managedBy.isnumeric():
+			vMember = vGuild.get_member(int(p_opData.managedBy))
+			if vMember != None:
+				return vMember.mention
+
 		vMember: discord.Member = discord.utils.find(lambda member: member.name == p_opData.managedBy, vGuild.members)
 		if vMember == None:
 			vMember: discord.Member = discord.utils.find(lambda member: member.display_name == p_opData.managedBy, vGuild.members)
@@ -1042,7 +1037,7 @@ class OperationManager():
 		if vMember != None:
 			return vMember.mention
 		
-		return None
+		return p_opData.managedBy
 
 
 	def RemoveUser(p_opData:OperationData, p_userToRemove:str):

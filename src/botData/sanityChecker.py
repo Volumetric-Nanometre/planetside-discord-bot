@@ -223,7 +223,7 @@ class SanityCheck():
 
 
 			# FALLBACK VOICE CHAT
-			checkChannel = vGuild.get_channel( Channels.voiceFallbackID )
+			checkChannel = vGuild.get_channel( Channels.voiceFallback )
 			if checkChannel == None:
 				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Voice Fallback")
 				bFailedCheck = True

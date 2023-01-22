@@ -100,7 +100,7 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 		for liveEvent in opsManager.OperationManager.vLiveOps:
 			signedUpRole = liveEvent.PlayerInOps(p_interaction.user.id)
 			if signedUpRole != "":
-				vMessage += f"- {liveEvent.name}, Starts {GetDiscordTime(liveEvent.date)}, signed up as: {signedUpRole}!"
+				vMessage += f"- **{liveEvent.name}**, Starts {GetDiscordTime(liveEvent.date)}, signed up as: **{signedUpRole}**!\n"
 
 			if liveEvent.status != OpsStatus.started and settings.UserLib.bShowJumpButtonsForGetEvents:
 				plainDate = f"{liveEvent.date.day}/{liveEvent.date.month}/{liveEvent.date.year}"
