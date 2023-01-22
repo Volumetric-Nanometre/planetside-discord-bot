@@ -352,7 +352,17 @@ class Channels:
 	ID of voice chat users are moved into after an event is over."""
 
 	
-	protectedCategoriesID = [744907524418961438, 710470871214587955, 818212652601966628, 710471344411770881, 734791662798241854, 1026549992829222952, 710470038968205393, 1042450013827117087, 796885440916488252]
+	protectedCategoriesID = [
+		744907524418961438, # Welcome
+		710470871214587955, # Important Channels
+		818212652601966628, # Sign-up
+		710471344411770881, # The Drunken Dogs
+		734791662798241854, # Games
+		1026549992829222952, # Jaeger
+		710470038968205393, # Planetside
+		1042450013827117087, # Soberdogs Stuff
+		796885440916488252, # Guides
+		]
 	"""# Protected Categories: 
 	ID of categories that cannot be deleted by chatMonitor.remove_category"""
 
