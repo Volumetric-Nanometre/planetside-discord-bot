@@ -530,6 +530,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Event Moveback:{Channels.eventMovebackID}\n"
 	vString += f"	> Protected Categories:\n		> {Channels.protectedCategoriesID}\n"
 	vString += f"	> Quotes:	{Channels.quoteID}\n"
+	vString += f"	> Schedule {Channels.scheduleID}\n"
 
 
 
@@ -569,6 +570,8 @@ def PrintSettings(bGetOnly = False):
 
 
 	vString += "\nSIGN UP SETTINGS\n"
+	vString += f"	> Parse Schedule: {SignUps.bAutoParseSchedule}\n"
+	vString += f"	> Autoremove Outdated: {SignUps.bAutoRemoveOutdated}\n"
 	vString += f"	> Signup Cat  : {SignUps.signupCategory}\n"
 	vString += f"	> Resign Icon : {SignUps.resignIcon}\n" 
 	vString += f"	> Reserve Icon: {SignUps.reserveIcon}\n"

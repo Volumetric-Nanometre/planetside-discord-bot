@@ -107,9 +107,9 @@ class Commander():
 			BUPrint.Debug("Event is PS2 related, creating tracker & client...")
 			self.vAuraxClient = auraxium.EventClient(service_id=BotSettings.ps2ServiceID)
 			self.vOpsEventTracker = OpsEventTracker(p_aurClient=self.vAuraxClient)
-			self.vOpsEventTracker.updateParentFunction = self.UpdateCommanderLive
-			self.vOpsEventTracker.parentReupdateTriggers = self.AuraxClientUnavailableRetry
-			self.vOpsEventTracker.parentSendForFunVehicleDeath = self.SendForFunVehicleDeath
+			self.vOpsEventTracker.updateParentFunction:callable = self.UpdateCommanderLive
+			self.vOpsEventTracker.parentReupdateTriggers:callable = self.AuraxClientUnavailableRetry
+			self.vOpsEventTracker.parentSendForFunVehicleDeath:callable = self.SendForFunVehicleDeath
 
 		# Alert & Autostart Scheduler
 		self.scheduler = AsyncIOScheduler()
@@ -169,7 +169,7 @@ class Commander():
 			BUPrint.Info("Commander has started already, skipping!")
 			return
 
-		self.trueStartTime = datetime.now(timezone.utc)
+		self.trueStartTime = datetime.utcnow()
 
 		BUPrint.Info(f"Event: {self.vOpData.name} started!")
 		self.scheduler.remove_all_jobs()
@@ -180,7 +180,7 @@ class Commander():
 
 		await self.MoveUsers(True)
 
-		self.scheduler.add_job(Commander.CheckAttendance, 'date', run_date=(datetime.now(tz=timezone.utc) + timedelta(minutes=commanderSettings.gracePeriod)), args=[self])
+		self.scheduler.add_job(Commander.CheckAttendance, 'date', run_date=(datetime.utcnow() + timedelta(minutes=commanderSettings.gracePeriod)), args=[self])
 
 		if self.vOpData.options.bIsPS2Event:
 			self.scheduler.add_job(Commander.UpdateCommanderLive, 'interval', seconds=(commanderSettings.dataPointInterval + 5), args=[self])
@@ -211,7 +211,7 @@ class Commander():
 				if participant.libraryEntry != None:
 
 					participant.userSession.date = self.trueStartTime
-					participant.userSession.duration = (datetime.now(timezone.utc) - self.trueStartTime).seconds / 3600
+					participant.userSession.duration = (datetime.utcnow() - self.trueStartTime).seconds / 3600
 
 					if participant.bAttended:
 						participant.libraryEntry.eventsAttended += 1
@@ -253,7 +253,7 @@ class Commander():
 				intervalTime = commanderSettings.autoPrestart / commanderSettings.autoAlertCount
 			else:
 				# Event started manually, set interval from time now; if event isn't in the past.
-				timeUntilOps:timedelta = datetime.now(tz=timezone.utc) - self.vOpData.date
+				timeUntilOps:timedelta = datetime.utcnow() - self.vOpData.date
 				if timeUntilOps > 0:
 					intervalTime = timeUntilOps.seconds * 60
 			
@@ -729,7 +729,7 @@ class Commander():
 		)
 		
 		vTempStr = "Auto Alerts Disabled"
-		if commanderSettings.bAutoAlertsEnabled:
+		if commanderSettings.bAutoAlertsEnabled and self.trueStartTime == None:
 			vTempStr = f"Auto Alerts Enabled\nSending: *{commanderSettings.autoAlertCount}*\n"
 
 			self.alertTimes.reverse()
@@ -738,6 +738,8 @@ class Commander():
 			for alertTime in self.alertTimes:
 				vTempStr += f"**{iteration}**: {GetDiscordTime(alertTime, DateFormat.Dynamic )}\n"
 				iteration += 1
+		elif self.trueStartTime != None:
+			vTempStr = "*Event has started.*"
 
 		vEmbed.add_field(
 			name="Alerts", 
@@ -848,7 +850,7 @@ class Commander():
 		vEmbed.add_field(name="PLAYERS", value=vPlayersStr)
 		vEmbed.add_field(name=f"STATUS:", value=vStatusStr)
 
-		vEmbed.set_footer(text=f"Last update: {datetime.now(tz=timezone.utc)}")
+		vEmbed.set_footer(text=f"Last update: {datetime.utcnow()}")
 
 		return vEmbed
 
@@ -886,7 +888,7 @@ class Commander():
 		if self.vOpsEventTracker.sessionStats.facilityFeed.__len__() != 0:
 			for feedEntry in self.vOpsEventTracker.sessionStats.facilityFeed:
 				vTempStr += f"{feedEntry}\n"
-				vTempStr = vTempStr[:1024]
+				vTempStr = vTempStr[1024:]
 		
 			vEmbed.add_field(
 				name="Facility Feed",
@@ -895,7 +897,7 @@ class Commander():
 			)
 
 
-		vEmbed.set_footer(text=f"Last update: {datetime.now(tz=timezone.utc)}")
+		vEmbed.set_footer(text=f"Last update: {datetime.utcnow()}")
 		return vEmbed
 
 
@@ -911,7 +913,7 @@ class Commander():
 
 		for role in self.vOpData.roles:
 			if role.players.__len__() < role.maxPositions or role.maxPositions < 0:
-				spareSpaces += f"**{role.roleName}** has **{role.maxPositions - role.players.__len__()}** available spots!\n"
+				spareSpaces += f"**{role.roleName}** has **{role.maxPositions - role.players.__len__()}** spots!\n"
 
 		# Compile message
 		vMessage = f"**REMINDER** | {self.vOpData.name} starts in {GetDiscordTime(self.vOpData.date)}!"
@@ -923,11 +925,11 @@ class Commander():
 			vMessage += f"\n{botMessages.OpsAutoMoveWarn}\n"
 		
 		if spareSpaces != "":
-			vMessage += "\n\n**ATTENTION** "
+			vMessage += "\n\n**AVAILABLE SPACES:** "
 			for pingableRole in roleMentions:
 				vMessage += f"{pingableRole}"
 
-			vMessage += f"\nThe following roles still have open spaces!\n{spareSpaces}\n*These numbers were accurate at the time of posting.*"
+			vMessage += f"\n{spareSpaces}\n*These numbers were accurate at the time of posting.*"
 
 
 		vView = discord.ui.View(timeout=None)
@@ -967,7 +969,7 @@ class Commander():
 		"""
 		self.scheduler.add_job(
 			OpsEventTracker.CreateTriggers,
-			"date", run_date=datetime.now(timezone.utc) + timedelta(minutes=5),
+			"date", run_date=datetime.utcnow() + timedelta(minutes=5),
 			args=[self.vOpsEventTracker]
 		)
 
@@ -1125,14 +1127,27 @@ class Commander():
 		- If it has been set, it's ran/sent.
 		"""
 		if p_event.bHasSetSchedTask:
+			BUPrint.Debug("	>> For fun vehicle event being posted!")
+
 			# Task has already been set; send message!
 			vGuild = await GetGuild(self.vBotRef)
 			ps2Channel = vGuild.get_channel(Channels.ps2TextID)
-			ps2Channel.send(p_event.message)
+			
+			if p_event.killedMentions == "":
+				BUPrint.Debug("Suicidal pilot.  SMH")
+				return
+
+			try:
+				await ps2Channel.send(p_event.message.replace("_USERBY", p_event.driverMention).replace("_USER", p_event.killedMentions))
+			except:
+				BUPrint.Debug("Excuse me wat. Python fix yer shit.")
+
+			self.vOpsEventTracker.forFunVehicleDeaths.remove(p_event)
 		
 		else:
+			BUPrint.Debug("	>> For fun vehicle event being scheduled!")
 			p_event.bHasSetSchedTask = True
-			self.scheduler.add_job(Commander.SendForFunVehicleDeath, "date", run_date=(datetime.now(timezone.utc) + timedelta(seconds=10)), args=[self, p_event])
+			self.scheduler.add_job(Commander.SendForFunVehicleDeath, "date", run_date=(datetime.utcnow() + timedelta(seconds=10)), args=[self, p_event])
 
 ############  COMMANDER BUTTON CLASSES
 

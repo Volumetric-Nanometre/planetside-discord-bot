@@ -15,7 +15,7 @@ from botUtils import BotPrinter as BUPrint
 from botUtils import GetDiscordTime
 from botData.utilityData import DateFormat
 
-from botData.settings import ForFun
+from botData.settings import ForFun, BotSettings
 from botData.dataObjects import EventPoint, Participant, EventID, PS2SessionKDA, PS2SessionEngineer, PS2SessionMedic, ForFunData, ForFunVehicleDeath, FacilityData, PS2EventTotals
 
 from random import choice
@@ -46,7 +46,7 @@ class OpsEventTracker():
 		self.sessionStats:PS2EventTotals = PS2EventTotals()
 		self.sessionStats.eventKDA = PS2SessionKDA()
 
-		self.forFunVehicleDeaths: list[ForFunVehicleDeath]
+		self.forFunVehicleDeaths: list[ForFunVehicleDeath] = []
 
 		# More detailed, time set data.
 		self.eventPoints: list[EventPoint] = []
@@ -300,7 +300,7 @@ class OpsEventTracker():
 
 
 
-	def GetForFunVehicleEvent(self, p_killerID, p_vehicleID):
+	async def GetForFunVehicleEvent(self, p_killerID, p_vehicleID):
 		"""# GET FOR FUN VEHICLE EVENT:
 		Checks existing vehicle events for a matching event and returns it if present.
 
@@ -312,8 +312,9 @@ class OpsEventTracker():
 
 		# No existing event, make new one and run parent command which will post it after a delay.
 		newEvent = ForFunVehicleDeath(driverCharID=p_killerID, driverVehicleID=p_vehicleID)
+
 		self.forFunVehicleDeaths.append(newEvent)
-		self.parentSendForFunVehicleDeath(newEvent)
+		await self.parentSendForFunVehicleDeath(newEvent)
 
 		return newEvent
 
@@ -323,8 +324,6 @@ class OpsEventTracker():
 		pass
 
 # # # # # EVENT FUNCTIONS
-
-	# def PlayerDeath(self, )
 
 	def EngSquadVehicleRepair(self, p_event: event.GainExperience):
 		""" # ENGINEER SQUAD VEHICLE REPAIR:
@@ -346,6 +345,7 @@ class OpsEventTracker():
 		vParticipant.userSession.engineerData.repairScore += p_event.amount
 	
 
+
 	def EngSquadResupply(self, p_event: event.GainExperience):
 		""" # ENGINEER SQUAD RESUPPLY:
 		Event function for when a player gains experience from repairing a squad vehicle.
@@ -366,6 +366,7 @@ class OpsEventTracker():
 		vParticipant.userSession.engineerData.resupplyScore += p_event.amount
 
 
+
 	def MedicSquadHeal(self, p_event: event.GainExperience):
 		"""# MEDIC SQUAD HEAL
 		Event function for when a player gains experience from healing a squadmate.
@@ -384,6 +385,7 @@ class OpsEventTracker():
 		
 		# Set participants data:
 		vParticipant.userSession.medicData.heals += p_event.amount
+
 
 
 	def MedicSquadRevive(self, p_event: event.GainExperience):
@@ -407,6 +409,7 @@ class OpsEventTracker():
 		vParticipant.userSession.score += p_event.amount
 
 
+
 	def GotKill(self, p_event: event.GainExperience):
 		"""# GOT KILL:
 		Function to run when a player has gotten a kill.
@@ -423,7 +426,6 @@ class OpsEventTracker():
 		vParticipant.userSession.kda.kills += 1
 
 		self.sessionStats.eventKDA.kills += 1
-
 		
 
 
@@ -443,6 +445,7 @@ class OpsEventTracker():
 	async def Died(self, p_event: event.Death):
 		"""# DIED
 		Function to run when a player died."""
+
 		BUPrint.Debug("Player died :(")
 		self.currentEventPoint.deaths += 1
 
@@ -474,9 +477,11 @@ class OpsEventTracker():
 			self.sessionStats.eventKDA.killedSquad += 1
 
 			if ForFun.bBroadcastPS2VehicleDeath or ForFun.bPS2VehicleDeathFunEvent:
+				BUPrint.Debug("FFVehicle Death enabled.  Checking if participant was flying/driving!")
 				if p_event.attacker_vehicle_id != 0:
+					BUPrint.Debug("They were! :O")
 
-					vFunEvent = self.GetForFunVehicleEvent(p_event.attacker_character_id, p_event.attacker_vehicle_id)
+					vFunEvent = await self.GetForFunVehicleEvent(p_event.attacker_character_id, p_event.attacker_vehicle_id)
 
 					bIsDriver = bool(vParticipant.ps2CharID == vAttacker.ps2CharID)
 					if bIsDriver:
@@ -486,24 +491,44 @@ class OpsEventTracker():
 					if p_event.attacker_vehicle_id == 11:
 						
 						if not bIsDriver:
-							vParticipant.userSession.funEvents.append( choice(ForFunData.galaxyDeath).replace("_USER"), vAttacker.discordUser.mention )
 							vFunEvent.killedMentions += f"{vParticipant.discordUser.mention} "
+							if BotSettings.botFeatures.UserLibrary and BotSettings.botFeatures.UserLibraryFun:
+								vParticipant.userSession.funEvents.append( choice(ForFunData.flightDeath).replace("_USER", vAttacker.discordUser.mention).replace("_VEHICLE", "Galaxy") )
+
 						
 						if vFunEvent.message == "":
-							vFunEvent.message = choice(ForFunData.galaxyDeathBy)
+							vFunEvent.message = choice(ForFunData.flightDeathBy).replace("_VEHICLE", "Galaxy")
+
+
+					# VAKJ:
+					if p_event.attacker_vehicle_id == 14:
+						
+						if not bIsDriver:
+							vFunEvent.killedMentions += f"{vParticipant.discordUser.mention} "
+							if BotSettings.botFeatures.UserLibrary and BotSettings.botFeatures.UserLibraryFun:
+								vParticipant.userSession.funEvents.append( choice(ForFunData.flightDeath).replace("_USER", vAttacker.discordUser.mention).replace("_VEHICLE", "Valkyrie") )
+
+						
+						if vFunEvent.message == "":
+							vFunEvent.message = choice(ForFunData.flightDeathBy).replace("_VEHICLE", "Valkryrie")
+						
 
 
 
 					# SUNDERER
 					elif p_event.attacker_vehicle_id == 1:
 						if not bIsDriver:
-							vParticipant.userSession.funEvents.append( choice(ForFunData.partyBusDeath).replace("_USER"), vAttacker.discordUser.mention )
 							vFunEvent.killedMentions += f"{vParticipant.discordUser.mention} "
+							if BotSettings.botFeatures.UserLibrary and BotSettings.botFeatures.UserLibraryFun:
+								vParticipant.userSession.funEvents.append( choice(ForFunData.partyBusDeath).replace("_USER", vAttacker.discordUser.mention) )
 
 						if vFunEvent.message == "":
 							vFunEvent.message = choice(ForFunData.partyBusDeathBy)
-			
-			# Do not need to continue.
+
+					else:
+						BUPrint.Debug(f"Vehicle ID was {p_event.attacker_vehicle_id}")
+
+			# End of: Attacker != None
 			return
 
 

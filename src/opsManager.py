@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import os, copy
-import datetime, dateutil.relativedelta
+from datetime import datetime, timezone
+from dateutil.relativedelta import relativedelta
 import pickle
 
 import discord
@@ -15,7 +16,7 @@ from botData.settings import Messages as botMessages
 from botData import settings as botSettings
 import botData.settings
 # import botData.operations as OpData
-from botData.dataObjects import OperationData, OpRoleData, OpsStatus
+from botData.dataObjects import OperationData, OpRoleData, OpsStatus, SchedulerOpInfo
 from botData.utilityData import Colours, DateFormat
 
 import OpCommander.commander
@@ -26,12 +27,16 @@ from botUtils import GetPOSIXTime, GetDiscordTime
 from botUtils import BotPrinter as BUPrint
 
 from botModals.opsManagerModals import *
+import re
 
 
 class Operations(commands.GroupCog):
 	def __init__(self, p_bot):
 		super().__init__()
 		self.bot : commands.Bot = p_bot
+		
+		if botSettings.SignUps.bAutoParseSchedule:
+			self.bot.add_listener(self.CheckSchedule, "on_message")
 		BUPrint.Info("COG: Operations loaded.")
 
 	@app_commands.command(name="add", description="Add a new Ops event")
@@ -63,7 +68,7 @@ class Operations(commands.GroupCog):
 		pMonth: app_commands.Range[int, 1, 12], 
 		pHour: app_commands.Range[int, 0, 23], 
 		pMinute:app_commands.Range[int, 0, 59],
-		pYear: int  = datetime.datetime.now().year,
+		pYear: int  = datetime.now().year,
 		pArguments: str = "",
 		pManagedBy: str = "",
 		pAdditionalInfo: str = ""
@@ -75,12 +80,12 @@ class Operations(commands.GroupCog):
 		await pInteraction.response.defer(thinking=True, ephemeral=True)
 
 		botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
-		vDate = datetime.datetime(
+		vDate = datetime(
 			year=pYear,
 			month=pMonth,
 			day=pDay,
 			hour=pHour, minute=pMinute,
-			tzinfo=datetime.timezone.utc)
+			tzinfo=timezone.utc)
 
 		vOpTypeStr = str(optype).replace("OpsType.", "")
 
@@ -130,7 +135,7 @@ class Operations(commands.GroupCog):
 				vEditor.vEditorMsg = await pInteraction.original_response()
 
 			else:
-				if newOpsData.date < datetime.datetime.now(tz=datetime.timezone.utc):
+				if newOpsData.date < datetime.now(tz=timezone.utc):
 					await pInteraction.edit_original_response(content="Cannot create an event for the past!")
 					return
 
@@ -211,7 +216,199 @@ class Operations(commands.GroupCog):
 				# Allows bypassing discords max 25 item limit on dropdown lists.
 				choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option.replace(".bin", "")))
 		return choices
+
+
+	async def CheckSchedule(self, p_message:discord.Message):
+		if p_message.channel.id == botSettings.Channels.scheduleID:
+			if p_message.content.__len__() < 100:
+				return
+
+			BUPrint.Debug(p_message.content)
+
+			schedOpInfos = Parser.ParseSchedule(p_message.content)
+
+			selfPostable = [opInfo for opInfo in schedOpInfos if opInfo.bCanPost]
+
+			adminChannel = self.bot.get_channel(botSettings.Channels.botAdminID)
+
+			vMessage = f"{p_message.author.mention} | Detected new schedule!\n"
+
+			eventButtons = []
+			postableOpDatas = []
+
+			for postableOp in selfPostable:
+
+				newOpData = OperationManager.LoadFromFile( f"{botSettings.Directories.savedDefaultsDir}{postableOp.matchingOp}")
+
+				if newOpData == None:
+					continue
+
+				newOpData.date = postableOp.date
+				newOpData.managedBy = postableOp.managingUser
+
+				postableOpDatas.append(newOpData)
+				eventButtons.append( Btn_AutoPostEvent(newOpData) )
+
+				vMessage += f"Found: **{postableOp.eventName}**. Closest matching default: **{postableOp.matchingOp}**, with date: **{GetDiscordTime(postableOp.date, DateFormat.DateTimeShort)}**\n"
+
+			if postableOpDatas.__len__() > 0:
+
+				vMessage += f"\n\nUse buttons below to post detected events."
+
+				messageView = discord.ui.View()
+
+				btnPostAll = Btn_AutoPostAll(postableOpDatas)
+				if postableOpDatas.__len__() > 1:
+					messageView.add_item( btnPostAll )
+	
+				for eventButton in eventButtons:
+					messageView.add_item(eventButton)
+
+				
+				btnPostAll.notifMessage = await adminChannel.send(content=vMessage, view=messageView, delete_after=180)
+
 # END- Commands.CogGroup
+
+class Btn_AutoPostEvent(discord.ui.Button):
+	def __init__(self, p_opData:OperationData):
+		self.opData = p_opData
+		super().__init__(label=f"{p_opData.name}|{p_opData.date.day}/{p_opData.date.month}-{p_opData.date.hour}:{p_opData.date.minute}")
+
+	async def callback(self, p_interaction:discord.Interaction):
+		await p_interaction.response.defer(thinking=True)
+		for existingOps in OperationManager.vLiveOps:
+			if existingOps.date == self.opData.date:
+				if self.opData.name == existingOps.name:
+					await p_interaction.edit_original_response(content="This event has been added already!")
+					return
+
+		opMan = OperationManager()
+		await opMan.AddNewLiveOp(self.opData)
+
+		await p_interaction.edit_original_response(content=f"{self.opData.name} posted!")
+
+
+
+
+class Btn_AutoPostAll(discord.ui.Button):
+	def __init__(self, p_opDatas:list[OperationData]):
+		self.opDatas = p_opDatas
+		self.notifMessage:discord.Message = None
+		super().__init__(label="Post all", style=discord.ButtonStyle.blurple)
+
+	async def callback(self, p_interaction:discord.Interaction):
+		await p_interaction.response.defer(thinking=True)
+		opMan = OperationManager()
+		for OpData in self.opDatas:
+			matchingOps = [existingOp for existingOp in OperationManager.vLiveOps if existingOp.name == OpData.name and existingOp.date == OpData.date]
+			if matchingOps.__len__() == 0:
+				await opMan.AddNewLiveOp(OpData)
+
+		await p_interaction.edit_original_response(content=f"Posted {self.opDatas.__len__()} events!")
+
+		if self.notifMessage != None:
+			await self.notifMessage.delete()
+
+
+
+
+class Parser():
+	def ParseSchedule(p_schedule:str) -> list[SchedulerOpInfo]:
+		"""# PARSE SCHEDULE:
+		The function to call to parse a schedule.
+
+		## RETURNS
+		`list[OpInfo]`: A list of OpInfos for each day.
+		Op Info: A miniture dataclass of minimal data used to construct new events.
+		"""
+		dateSections = Parser.GetSections(p_schedule)
+
+		dayOpInfos = []
+		for dayInfo in dateSections:
+			dayOpInfos.append(Parser.ParseDay(dateSections[len(dayOpInfos)]))
+
+		return dayOpInfos
+
+
+
+	def ParseDay(pSection:str):
+		if pSection.__len__() < 20:
+			return SchedulerOpInfo()
+
+		dayOpInfo = SchedulerOpInfo()
+		defaultOpNames = OperationManager.GetDefaultOpsAsList()
+
+		for line in pSection.split("\n"):
+			if line.__contains__("• "):
+				eventName = line.replace("• ", "")
+				eventName = eventName.replace(":", "")
+				eventName = "".join(char.lower() for char in eventName if not char.isnumeric())
+
+				dayOpInfo.eventName = eventName.replace("<t>", "")
+				eventNameWords = [word.lower() for word in eventName.split() if word.__len__() > 3]
+
+				closestMatch:str = ""
+				highestMatchWordCount = 0
+
+				for defaultOpName in defaultOpNames:
+					defaultOpWords = [word.lower() for word in defaultOpName.split()]
+					matchingWords = [word.lower() for word in defaultOpWords if word in eventNameWords]
+					
+					if matchingWords.__len__() > highestMatchWordCount and highestMatchWordCount < defaultOpWords.__len__():
+						highestMatchWordCount = matchingWords.__len__()
+						closestMatch = defaultOpName
+
+				if highestMatchWordCount != 0:
+					dayOpInfo.matchingOp = closestMatch
+
+
+				timeInLine = "".join(char for char in line if char.isnumeric())
+				if timeInLine.isnumeric():
+					dayOpInfo.date = datetime.fromtimestamp(int(timeInLine), timezone.utc)
+					print(f"Date/Time: {dayOpInfo.date}")
+
+
+			if line.__contains__("@"):
+				managingUserStart = re.search("@", line).start()
+				dayOpInfo.managingUser = line[managingUserStart:]
+				print(f"Managing user: {dayOpInfo.managingUser}")
+
+			
+			if dayOpInfo.matchingOp != "" and dayOpInfo.date != None:
+				dayOpInfo.bCanPost = True
+
+
+		return dayOpInfo
+
+
+
+
+	def GetSections(pText:str):
+		"""# GET SECTIONS:
+		Returns a list of strings, containing each 'section' of the schedule."""
+
+		mondayPos = re.search("Monday", pText).start()
+		tuesPos = re.search("Tuesday", pText).start()
+		wedsPos = re.search("Wednesday", pText).start()
+		thursPos = re.search("Thursday", pText).start()
+		friPos = re.search("Friday", pText).start()
+		satPos = re.search("Saturday", pText).start()
+		sunPos = re.search("Sunday", pText).start()
+
+		sections = []
+		sections.append(pText[mondayPos:tuesPos].strip())
+		sections.append(pText[tuesPos:wedsPos].strip())
+		sections.append(pText[wedsPos:thursPos].strip())
+		sections.append(pText[thursPos:friPos].strip())
+		sections.append(pText[friPos:satPos].strip())
+		sections.append(pText[satPos:sunPos].strip())
+		sections.append(pText[sunPos:].strip())
+
+		return sections
+
+
+
+
 
 
 class OperationManager():
@@ -244,7 +441,7 @@ class OperationManager():
 		for vOpData in self.vLiveOps:
 			bRemoveOp = False
 			if botSettings.SignUps.bAutoRemoveOutdated:
-				dateNow = datetime.datetime.now(tz=datetime.timezone.utc)
+				dateNow = datetime.now(tz=timezone.utc)
 				if dateNow > vOpData.date:
 					bRemoveOp = True
 
@@ -510,7 +707,8 @@ class OperationManager():
 		Creates a notification timer for the operation.
 
 		## RETURN: 
-		# True on fully succesful adding, False if a problem occured.
+		- `True` on fully succesful adding, 
+		- `False` if a problem occured.
 		"""
 		BUPrint.Info(f"Adding a new LIVE operation: {p_opData.name}!")
 
@@ -707,7 +905,7 @@ class OperationManager():
 
 				# Prepend role icon if not None:
 				vRoleName = ""
-				if role.roleIcon != "\u200b\n" :
+				if role.roleIcon != "\u200b\n" or role.roleIcon != "-":
 					vRoleName += f"{role.roleIcon} "
 
 				vRoleName += role.roleName 
@@ -922,7 +1120,7 @@ class OperationManager():
 			BUPrint.Debug("Autostart is globally disabled.")
 			return
 
-		startTime = p_opData.date - dateutil.relativedelta.relativedelta(minutes=botSettings.Commander.autoPrestart + 5)
+		startTime = p_opData.date - relativedelta(minutes=botSettings.Commander.autoPrestart + 5)
 
 		autoCommanderCog: OpCommander.autoCommander.AutoCommander = self.vBotRef.get_cog("AutoCommander")
 		if autoCommanderCog == None:
@@ -972,7 +1170,7 @@ class OperationManager():
 			BUPrint.Info("Auto Commander Cog not found. Unable to continue.")
 
 
-		startTime = p_opdata.date - dateutil.relativedelta.relativedelta(minutes=botSettings.Commander.autoPrestart + 5)
+		startTime = p_opdata.date - relativedelta(minutes=botSettings.Commander.autoPrestart + 5)
 
 		BUPrint.Info(f"Adding auto-start entry for: {p_opdata.fileName}, using message ID: {p_opdata.messageID} Scheduled for: {startTime}")
 
