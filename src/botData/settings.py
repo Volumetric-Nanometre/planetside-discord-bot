@@ -512,6 +512,10 @@ class SignUps:
 	When true, messages in the specified SCHEDULE channel are parsed.
 	If any matching events are found, the bot will offer to make them."""
 
+	autoParseTimeout = 300
+	"""# Auto Parse Timeout:
+	The number of seconds before the view and message for an auto-parse message is removed."""
+
 	# Auto Remove Outdated: On startup, or any call to Refresh Ops; if the event date is before the current date, remove it. 
 	bAutoRemoveOutdated = True
 	

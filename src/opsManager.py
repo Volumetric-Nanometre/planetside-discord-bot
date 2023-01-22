@@ -255,7 +255,7 @@ class Operations(commands.GroupCog):
 
 				vMessage += f"\n\nUse buttons below to post detected events."
 
-				messageView = discord.ui.View()
+				messageView = discord.ui.View(botSettings.SignUps.autoParseTimeout)
 
 				btnPostAll = Btn_AutoPostAll(postableOpDatas)
 				if postableOpDatas.__len__() > 1:
@@ -265,7 +265,7 @@ class Operations(commands.GroupCog):
 					messageView.add_item(eventButton)
 
 				
-				btnPostAll.notifMessage = await adminChannel.send(content=vMessage, view=messageView, delete_after=180)
+				btnPostAll.notifMessage = await adminChannel.send(content=vMessage, view=messageView, delete_after=botSettings.SignUps.autoParseTimeout)
 
 # END- Commands.CogGroup
 
@@ -279,7 +279,7 @@ class Btn_AutoPostEvent(discord.ui.Button):
 		for existingOps in OperationManager.vLiveOps:
 			if existingOps.date == self.opData.date:
 				if self.opData.name == existingOps.name:
-					await p_interaction.edit_original_response(content="This event has been added already!")
+					await p_interaction.edit_original_response(content=f"{self.opData.fileName} has been added already!")
 					return
 
 		opMan = OperationManager()

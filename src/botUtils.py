@@ -571,6 +571,7 @@ def PrintSettings(bGetOnly = False):
 
 	vString += "\nSIGN UP SETTINGS\n"
 	vString += f"	> Parse Schedule: {SignUps.bAutoParseSchedule}\n"
+	vString += f"	> Parse Schedule timeout: {SignUps.autoParseTimeout}\n"
 	vString += f"	> Autoremove Outdated: {SignUps.bAutoRemoveOutdated}\n"
 	vString += f"	> Signup Cat  : {SignUps.signupCategory}\n"
 	vString += f"	> Resign Icon : {SignUps.resignIcon}\n" 
