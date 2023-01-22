@@ -215,6 +215,13 @@ class SanityCheck():
 				bFailedCheck = True
 
 		if checkOptions.UsedByCommander:
+			# SCHEDULE CHANNEL
+			checkChannel = vGuild.get_channel( Channels.scheduleID )
+			if checkChannel == None:
+				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Schedule")
+				bFailedCheck = True
+
+
 			# FALLBACK VOICE CHAT
 			checkChannel = vGuild.get_channel( Channels.voiceFallbackID )
 			if checkChannel == None:
