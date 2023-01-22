@@ -31,7 +31,7 @@ class BotSettings:
 	ps2ServiceID = Env.PS2_SVS_ID
 	botDir		 = Env.BOT_DIR
 
-	# BOT FEATURES:  Convenience setting to Enable or Disable Cog functionality.  Any co-dependnacy will behave based on these settings.
+
 	botFeatures = botData.dataObjects.BotFeatures(
 		# Bot Admin: Enables commands specifically for administrative bot tasks (currently, just show config & shutdown)
 		BotAdmin= True,
@@ -65,32 +65,37 @@ class BotSettings:
 		# For Fun Cog: Cog that implements 'for fun' features that do not depend on other bot functionality.
 		ForFunCog=True,
 	)
+	"""# BOT FEATURES:  Convenience setting to Enable or Disable Cog functionality.  Any co-dependnacy will behave based on these settings.
+	"""
 
-	# Debug Enabled: set to false during live use to reduce console clutter.
 	bDebugEnabled = True
+	"""# Debug Enabled: set to false during live use to reduce console clutter.
+	"""
 
-	# Show Settings on Startup: When true, the bots settings are displayed in the console.
 	bShowSettingsOnStartup = True
+	"""# Show Settings on Startup: When true, the bots settings are displayed in the console.
+	"""
 
-	# Show settings on startup: Discord: Same as above, but posts the config into bot-admin channel
 	bShowSettingsOnStartup_discord = False
+	"""# Show settings on startup: Discord: Same as above, but posts the config into bot-admin channel
+	"""
 
+	bForceRoleRestrictions = True
 	"""Force Role restrictions: 
 	when true, hard-coded restrictions prohibit command usage based on the roles in roleRestrict variables.
 	users unable to call commands setup within the discord client are still unable to call commands regardless of this setting.
 	As such, this is merely a redundancy if security concerned.
 	
 	Check Roles below to see the individual levels."""
-	bForceRoleRestrictions = True
 
-	# Error Output: Where error output is sent; if not stderr, must be a file path.
 	errorOutput = stderr
+	"""# Error Output: Where error output is sent; if not stderr, must be a file path.
+	"""
 
-	# CHECK VALUES: When true, values are sanity checked on bot start, recommended to stay on.
-	# If Debug is enabled, this prints out any invalid entries, else it prevents bot from continuing.
 	bCheckValues = True
+	"""# CHECK VALUES: When true, values are sanity checked on bot start, recommended to stay on.
+	If Debug is enabled, this prints out any invalid entries, else it prevents bot from continuing."""
 
-	# Sanity Check Options: Enable/Disable sanity check for features that may have been disabled
 	sanityCheckOpts = botData.dataObjects.SanityCheckOptions(
 		UsedByNewUser= True,
 		UsedByOperations= True,
@@ -99,9 +104,12 @@ class BotSettings:
 		UsedByUserRoles= True,
 		RestrictLevels= True
 	)
+	"""# Sanity Check Options: Enable/Disable sanity check for features that may have been disabled
+	"""
 
-	# Pickle Protocol: Int value denoting the pickle protocol to use.
 	pickleProtocol = pickle.HIGHEST_PROTOCOL
+	"""# Pickle Protocol: Int value denoting the pickle protocol to use.
+	"""
 
 
 	
@@ -126,31 +134,33 @@ class Roles:
 
 	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
 	
-	# ROLE RESTRICT: ADMIN	A special role restrict reserved specifically for those entrusted with BotAdmin. While named roleRestrict, only User IDs should be used.
 	roleRestrict_ADMIN = [182933627242283008] # LIVE VALUE: Cactus
+	"""	# ROLE RESTRICT: ADMIN
+	A special role restrict reserved specifically for those entrusted with BotAdmin. While named roleRestrict, only User IDs should be used."""
 	
-	
-	# Recruit: The ID of the RECRUIT role.
 	recruit = 780253442605842472
+	"""# Recruit
+	ID of the recruit role."""
 
-	# Recruit Promotion: The id of the role recruits are promoted to.
 	recruitPromotion = 710472193045299260 # DrunkenDog
+	"""# recruit Promotion
+	The ID of the role recruits are promoted to."""
 
-	# Auto Assign on Promotion: List of role IDs that are always assigned to users when their join request is accepted.
 	autoAssignOnAccept = [
 		818218528372424744, # Tags
 		]
+	"""# Auto Assign on Accept:
+	List of role IDs that are always assigned to users when their join request is accepted."""
 
 
-	# Provides a dropdown containing these roles for giving to new users.
 	newUser_roles = [ 
 		SelectOption(label="Recruit", value=f"{recruit}"),
 		SelectOption(label="Drunken Dog", value="710472193045299260"),
 		SelectOption(label="The Washed Masses", value="710502581893595166"),
 		SelectOption(label="The Unwashed Masses", value="719219680434192405")
 	]
+	"""New User Roles:  Roles listed in a new user join request that an admin may assign."""
 
-	# ADD ROLES - TDKD:  Roles used in the /roles command, "tdkd" role selector 
 	addRoles_TDKD = [
 		SelectOption(label="Planetside Pings", value="977873609815105596", description="Non-major PS2 events/fellow\n drunken doggos looking for company"),
 		SelectOption(label="Sober Dogs", value="745004244171620533", description="More serious, coordinated infantry events"),
@@ -161,8 +171,8 @@ class Roles:
 		SelectOption(label="PS2 Twitter", value="832241383326744586", description="Planetside 2 Twitter posts"),
 		SelectOption(label="Jaeger", value="1024713062776844318", description="Jeager events")
 	]
+	"""Add Roles: TDKD:  Roles listed in the "TDKD" selector for the /roles commands."""
 
-	# ADD ROLES - GAMES : Role selectors used in the /roles command.
 	addRoles_games1 = [
 		SelectOption(label="Post Scriptum", value="791308463241691146"),
 		SelectOption(label="Squad", value="808413252685529108"),
@@ -190,6 +200,7 @@ class Roles:
 		SelectOption(label="Warthunder", value="976598559266857030"),
 		SelectOption(label="Gates of Hell", value="1000366778133774528")
 	]
+	"""Add Roles: Games 1:  Roles listed in the "Games 1" selector for the /roles commands."""
 
 	addRoles_games2 = [
 		SelectOption(label="Overwatch", value="1029138196518420531"),
@@ -218,6 +229,7 @@ class Roles:
 		# SelectOption(label="", value=""),
 		# SelectOption(label="", value="")
 	]
+	"""Add Roles: Games 2:  Roles listed in the "Games 2" selector for the /roles commands."""
 
 	addRoles_games3 = [
 		# SelectOption(label="", value=""),
@@ -246,6 +258,7 @@ class Roles:
 		# SelectOption(label="", value=""),
 		# SelectOption(label="", value="")
 	]
+	"""Add Roles: Games 3:  Roles listed in the "Games 3" selector for the /roles commands."""
 
 
 
@@ -277,26 +290,26 @@ class CommandLimit:
 
 	NOTE: Admin cog has no CommandLimit entry, because it uses the direct roleRestrict_ADMIN value.
 	"""
-	# New Users (Admin Buttons)
 	validateNewuser = CommandRestrictionLevels.level1
+	"""Command limit for New User validation buttons."""
 
-	# General User role add/remove user assignable roles (Commands)
 	userRoles = CommandRestrictionLevels.level3
+	"""Command limit for User Roles commands"""
 
-	# Op Manager: Add/Edit operations (Commands).
 	opManager = CommandRestrictionLevels.level1
+	"""Command limit for Op Manager commands."""
 
-	# Op Commander Start/Feedback (Commands)
 	opCommander = CommandRestrictionLevels.level2
+	"""Command limit for Op Commander commands."""
 
-	# User Library: General users (Commands)
 	userLibrary = CommandRestrictionLevels.level3
+	"""Command limit for User library commands, specific to general users"""
 
-	# Administrative User Library (Commands)
 	userLibraryAdmin = CommandRestrictionLevels.level1
+	"""Command limit for user library commands, specific to administrative commands."""
 
-	# Chat Utilities - Administrative (Commands)
 	chatUtilities = CommandRestrictionLevels.level1
+	"""Command limit for chat utility commands."""
 
 
 
@@ -308,37 +321,60 @@ class Channels:
 	
 	Since multiple features may use these, they're stored here to avoid duplicates and messy name inclusions.
 	"""
-	# Bot Admin: The channel administrative tasks and notifications are sent to.
+
 	botAdminID = 0 # LIVE VALUE
+	"""# Bot Admin: 
+	The channel administrative tasks and notifications are sent to."""
 
-	# Gate Channel: The channel considered to be the servers gate: should be viewable to new users.  It does not require chatting privilages.
+	
 	gateID = 1041860598822096950
+	"""# Gate Channel: 
+	The channel considered to be the servers gate: should be viewable to new users.  It does not require chatting privilages."""
 
-	# Rule Channel: ID of the rule channel used to fetch the rules Message. 
+
 	ruleID = 913086821263626360
+	"""# Rule Channel: 
+	ID of the rule channel used to fetch the rules Message. """
 
-	# General Chat: ID of the general text channel.
-	generalID = 710469797439078400 # (general) 
 
-	# Voice Fallback: A channel that users are moved to when their current one is removed (by the bot)
+	generalID = 710469797439078400 # (general)
+	"""	# General Chat: 
+	ID of the general text channel."""
+
+	
 	voiceFallback = 710854499782361140 # (general)
+	"""# Voice Fallback: 
+	A channel that users are moved to when their current one is removed (by the bot)"""
 
-	# Event MoveBack: ID of voice chat users are moved into after an event is over.
+	
 	eventMovebackID = 1023703124839518338 # (planetside2)
+	"""# Event MoveBack: 
+	ID of voice chat users are moved into after an event is over."""
 
-	# Protected Categories: ID of categories that cannot be deleted by chatMonitor.remove_category
+	
 	protectedCategoriesID = [744907524418961438, 710470871214587955, 818212652601966628, 710471344411770881, 734791662798241854, 1026549992829222952, 710470038968205393, 1042450013827117087, 796885440916488252]
+	"""# Protected Categories: 
+	ID of categories that cannot be deleted by chatMonitor.remove_category"""
 
-	# Quote Channel ID: If this is not found, the event listener is not added.
+
 	quoteID = 1036349723059159040
+	"""# Quote Channel ID: 
+	If this is not found, the event listener is not added."""
 
-	# Sober Feedback: ID of the soberDogs feedback/debrief FORUM.
+	
 	soberFeedbackID = 1042463290472800317
+	"""# Sober Feedback: 
+	ID of the soberDogs feedback/debrief FORUM."""
 
-	# Planetside2: ID of a planetside 2 text channel.
+
 	ps2TextID = 715337156255809568
+	"""# PS" Text ID:
+	ID of the planetside 2 TEXT channel."""
+
 
 	scheduleID = 818186731202936843
+	"""# Schedule ID:
+	ID of the schedule text channel"""
 
 
 
@@ -348,24 +384,35 @@ class NewUsers:
 	# NEW USERS
 	Settings pertaining to the bot behaviour for `NewUser` cog.
 	"""
-	# Create Library Entry on Accept: When true, after a user has been accepted, automatically create a user entry for them.
 	bCreateLibEntryOnAccept = True
+	"""	# Create Library Entry on Accept: 
+	When true, after a user has been accepted, automatically create a user entry for them."""
 
-	# Lock PS2 Character on Accept: When true (and user library enabled), disable allowing a user to change their character name via viewer config.
+	
 	bLockPS2CharOnAccept = True
+	"""# Lock PS2 Character on Accept:
+	When true (and user library enabled), disable allowing a user to change their character name via viewer config."""
 
-	# Warn if a user claims a ps2 character name with a rank equal or higher than this (numerical, lower = higher rank.)
+	
 	outfitRankWarn = 4
+	"""# Outfit Rank Warning
+	Warn if a joining user claims a ps2 character name with a rank equal or higher than this (numerical, lower = higher rank.)"""
 
-	# New User Date Warning, discord account is less than x months old.
+
 	newAccntWarn = 3
+	"""# New Account Warning:
+	Warn when a joining users account is less than this many months old."""
 
-	# Rule Message ID: The id of a message which contains the server rules (if not in an embed, falls back to message content)  Make sure `Channels.ruleID` is also set.
+	
 	ruleMsgID = 977888774530932767
+	"""# Rule Message ID:
+	The id of a message which contains the server rules (if not in an embed, falls back to message content)  Make sure `Channels.ruleID` is also set."""
 
-	# Show Add Roles Button: When true, a button to add roles is shown in the welcome message.
-	# It is advisable to ensure the message "NewUserWelcome" reflects the presence (or lack thereof) of this button.
+
 	bShowAddRolesBtn = True
+	"""# Show Add Roles Button:
+	When true, a button to add roles is shown in the welcome message.
+	It is advisable to ensure the message "NewUserWelcome" reflects the presence (or lack thereof) of this button."""
 
 
 
@@ -377,40 +424,61 @@ class Commander:
 	# COMMANDER
 	Settings used by Op Commanders.
 	"""
-	# Tracking is Enabled: When true, the PS2 tracker is used.
+	
 	bTrackingIsEnabled = True
+	"""# Tracking is Enabled: 
+	When true, the PS2 tracker is used for PS2 events."""
 
-	# Marked Present: Setting to determine when a participant is considered part of the event and their userLib entry is updated.
-	# A present participant has their "attended" value updated and the session stats saved.
+	
 	markedPresent = botData.dataObjects.PS2EventAttended.InGameAndDiscordVC
+	"""# Marked Present: 
+	Setting to determine when a participant is considered part of the event and their userLib entry is updated.
+	A present participant has their "attended" value updated and the session stats saved."""
 
-	# Save Non PS2 Events to Sessions: When true, an entry for non-PS2 events is added to a users session history.
-	# Because there's no stats to show, only the date, duration and a message informing it isn't for ps2 are shown.
+	
 	bSaveNonPS2ToSessions = True
+	"""# Save Non PS2 Events to Sessions: 
+	When true, an entry for non-PS2 events is added to a users session history.
+	Because there's no stats to show, only the date, duration and a message informing it isn't for ps2 are shown."""
 
-	# Grace Period: The time after an ops has started before participants are evaluated and marked non attending if they fail the requirements for markedPresent.
+
+	
 	gracePeriod = 10 # Minutes
+	"""# Grace Period: 
+	The time after an ops has started before participants are evaluated and marked non attending if they fail the requirements for markedPresent."""
 
-	# Auto Start Commander: if true, Ops Commanders will automatically *start* their operation at the defined start time.
+	
 	bAutoStartEnabled = True
+	"""# Auto Start Commander:
+	When true, Ops Commanders will automatically *start* their operation at the defined start time."""
 
-	# Enable Commander Auto Alerts: If true, Op Commanders will periodically alert users a set amount of times (below)
+	
 	bAutoAlertsEnabled = True
+	"""# Enable Commander Auto Alerts: 
+	If true, Op Commanders will periodically alert users a set amount of times (below)"""
 
-	# Commander Auto Alert Count: The number of automatic alerts a commander will send. These are distributed throughout the pre-start time.
+
 	autoAlertCount = 3
+	"""	# Commander Auto Alert Count: 
+	The number of automatic alerts a commander will send. These are distributed throughout the pre-start time."""
 
-	# Commander- Auto Move Voice Channel: If enabled, participating users are moved to the standby channel on Ops start if they're in a voice channel.
+	
 	bAutoMoveVCEnabled = True
+	"""# Commander- Auto Move Voice Channel: 
+	If enabled, participating users are moved to the standby channel on Ops start if they're in a voice channel."""
 
-	# Number of minutes before an ops scheduled start the bot prestarts AutoStart enabled Ops (Non AutoStart enabled Ops require a user to use `/ops-commander` command)
-	# A buffer of 5 minutes is added to this time to ensure sufficient time for setup (especially in the case of a slow connection/bot).
+	
 	autoPrestart = 45
+	"""# Auto Prestart:
+	Number of minutes before an ops scheduled start the bot prestarts AutoStart enabled Ops (Non AutoStart enabled Ops require a user to use `/ops-commander` command)
+	NOTE: A buffer of 5 minutes is added to this time to ensure sufficient time for setup (especially in the case of a slow connection/bot)."""
 
-	# Data Point Interval:  Interval in seconds a new data point for event tracking is set.
+
 	dataPointInterval = 60
+	"""	# Data Point Interval:
+	Interval in seconds a new data point for event tracking is set."""
 
-	# These channels are created for EVERY event, inside its own category, which are then removed when the event ends.
+
 	defaultChannels = botData.dataObjects.DefaultChannels(
 		# Text Channels: Persistent text channels that are always created.
 		textChannels= [],
@@ -430,6 +498,9 @@ class Commander:
 		# Voice Channels: If custom channels are not specified in the Op Data, these are used instead.
 		voiceChannels= ["Squad-Alpha", "Squad-Bravo", "Squad-Charlie", "Squad-Delta"]
 	)
+	"""# DEFAULT CHANNELS:
+	Voice and text channels used by all events."""
+
 
 	# Icons for the CONNECTIONS embed.
 		# Discord
@@ -461,38 +532,50 @@ class Directories:
 	If changing the values, make sure slashes are present when needed.
 	"""
 
-	# File directory to preceed all directories.  This is not hard-coded, if you so wish, each directory can be anywhere.
 	prefixDir = f"{BotSettings.botDir}/SavedData/"
+	"""Prefix Directory:
+	File directory to preceed all directories.  This is not hard-coded, if you so wish, each directory can be anywhere."""
 
-	# File directory for live Ops.
 	liveOpsDir = f"{prefixDir}LiveOps/"
+	"""# Live Ops Dir:
+	Directory of saved data for LIVE events"""
 
-	# File directory for saved defaults.
 	savedDefaultsDir = f"{prefixDir}Defaults/"
+	"""# Saved Defaults:
+	Directory of saved data for DEFAULT events."""
 
-	# File directory for saved user data.
 	userLibrary = f"{prefixDir}Users/"
+	"""# User Library:
+	Directory of saved data for user library entries"""
 
-	# File directory for saved recruit user data.  Separated to make getting just recruits less intensive.
 	userLibraryRecruits = f"{userLibrary}Recruits/"
+	"""# User Library Recruits:
+	Directory of saved data for recruit user library entries.  
+	Seperated to make finding recruit entries more efficient."""
 
-	# File directory for temporary files.
 	tempDir = f"{prefixDir}temp/"
+	"""# Temp Directory:
+	Directory of a temporary folder which is periodically cleaned out."""
 
-	# Name used on lock files as an affix.
 	lockFileAffix = ".LOCK"
+	"""# Lock File Affix:
+	Name of the affix to use for lock files."""
 
-	# Feedback Prefix: The string prefixed to a saved feedback file.
 	feedbackPrefix = "FEEDBACK_"
+	"""#Feedback Prefix:
+	The prefix to prepend on feedback text files."""
 
-	# Number of attempts to try obtaining a lock before returning.
 	lockFileRetry = 5
+	"""# Lock File Retry:
+	Number of tries a function attempts to get a lock on a file- prevents multiple accessing at once."""
 
-	# Clean Temp Every: Interval for cleanup utility task.
 	cleanTempEvery = 120 #Hours.
+	"""# Clean Temp Every:
+	Number of hours between each temp file emptying, starting from when the bot was started."""
 
-	# Clean Temp on Shutdown: When the bot is closed, if True the temp directory is cleared.
 	bCleanTempOnShutdown = False
+	"""# Clean Temp on Shutdown:
+	When true, the bots temp directory is cleaned on shutdown."""
 
 
 
@@ -516,32 +599,47 @@ class SignUps:
 	"""# Auto Parse Timeout:
 	The number of seconds before the view and message for an auto-parse message is removed."""
 
-	# Auto Remove Outdated: On startup, or any call to Refresh Ops; if the event date is before the current date, remove it. 
-	bAutoRemoveOutdated = True
 	
-	# The category name (results are searched in lower, so this is generally case insensitive.)
-	# If not found, this category is created.
+	bAutoRemoveOutdated = True
+	"""# Auto Remove Outdated: 
+	On startup, or any call to Refresh Ops; if the event date is before the current date, remove it. """
+	
+	
 	signupCategory = "SIGN UP"
+	"""# Signup Category
+	The category name (results are searched in lower, so this is generally case insensitive.)
+	If not found, this category is created."""
 
-	# Resign as Button: True, Resign is a separate button. False, Resign is added to the role selector.  
+	
 	bResignAsButton = True
+	"""# Resign as Button:
+	True, Resign is a separate button. False, Resign is added to the role selector."""
 
-	# Icon used for built in RESIGN role.
+	
 	resignIcon = "❌"
+	"""# Icon used for built in RESIGN role."""
 
-	# Icon used for built in RESERVE role
+	
 	reserveIcon = "⭕"
+	"""# Icon used for built in RESERVE role"""
 
-	# Auto Prestart Enabled: If true, an Ops commander is created automatically at the auto-prestart adjusted time.
-	# This is a global overwrite. Individual ops have an option to disable this.
+	
 	bAutoPrestartEnabled = True
+	"""# Auto Prestart Enabled: 
+	If true, an Ops commander is created automatically at the auto-prestart adjusted time.
+	This is a global overwrite. Individual ops have an option to disable this."""
 
-	# Show Options in Footer: When true, the ops settings are shown in the footer, in a condensed format;
-	# "AS:E|UR:E|UC:D|SDF:D" - AutoStart: Enabled, Use Reserve: Enabled, Use Compact: Disabled, Soberdogs Feedback: Disabled 
+	
 	bShowOptsInFooter = True
+	"""# Show Options in Footer: 
+	When true, the ops settings are shown in the footer, in a condensed format;
+	"AS:E|UR:E|UC:D|SDF:D" - AutoStart: Enabled, Use Reserve: Enabled, Use Compact: Disabled, Soberdogs Feedback: Disabled """
 
-	# The maximum number of roles a single event can have.  Must take into consideration discords limit of 25 embed elements, and 25 max select items.
+	
 	maxRoles = 20
+	"""# Max Roles:
+	The maximum number of roles a single event can have.  
+	Must take into consideration discords limit of 25 embed elements, and 25 max select items."""
 
 
 
@@ -552,42 +650,62 @@ class UserLib:
 	# USER LIBRARY
 	Settings pertaining to the behaviour of the user library.
 	"""
-	# Entry Retention: How user library entries are kept in memory: Always loaded, UnloadAfter, and WhenNeeded.
+	
 	entryRetention = botData.dataObjects.EntryRetention.alwaysLoaded
+	"""# Entry Retention: 
+	How user library entries are kept in memory: Always loaded, UnloadAfter, and WhenNeeded."""
 
-	#Entry Retention: Unload after- If `UnloadAfter` is used, entries are removed if they haven't been "got" or "saved" within this period. 
+	
 	entryRetention_unloadAfter = 30 # minutes.
+	"""#Entry Retention: Unload after- 
+	If `UnloadAfter` is used, entries are removed if they haven't been "got" or "saved" within this period. """
 
-	# Entry Retention: Check Interval: the interval the checking task is set to.  If `unloadAfter` is not set, this task is not added.
+	
 	entryRetention_checkInterval = 5 # Minutes
+	"""# Entry Retention: Check Interval: 
+	The interval the checking task is set to.  If `unloadAfter` is not set, this task is not added."""
 
-	# Enable Special Users: when true, user viewer checks for a matching ID .txt file.
-	# The contents of this file are added to the General page; only admins are able to modify this text.
+
 	bEnableSpecialUsers = True
+	"""# Enable Special Users: 
+	when true, user viewer checks for a matching ID .txt file.
+	The contents of this file are added to the General page; only admins are able to modify this text."""
 
-	# Enable Inbox: When true, certain bot features may send an item to a users inbox (including admin warns)
+	
 	bEnableInbox = True
+	"""# Enable Inbox: 
+	When true, certain bot features may send an item to a users inbox (including admin warns)"""
 
-	# Commander can Auto Create: When true, new user library entries are created for non-existant entries if a valid ps2 name is found from their username during a live operation.
+	
 	bCommanderCanAutoCreate = True
+	"""# Commander can Auto Create: 
+	When true, new user library entries are created for non-existant entries if a valid ps2 name is found from their username during a live operation."""
 
-	# User Can Self Create: When true, if an entry doesn't exist for a user and its themself, a new entry is created.
+	
 	bUserCanSelfCreate = True
+	"""# User Can Self Create: 
+	When true, if an entry doesn't exist for a user and its themself, a new entry is created."""
 
-	# Max Saved Events: The maximum number of saved events a users entry can hold.  -1 for no limit, or 0 to disable.
+	
 	maxSavedEvents = -1
+	"""# Max Saved Events:
+	The maximum number of saved events a users entry can hold.  -1 for no limit, or 0 to disable."""
 
-	# Auto Query Recruit Time: The time(s) during the day in which all recruits are queried.
-	# Querying a recruit checks the recruit requirements, if met; they are promoted/promotion validation request is sent.
+	
 	autoQueryRecruitTime = [
 		time(hour=10, minute=00, tzinfo=timezone.utc)
 	]
+	"""# Auto Query Recruit Time: 
+	The time(s) during the day in which all recruits are queried.
+	Querying a recruit checks the recruit requirements, if met; they are promoted/promotion validation request is sent."""
 
-	# Auto Promote Enabled: When true, after a user has met the requirements, they are promoted (if appropriate role found).
-	# If False, a validation request is sent to the admin channel instead.
+	
 	bAutoPromoteEnabled = False
+	"""# Auto Promote Enabled: 
+	When true, after a user has met the requirements, they are promoted (if appropriate role found).
+	If False, a validation request is sent to the admin channel instead."""
 
-	# Auto Promote Rules: A dataclass containing rules/conditions for auto promotion.
+	
 	autoPromoteRules = botData.dataObjects.AutoPromoteRule(
 		# Attended Minimum Events: When true, a recruit must participate in the specified number of events.
 		bAttendedMinimumEvents = True,
@@ -604,31 +722,45 @@ class UserLib:
 		bInDiscordForDuration = True,
 		discordDuration = relativedelta(days=7)
 	)
+	"""# Auto Promote Rules: 
+	A dataclass containing rules/conditions for auto promotion."""
 
-	# Session Preview Max: The number of saved sessions that are previewed in a libraryViewer general page.
+	
 	sessionPreviewMax = 5
+	"""# Session Preview Max:
+	The number of saved sessions that are previewed in a libraryViewer general page."""
 
-	# Session Browser Max Per Page: Maximum number of sessions the browser page (and the dropdown) will show.  Cannot go above 25.
+	
 	sessionMaxPerPage = 10
+	"""# Session Browser Max Per Page:
+	Maximum number of sessions the browser page (and the dropdown) will show.  Cannot go above 25."""
 
-	# Remove Entry On Leave: If true, a users entry is removed when they leave the server.
+	
 	bRemoveEntryOnLeave = False
+	"""# Remove Entry On Leave:
+	If true, a users entry is removed when they leave the server."""
 
-	# Remove Special Entry on Leave: If true, a users special entry is removed when they leave the server.
-	# If enabled, requires `bRemoveEntryOnLeave` to also be TRUE.
+	
 	bRemoveSpecialEntryOnLeave = False
+	"""# Remove Special Entry on Leave: 
+	If true, a users special entry is removed when they leave the server.
+	If enabled, requires `bRemoveEntryOnLeave` to also be TRUE."""
 
-	# Show Jump Buttons for Get Events: When true, when a user uses "/my_events", the result message includes a view with jump buttons to signupable events.
+	
 	bShowJumpButtonsForGetEvents = True
+	"""# Show Jump Buttons for Get Events: 
+	When true, when a user uses "/my_events", the result message includes a view with jump buttons to signupable events."""
 
 
 	# FUN STUFF: Settings here pertain to little funny things: due to their nonserious nature, they're not displayed in /Config or Console output.
 
-	# Top Quote: When a quote receives this amount of reactions, the mentioned user has the quote added to their library entry. 0 or negative value to disable.
 	topQuoteReactions = 5
+	"""# Top Quote: 
+	When a quote receives this amount of reactions, the mentioned user has the quote added to their library entry. 0 or negative value to disable."""
 
-	# The maximum number of saved/displayed quotes.
 	maxQuotes = 3
+	"""# Max Quotes:
+	The maximum number of saved/displayed top quotes."""
 
 
 
@@ -640,33 +772,47 @@ class ForFun:
 	"""
 	
 # MORNING GREETING SETTINGS
-	# Morning Greeting: When true, the bot responds to a message containing "morning". (to avoid every instance, the message must have less than 3 space characters.)
 	bMorningGreeting = True
+	"""# Morning Greeting: 
+	When true, the bot responds to a message containing "morning". (to avoid every instance, the message must have less than 3 space characters.)"""
 
-	# Only in General: When true, if the channel isn't the specified general channel, don't respond.
 	bOnlyInGeneral = False
+	"""# Only in General: 
+	When true, if the channel isn't the specified general channel, don't respond."""
 
-	# Random Gif: When true, the bots selection of responses includes a list of gifs.  This is implied false if the gif list is empty.
 	bMorningGreetingRandomGif = True
+	"""# Random Gif: 
+	When true, the bots selection of responses includes a list of gifs.  This is implied false if the gif list is empty."""
 
-	# Morning Greeting minimum time: the minimum time since the last greeting was sent, used to prevent spam.
 	morningGreetingMinTime = relativedelta(minutes=5)
+	"""# Morning Greeting minimum time: 
+	the minimum time since the last greeting was sent, used to prevent spam."""
 
-	# Morning Greetings: list of greetings to a user who says "morning", any instance of "_USER" is replaced with a mention.
-	# Proxy to `DataObjects.ForFunData`
 	morningGreetings =  botData.dataObjects.ForFunData.morningGreetings
+	"""# Morning Greetings: 
+	list of greetings to a user who says "morning", any instance of "_USER" is replaced with a mention.
+	Proxy to `DataObjects.ForFunData`"""
 
 	morningGreetingsGif = botData.dataObjects.ForFunData.morningGreetingsGif
+	"""# Morning Greetings GIF: 
+	list of gif greetings to a user who says "morning",.
+	Proxy to `DataObjects.ForFunData`"""	
 
 	flightDeathReason = botData.dataObjects.ForFunData.flightDeathReason
-
+	"""# Flight Death Reason: 
+	List of fun flight death reasons for a specific subset of text greetings.
+	Proxy to `DataObjects.ForFunData`"""
 
 # PS2 VEHICLE DEATHS:
-	# PlanetSide2 Vehicle Death: When true, if a player is killed by another participants sunderer or galaxy, it's broadcasted to the PS2 text channel. 
 	bBroadcastPS2VehicleDeath = True
+	"""# PlanetSide2 Vehicle Death: 
+	When true, if a player is killed by another participants sunderer or galaxy, it's broadcasted to the PS2 text channel.
+	This only occurs during tracked events."""
 
-	# Planetside 2 Vehicle Death: Fun event- when true, same as above except its added to users' UserLibrary.
 	bPS2VehicleDeathFunEvent = True
+	"""# Planetside 2 Vehicle Death: 
+	Fun event- when true, same as above except its added to users' UserLibrary.
+	This only occurs during tracked events."""
 
 
 

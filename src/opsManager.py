@@ -255,7 +255,7 @@ class Operations(commands.GroupCog):
 
 				vMessage += f"\n\nUse buttons below to post detected events."
 
-				messageView = discord.ui.View(botSettings.SignUps.autoParseTimeout)
+				messageView = discord.ui.View(timeout=botSettings.SignUps.autoParseTimeout)
 
 				btnPostAll = Btn_AutoPostAll(postableOpDatas)
 				if postableOpDatas.__len__() > 1:
@@ -263,13 +263,15 @@ class Operations(commands.GroupCog):
 	
 				for eventButton in eventButtons:
 					messageView.add_item(eventButton)
-
 				
 				btnPostAll.notifMessage = await adminChannel.send(content=vMessage, view=messageView, delete_after=botSettings.SignUps.autoParseTimeout)
 
 # END- Commands.CogGroup
 
+
+
 class Btn_AutoPostEvent(discord.ui.Button):
+	"""Button class specifically for the Schedule Parser.  Posts an individual event."""
 	def __init__(self, p_opData:OperationData):
 		self.opData = p_opData
 		super().__init__(label=f"{p_opData.name}|{p_opData.date.day}/{p_opData.date.month}-{p_opData.date.hour}:{p_opData.date.minute}")
@@ -291,6 +293,7 @@ class Btn_AutoPostEvent(discord.ui.Button):
 
 
 class Btn_AutoPostAll(discord.ui.Button):
+	"""Button class specifically for the Schedule Parser.  Posts All events."""
 	def __init__(self, p_opDatas:list[OperationData]):
 		self.opDatas = p_opDatas
 		self.notifMessage:discord.Message = None
