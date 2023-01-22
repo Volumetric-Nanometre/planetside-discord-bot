@@ -338,9 +338,7 @@ class Channels:
 	# Planetside2: ID of a planetside 2 text channel.
 	ps2TextID = 715337156255809568
 
-	# scheduleID = 818186731202936843
-	scheduleID = 1066527043526860800
-
+	scheduleID = 818186731202936843
 
 
 
@@ -583,7 +581,7 @@ class UserLib:
 
 	# Auto Promote Enabled: When true, after a user has met the requirements, they are promoted (if appropriate role found).
 	# If False, a validation request is sent to the admin channel instead.
-	bAutoPromoteEnabled = True
+	bAutoPromoteEnabled = False
 
 	# Auto Promote Rules: A dataclass containing rules/conditions for auto promotion.
 	autoPromoteRules = botData.dataObjects.AutoPromoteRule(
@@ -623,7 +621,7 @@ class UserLib:
 	# FUN STUFF: Settings here pertain to little funny things: due to their nonserious nature, they're not displayed in /Config or Console output.
 
 	# Top Quote: When a quote receives this amount of reactions, the mentioned user has the quote added to their library entry. 0 or negative value to disable.
-	topQuoteReactions = 1
+	topQuoteReactions = 5
 
 	# The maximum number of saved/displayed quotes.
 	maxQuotes = 3
@@ -637,12 +635,14 @@ class ForFun:
 	Settings pertaining to non-serious features that are there "for fun".
 	"""
 	
-	# MORNING GREETING SETTINGS
-
+# MORNING GREETING SETTINGS
 	# Morning Greeting: When true, the bot responds to a message containing "morning". (to avoid every instance, the message must have less than 3 space characters.)
 	bMorningGreeting = True
 
-	# Random Gif: When true, the bot sends one of the specified gifs instead of a message.  This is implied false if the gif list is empty.
+	# Only in General: When true, if the channel isn't the specified general channel, don't respond.
+	bOnlyInGeneral = False
+
+	# Random Gif: When true, the bots selection of responses includes a list of gifs.  This is implied false if the gif list is empty.
 	bMorningGreetingRandomGif = True
 
 	# Morning Greeting minimum time: the minimum time since the last greeting was sent, used to prevent spam.
@@ -656,6 +656,8 @@ class ForFun:
 
 	flightDeathReason = botData.dataObjects.ForFunData.flightDeathReason
 
+
+# PS2 VEHICLE DEATHS:
 	# PlanetSide2 Vehicle Death: When true, if a player is killed by another participants sunderer or galaxy, it's broadcasted to the PS2 text channel. 
 	bBroadcastPS2VehicleDeath = True
 

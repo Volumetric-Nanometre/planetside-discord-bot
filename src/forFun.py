@@ -35,6 +35,9 @@ class ForFunCog(commands.Cog, name="for fun", description="Isolated fun elements
 		if p_message.author == self.botRef.user:
 			return
 
+		if ForFun.bOnlyInGeneral and p_message.channel.id != Channels.generalID:
+			return
+
 		if datetime.now() < self.nextGreeting:
 			return
 

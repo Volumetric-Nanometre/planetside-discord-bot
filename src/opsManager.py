@@ -328,60 +328,83 @@ class Parser():
 
 		dayOpInfos = []
 		for dayInfo in dateSections:
-			dayOpInfos.append(Parser.ParseDay(dateSections[len(dayOpInfos)]))
-
+			dayOpInfos += Parser.ParseDay(dayInfo)
+			# dayOpInfos.append(Parser.ParseDay(dateSections[len(dayOpInfos)]))
+		BUPrint.Debug(f"\n\nFinal Infos: \n{dayOpInfos}")
 		return dayOpInfos
 
 
 
-	def ParseDay(pSection:str):
+	def ParseDay(pSection:str) -> list[SchedulerOpInfo]:
 		if pSection.__len__() < 20:
-			return SchedulerOpInfo()
+			return []
 
-		dayOpInfo = SchedulerOpInfo()
+		sectionStr = pSection
 		defaultOpNames = OperationManager.GetDefaultOpsAsList()
+		subSectionPositions = [item for item, char in enumerate(pSection) if "•" == char]
 
-		for line in pSection.split("\n"):
-			if line.__contains__("• "):
-				eventName = line.replace("• ", "")
-				eventName = eventName.replace(":", "")
-				eventName = "".join(char.lower() for char in eventName if not char.isnumeric())
+		returnList = []
 
-				dayOpInfo.eventName = eventName.replace("<t>", "")
-				eventNameWords = [word.lower() for word in eventName.split() if word.__len__() > 3]
+		BUPrint.Debug(f"SUBSECTION POSITIONS: {subSectionPositions}")
 
-				closestMatch:str = ""
-				highestMatchWordCount = 0
+		index = 1
+		for position in subSectionPositions:
+			if position != subSectionPositions[-1]:
+				sectionStr = pSection[position:subSectionPositions[index]]
+				index += 1
+			else:
+				sectionStr = pSection[position:]
 
-				for defaultOpName in defaultOpNames:
-					defaultOpWords = [word.lower() for word in defaultOpName.split()]
-					matchingWords = [word.lower() for word in defaultOpWords if word in eventNameWords]
-					
-					if matchingWords.__len__() > highestMatchWordCount and highestMatchWordCount < defaultOpWords.__len__():
-						highestMatchWordCount = matchingWords.__len__()
-						closestMatch = defaultOpName
-
-				if highestMatchWordCount != 0:
-					dayOpInfo.matchingOp = closestMatch
+			BUPrint.Debug(f"Curent Iteration Position: {position}\nOperating on section:{sectionStr}\n\n")
 
 
-				timeInLine = "".join(char for char in line if char.isnumeric())
-				if timeInLine.isnumeric():
-					dayOpInfo.date = datetime.fromtimestamp(int(timeInLine), timezone.utc)
-					print(f"Date/Time: {dayOpInfo.date}")
+			dayOpInfo = SchedulerOpInfo()
+			for line in sectionStr.split("\n"):
+				if line.__contains__("• "):
+					eventName = line.replace("• ", "")
+					eventName = eventName.replace(":", "")
+					eventName = "".join(char.lower() for char in eventName if not char.isnumeric())
+
+					dayOpInfo.eventName = eventName.replace("<t>", "")
+					eventNameWords = [word.lower() for word in eventName.split() if word.__len__() > 3]
+
+					closestMatch:str = ""
+					highestMatchWordCount = 0
+
+					for defaultOpName in defaultOpNames:
+						defaultOpWords = [word.lower() for word in defaultOpName.split()]
+						matchingWords = [word.lower() for word in defaultOpWords if word in eventNameWords]
+						
+						if matchingWords.__len__() > highestMatchWordCount and highestMatchWordCount < defaultOpWords.__len__():
+							highestMatchWordCount = matchingWords.__len__()
+							closestMatch = defaultOpName
+						else:
+							continue
+
+					if highestMatchWordCount != 0:
+						dayOpInfo.matchingOp = closestMatch
 
 
-			if line.__contains__("@"):
-				managingUserStart = re.search("@", line).start()
-				dayOpInfo.managingUser = line[managingUserStart:].replace("@", "").replace(">", "")
-				print(f"Managing user: {dayOpInfo.managingUser}")
+					timeInLine = "".join(char for char in line if char.isnumeric())
+					if timeInLine.isnumeric():
+						dayOpInfo.date = datetime.fromtimestamp(int(timeInLine), timezone.utc)
 
+
+				if line.__contains__("@"):
+					managingUserStart = re.search("@", line).start()
+					dayOpInfo.managingUser = line[managingUserStart:].replace("@", "").replace(">", "")
+
+				
+				if dayOpInfo.matchingOp != "" and dayOpInfo.date != None:
+					dayOpInfo.bCanPost = True
+				
+				if dayOpInfo not in returnList:
+					returnList.append(dayOpInfo)
+					continue
 			
-			if dayOpInfo.matchingOp != "" and dayOpInfo.date != None:
-				dayOpInfo.bCanPost = True
 
-
-		return dayOpInfo
+		BUPrint.LogError(p_titleStr="RETURNED LIST", p_string=f"{returnList}")
+		return returnList
 
 
 
