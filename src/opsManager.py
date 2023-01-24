@@ -762,6 +762,7 @@ class OperationManager():
 		"""
 		# POST OP:  
 		A sub-function for AddNewLiveOp
+		Sends the sign-up message to the appropriate channel.
 		
 		# Returns 
 		TRUE if succesful send message
@@ -783,7 +784,7 @@ class OperationManager():
 
 	# Send the Message.
 		try:
-			vMessage:discord.Message = await vChannel.send(view=vView, embed=vEmbed)
+			vMessage:discord.Message = await vChannel.send(content=p_opData.GetPingables(botUtils.GetGuildNF(self.vBotRef)), view=vView, embed=vEmbed)
 			p_opData.messageID = str(vMessage.id)
 			p_opData.jumpURL = vMessage.jump_url
 
@@ -1025,7 +1026,8 @@ class OperationManager():
 
 		vNewEmbed = await self.AddNewLive_GenerateEmbed(p_opData)
 		vView = await self.AddNewLive_GenerateView(p_opData)
-		await vMessage.edit(embed=vNewEmbed, view=vView)
+		
+		await vMessage.edit(content=p_opData.GetPingables(botUtils.GetGuildNF(self.vBotRef)), embed=vNewEmbed, view=vView)
 
 
 		# If the event has been pre-started, update the commanders participants and re-generate info & commander (for connections)

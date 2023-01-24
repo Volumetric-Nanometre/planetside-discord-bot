@@ -857,6 +857,21 @@ class OperationData:
 		return  vIDList
 
 
+
+	def GetPingables(self, p_guild:Guild)-> str:
+		"""# GET PINGABLES:
+		Returns a string of all role pingables.
+		Requires a guild reference to obtain the roles from."""
+
+		roleMentions = [f"{role.mention} " for role in p_guild.roles if role.name in self.pingables ]
+		outputString = ""
+		for role in roleMentions:
+			outputString += f"{role} "
+
+		return outputString
+
+
+
 	def __repr__(self) -> str:
 		vOutputStr = "	OPERATION DATA\n"
 		vOutputStr += f"	-> Name|FileName: {self.name} | {self.fileName}\n"
