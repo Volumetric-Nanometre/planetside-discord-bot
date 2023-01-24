@@ -175,57 +175,55 @@ class User:
 	__version = -1
 
 	discordID: int = -1
+	"""Used to get the member from discord."""
 
-	# PS2 Character ID
 	ps2ID: int = -1
-	# Users PS2 Character Name
 	ps2Name: str = ""
-	# Users PS2 Character Outfit
 	ps2Outfit: str = ""
-	# Users PS2 Char Outfit Rank, if applicable.
 	ps2OutfitRank: str = ""
-	# Joindate of Ps2 outfit
 	ps2OutfitJoinDate: datetime = None
 
-	# Used alongside auto-promote; this is set by newUser or manually.
 	bIsRecruit = False
+	"""Used alongside auto-promote; this is set by NewUser or manually."""
 
-	# Tracked Sessions
 	sessions :list[Session] = field(default_factory=list)
-	
-	# Number of events attended.
-	eventsAttended = 0
+	"""List of saved sessions, if enabled."""
 
-	# Number of events the user signed up to, and wasn't present for.
-	eventsMissed = 0
+	lastSession:datetime = None
+	"""Last session: saved to allow checking the date of the last session in the event a users session saving is disabled."""
 	
-	# Users birthday.
+	eventsAttended = 0
+	""" Number of events the user has attended/been marked attending for."""
+
+	eventsMissed = 0
+	"""Number of events the user signed up to, but did not attend."""
+	
 	birthday:datetime = None
 
-	# User provided "about" text.
 	aboutMe = ""
+	"""User provided 'about me' text."""
 
-	# About loaded from a seperate file, editable only by admins.
 	specialAbout = ""
+	"""Special text loaded from a separate file, editable only by admins."""
 
-	# List of top quotes (if enabled)
-	topQuotes: list[str] = field(default_factory=list) 
+	topQuotes: list[str] = field(default_factory=list)
+	"""List of top reacted quotes, if enabled."""
 
-	#Inbox (if enabled)
 	inbox:list[UserInboxItem] = field(default_factory=list)
+	"""Users inbox, if enabled."""
 
-	# Settings object.
 	settings: UserSettings = field(default_factory=UserSettings)
+	"""Settings for this users library entry."""
 
-	# Used when determining if this entry should be unloaded.
 	lastAccessed: datetime = None
+	"""Datetime of last accessed, set whenever the entry is loaded or saved."""
 	
-	# Set to true during events.
-	# Save/Load will always revert this to False 
 	bKeepLoaded:bool = False
+	"""	Set to true during events.
+	Save/Load will always revert this to False """
 
-	# Set to true when a recruit has manually requested promotion via library viewer.
 	bRecruitRequestedPromotion = False
+	"""Set to true when a recruit has manually requested promotion via library viewer."""
 
 
 @dataclass

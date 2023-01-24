@@ -215,10 +215,13 @@ class Commander():
 
 					if participant.bAttended:
 						participant.libraryEntry.eventsAttended += 1
-						participant.libraryEntry.sessions = [participant.userSession] + participant.libraryEntry.sessions
+
+						if participant.libraryEntry.settings.bTrackHistory:
+							participant.libraryEntry.sessions = [participant.userSession] + participant.libraryEntry.sessions
 					else:
 						participant.libraryEntry.eventsMissed += 1
 
+					participant.libraryEntry.lastSession = self.trueStartTime
 					userManager.UserLibrary.SaveEntry(participant.libraryEntry)
 		
 
