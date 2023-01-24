@@ -574,7 +574,7 @@ class OpsEventTracker():
 		# Also ensures if the facility captured is the last one captured and is being recaptured it's still counted.
 		if self.lastFacilityCaptured.facilityID == p_event.facility_id:
 			timeDifference = self.lastFacilityCaptured.timestamp - datetime.now()
-			if  timeDifference.total_seconds() > 900: # 15 minutes
+			if timeDifference.total_seconds() > 900: # 15 minutes
 				BUPrint.Debug("Time difference is greater than 15 minutes.  Recaptured last capture.")
 				self.NewFacilityCapture(vFacility)
 				await self.updateParentFunction()
@@ -643,7 +643,7 @@ class OpsEventTracker():
 		# Also ensures if the facility defended is the last one captured and is being redefended it's still counted.
 		if self.lastFacilityDefended.facilityID == p_event.facility_id:
 			timeDifference = self.lastFacilityDefended.timestamp - datetime.now()
-			if  timeDifference.total_seconds() > 900: # 15 minutes
+			if timeDifference.total_seconds() > 900: # 15 minutes
 				BUPrint.Debug("Time difference is greater than 15 minutes.  Recaptured last capture.")
 				self.NewFacilityDefense(vFacility)
 				await self.updateParentFunction()

@@ -85,7 +85,7 @@ class NewUser(commands.Cog):
 
 			vView = self.GenerateView(p_member.id)
 			gateChannel = self.botRef.get_channel(Channels.gateID)
-			userData.joinMessage:discord.Message = await gateChannel.send(f"{p_member.mention}",  view=vView, embed=vEmbed)
+			userData.joinMessage:discord.Message = await gateChannel.send(f"{p_member.mention}", view=vView, embed=vEmbed)
 		
 		else:
 			BotPrinter.Info("User already has an entry!")

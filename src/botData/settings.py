@@ -29,7 +29,7 @@ class BotSettings:
 	discordToken = Env.DISCORD_TOKEN
 	discordGuild = int(Env.DISCORD_GUILD)
 	ps2ServiceID = Env.PS2_SVS_ID
-	botDir		 = Env.BOT_DIR
+	botDir = Env.BOT_DIR
 
 
 	botFeatures = botData.dataObjects.BotFeatures(
@@ -761,7 +761,7 @@ class ForFun:
 	"""# Morning Greeting minimum time: 
 	the minimum time since the last greeting was sent, used to prevent spam."""
 
-	morningGreetings =  botData.dataObjects.ForFunData.morningGreetings
+	morningGreetings = botData.dataObjects.ForFunData.morningGreetings
 	"""# Morning Greetings: 
 	list of greetings to a user who says "morning", any instance of "_USER" is replaced with a mention.
 	Proxy to `DataObjects.ForFunData`"""

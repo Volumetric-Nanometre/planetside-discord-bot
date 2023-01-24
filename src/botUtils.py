@@ -137,7 +137,7 @@ class FilesAndFolders():
 		if (not os.path.exists( Directories.savedDefaultsDir ) ):
 			try:
 				os.makedirs(f"{ Directories.savedDefaultsDir }")
-			except:
+			except OSError:
 				BotPrinter.LogError("Failed to create folder for default Ops data!")
 
 
@@ -146,7 +146,7 @@ class FilesAndFolders():
 		if (not os.path.exists( Directories.liveOpsDir ) ):
 			try:
 				os.makedirs(f"{ Directories.liveOpsDir }")
-			except:
+			except OSError:
 				BotPrinter.LogError("Failed to create folder for Live Op data!")
 
 
@@ -155,14 +155,14 @@ class FilesAndFolders():
 		if (not os.path.exists( Directories.userLibrary ) ):
 			try:
 				os.makedirs(Directories.userLibrary)
-			except:
+			except OSError:
 				BotPrinter.LogError("Failed to create folder for User Library!")
 
 		BotPrinter.Debug("Creating User Library: Recruits folder (if non existant)")
 		if (not os.path.exists( Directories.userLibraryRecruits ) ):
 			try:
 				os.makedirs(Directories.userLibraryRecruits)
-			except:
+			except OSError:
 				BotPrinter.LogError("Failed to create folder for User Library!")
 
 
@@ -172,7 +172,7 @@ class FilesAndFolders():
 		if (not os.path.exists( Directories.tempDir ) ):
 			try:
 				os.makedirs(f"{ Directories.tempDir }")
-			except:
+			except OSError:
 				BotPrinter.LogError("Failed to create temporary folder!")
 
 

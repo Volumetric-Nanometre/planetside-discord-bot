@@ -300,7 +300,7 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 		if vAdminChn != None:
 			try:
 				await vAdminChn.send(vResultMessage)
-			except:
+			except (discord.errors.NotFound, discord.errors.HTTPException):
 				BUPrint.Info(vResultMessage)
 		else:
 			BUPrint.Info(vResultMessage)

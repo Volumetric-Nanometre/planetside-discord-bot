@@ -520,7 +520,7 @@ class Commander():
 			BUPrint.Debug("User Library disabled, skipping attendance")
 			return
 
-		for participant in  self.participants:
+		for participant in self.participants:
 			# IN GAME ONLY:
 			if commanderSettings.markedPresent == PS2EventAttended.InGameOnly:
 				if participant.bPS2Online:
@@ -529,7 +529,7 @@ class Commander():
 				continue
 
 			# IN VOICE ONLY:
-			if  commanderSettings.markedPresent == PS2EventAttended.InDiscordVCOnly:
+			if commanderSettings.markedPresent == PS2EventAttended.InDiscordVCOnly:
 				if participant.discordUser.voice != None :
 					if participant.discordUser.voice.channel in self.vCategory.voice_channels:
 						self.SetParticipantAttended(participant)
@@ -1146,11 +1146,7 @@ class Commander():
 				BUPrint.Debug("Suicidal pilot.  SMH")
 				return
 
-			try:
-				await ps2Channel.send(p_event.message.replace("_USERBY", p_event.driverMention).replace("_USER", p_event.killedMentions))
-			except:
-				BUPrint.Debug("Excuse me wat. Python fix yer shit.")
-
+			await ps2Channel.send(p_event.message.replace("_USERBY", p_event.driverMention).replace("_USER", p_event.killedMentions))
 			self.vOpsEventTracker.forFunVehicleDeaths.remove(p_event)
 		
 		else:

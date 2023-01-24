@@ -480,7 +480,7 @@ class OpFeedback:
 			
 			return filePath 
 
-		except:
+		except OSError:
 			botUtils.BotPrinter.LogError("Unable to save a the file!")
 			return ""
 
@@ -857,7 +857,7 @@ class OperationData:
 		
 		botUtils.BotPrinter.Debug(f"PARTICIPANT IDS: {vIDList}")
 
-		return  vIDList
+		return vIDList
 
 
 

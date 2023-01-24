@@ -70,7 +70,7 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 					try:
 						await member.move_to(fallbackVC, reason=vReasonMsg)
 						vMessage += f"{member.display_name} was moved to fallback.\n"
-					except:
+					except (discord.Forbidden, discord.NotFound, discord.HTTPException):
 						vMessage += f"{member.display_name} was not moved to fallback.\n"
 			else:
 				vMessage += "Fallback Voice chat was not found.\n"
@@ -78,7 +78,7 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 			try:
 				await voiceChan.delete(reason=vReasonMsg)
 				vMessage += f"Voice Channel: {voiceChan.name} was removed\n"
-			except:
+			except (discord.Forbidden, discord.NotFound, discord.HTTPException):
 				vMessage += f"Voice Channel: {voiceChan.name} not removed\n"
 
 
@@ -88,19 +88,19 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 			try:
 				await textChan.delete(reason=vReasonMsg)
 				vMessage += f"Text Channel: {textChan.name} removed\n"
-			except:
+			except (discord.Forbidden, discord.NotFound, discord.HTTPException):
 				vMessage += f"Text Channel: {textChan.name} not removed\n"
 
 
 		# Finally, delete category
 		try:
 			await p_category.delete(vReasonMsg)
-		except:
+		except (discord.Forbidden, discord.NotFound, discord.HTTPException):
 			vMessage += f"Category {p_category.name} not removed! If empty, remove it manually.\n"
 
 		try:
 			await p_interaction.response.send_message("Category has been removed!", ephemeral=True)
-		except discord.errors.NotFound:
+		except discord.NotFound:
 			BUPrint.Info("Response not found.  Command likely used in channel that was removed (or the operation took longer than discords time-out.)")
 
 

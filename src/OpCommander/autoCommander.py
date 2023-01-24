@@ -125,7 +125,7 @@ class CommanderCommands(commands.Cog, name="commander", description=""):
 
 	@GetFeedback.autocomplete("p_typedStr")
 	async def AutoCompleteGetFeedback(self, p_interaction: Interaction, p_typedStr:str):
-		vFileList =  []
+		vFileList = []
 		returnChoices = []
 
 		file:str

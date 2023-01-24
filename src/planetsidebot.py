@@ -123,7 +123,8 @@ class Bot(commands.Bot):
             try:
                 await liveOp.EndEvent()
             except:
-                BUPrint.LogError(f"A problem occured while ending {liveOp.vOpData.name}", "ERROR ENDING EVENT | ")
+                BUPrint.LogError(f"A problem occured while ending {liveOp.vOpData.name}.  Event may need to be removed manually.", "ERROR ENDING EVENT | ")
+                continue
 
 
         BUPrint.Info("	> Ending task loops")

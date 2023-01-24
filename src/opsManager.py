@@ -68,7 +68,7 @@ class Operations(commands.GroupCog):
 		pMonth: app_commands.Range[int, 1, 12], 
 		pHour: app_commands.Range[int, 0, 23], 
 		pMinute:app_commands.Range[int, 0, 59],
-		pYear: int  = datetime.now().year,
+		pYear: int = datetime.now().year,
 		pArguments: str = "",
 		pManagedBy: str = "",
 		pAdditionalInfo: str = ""
@@ -158,7 +158,7 @@ class Operations(commands.GroupCog):
 		choices: list = []
 		vDataFiles: list = ["Custom"]
 
-		vDataFiles =  OperationManager.GetDefaultOpsAsList()
+		vDataFiles = OperationManager.GetDefaultOpsAsList()
 
 		option: str
 		for option in vDataFiles:
@@ -682,7 +682,7 @@ class OperationManager():
 				pickle.dump(p_opsData, vFile)
 				BUPrint.Info("File saved sucessfully!")
 				botUtils.FilesAndFolders.ReleaseLock(f"{vFilePath}{botSettings.Directories.lockFileAffix}")
-		except:
+		except OSError:
 			BUPrint.LogError("Failed to save Ops Data to file!")
 			botUtils.FilesAndFolders.ReleaseLock(f"{vFilePath}{botSettings.Directories.lockFileAffix}")
 			return False
