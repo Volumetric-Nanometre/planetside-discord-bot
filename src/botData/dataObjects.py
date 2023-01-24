@@ -17,31 +17,6 @@ import pickle
 
 
 # # # # #  SETTINGS RELATED
-@dataclass
-class SanityCheckOptions():
-	"""
-	# SANITY CHECK OPTIONS
-	Specifies what settings to check based on cog usage.
-	"""
-	UsedByNewUser: bool = True
-	UsedByOperations: bool = True
-	UsedByCommander : bool = True
-	UsedByUserLibrary : bool = True
-	RestrictLevels: bool = True
-	UsedByUserRoles: bool = True
-	UsedByForFun: bool = True
-
-	def __repr__(self) -> str:
-		vString = f"		>[{self.UsedByNewUser}] Used By New user\n"
-		vString += f"		>[{self.UsedByOperations}] Used By Operations\n"
-		vString += f"		>[{self.UsedByCommander}] Used By Commander\n"
-		vString += f"		>[{self.UsedByUserLibrary}] Used By User Library\n"
-		vString += f"		>[{self.UsedByUserRoles}] Used By User Roles\n"
-		vString += f"		>[{self.UsedByForFun}] Used By For Fun\n"
-		vString += f"		>[{self.RestrictLevels}] Command Retriction Levels\n"
-		return vString
-
-
 
 @dataclass(frozen=True)
 class BotFeatures:

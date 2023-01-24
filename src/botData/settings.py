@@ -93,19 +93,10 @@ class BotSettings:
 	"""
 
 	bCheckValues = True
-	"""# CHECK VALUES: When true, values are sanity checked on bot start, recommended to stay on.
+	"""# CHECK VALUES: 
+	When true, values are sanity checked on bot start, recommended to stay on.
 	If Debug is enabled, this prints out any invalid entries, else it prevents bot from continuing."""
 
-	sanityCheckOpts = botData.dataObjects.SanityCheckOptions(
-		UsedByNewUser= True,
-		UsedByOperations= True,
-		UsedByCommander= True,
-		UsedByUserLibrary=True,
-		UsedByUserRoles= True,
-		RestrictLevels= True
-	)
-	"""# Sanity Check Options: Enable/Disable sanity check for features that may have been disabled
-	"""
 
 	pickleProtocol = pickle.HIGHEST_PROTOCOL
 	"""# Pickle Protocol: Int value denoting the pickle protocol to use.

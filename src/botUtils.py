@@ -505,8 +505,6 @@ def PrintSettings(bGetOnly = False):
 	else:
 		vString += f"	> Error Output:	{BotSettings.errorOutput}\n"
 	vString += f"	> Sanity Check Values: {BotSettings.bCheckValues}\n"
-	if BotSettings.bCheckValues:
-		vString += f"{BotSettings.sanityCheckOpts}\n"
 	vString += f"\n	> Force Role Restrictions: {BotSettings.bForceRoleRestrictions}\n"
 	vString += f"	> Level 0:	{Roles.roleRestrict_level_0}\n"
 	vString += f"	> Level 1:	{Roles.roleRestrict_level_1}\n"
