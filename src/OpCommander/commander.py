@@ -20,7 +20,7 @@ from dateutil.relativedelta import relativedelta
 from OpCommander.events import OpsEventTracker
 from botData.dataObjects import CommanderStatus, OpsStatus, Participant, Session, OpFeedback
 
-from botUtils import GetGuild, GetDiscordTime
+from botUtils import GetGuild, GetGuildNF, GetDiscordTime
 from botUtils import BotPrinter as BUPrint
 from botUtils import ChannelPermOverwrites as ChanPermOverWrite
 from botData.utilityData import DateFormat, Colours
@@ -215,8 +215,7 @@ class Commander():
 
 					if participant.bAttended:
 						participant.libraryEntry.eventsAttended += 1
-						if participant.userSession != None:
-							participant.libraryEntry.sessions.append(participant.userSession)
+						participant.libraryEntry.sessions = [participant.userSession] + participant.libraryEntry.sessions
 					else:
 						participant.libraryEntry.eventsMissed += 1
 
@@ -888,6 +887,7 @@ class Commander():
 		if self.vOpsEventTracker.sessionStats.facilityFeed.__len__() != 0:
 			for feedEntry in self.vOpsEventTracker.sessionStats.facilityFeed:
 				vTempStr += f"{feedEntry}\n"
+			if vTempStr.__len__() > 1024:
 				vTempStr = vTempStr[1024:]
 		
 			vEmbed.add_field(
@@ -906,7 +906,7 @@ class Commander():
 		"""# SEND REMINDER:
 		Sends a reminder to the notification channel, only including nessecery pings.
 		"""
-		roleMentions = [f"{role.mention} " for role in self.vBotRef.get_guild(BotSettings.discordGuild).roles if role.name in self.vOpData.pingables ]
+		roleMentions = [f"{role.mention} " for role in GetGuildNF(self.vBotRef).roles if role.name in self.vOpData.pingables ]
 
 		vParticipantMentions = self.GetParticipantMentions()
 		spareSpaces = ""
@@ -1090,13 +1090,18 @@ class Commander():
 		if vFeedbackMsg.__len__() > 2000: # greater than discords max message limit
 			vFeedbackMsg = vFeedbackMsg[:1900] + "\n\n**Feedback is too large!**\nDownload file to see entire message."
 
-
+		facilityFeed = ""
+		for facility in self.vOpsEventTracker.sessionStats.facilityFeed:
+			facilityFeed += f"{facility}\n"
+		if facilityFeed.__len__() > 4000:
+			facilityFeed = facilityFeed[3900:]
 		if self.vOpData.options.bUseSoberdogsFeedback:
 			BUPrint.Debug("using soberdogs feedback")
 			if self.soberdogFeedbackMsg == None:
 				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(content=vFeedbackMsg, file=feedbackFile)
-				await self.soberdogFeedbackThread.send(content="Stat Visualisation", file=statGraphAll)
 
+				await self.soberdogFeedbackThread.send(content=f"**Facility Feed:**\n{facilityFeed}")
+				await self.soberdogFeedbackThread.send(content="Stat Visualisation", file=statGraphAll)
 			else:
 				await self.soberdogFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
 
@@ -1110,6 +1115,7 @@ class Commander():
 		if self.notifFeedbackMsg == None:
 			self.notifFeedbackMsg = await self.notifChn.send(content=vFeedbackMsg, file=feedbackFile)
 			if self.vOpData.options.bIsPS2Event and commanderSettings.bTrackingIsEnabled:
+				await self.notifChn.send(content=f"**Facility Feed:**:\n{facilityFeed}")
 				await self.notifChn.send(content="Stat visualisation", file=statGraphAll)
 		
 		else:

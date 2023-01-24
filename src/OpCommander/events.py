@@ -516,7 +516,7 @@ class OpsEventTracker():
 
 
 					# SUNDERER
-					elif p_event.attacker_vehicle_id == 1:
+					elif p_event.attacker_vehicle_id == 2:
 						if not bIsDriver:
 							vFunEvent.killedMentions += f"{vParticipant.discordUser.mention} "
 							if BotSettings.botFeatures.UserLibrary and BotSettings.botFeatures.UserLibraryFun:
@@ -548,7 +548,21 @@ class OpsEventTracker():
 	async def FacilityCapture(self, p_event: event.PlayerFacilityCapture):
 		"""# FACILITY CAPTURE
 		Function to call when a player participates in a facility capture."""
-		vFacility:MapRegion = await MapRegion.get_by_facility_id(facility_id=p_event.facility_id, client=self.auraxClient)
+		vFacility = await MapRegion.get_by_facility_id(facility_id=p_event.facility_id, client=self.auraxClient)
+		# BUPrint.Debug(f"Facility ID: {p_event.facility_id} | Resulted MapRegion: {vFacility}")
+
+		if vFacility == None:
+			vFacility = await self.auraxClient.get_by_id(MapRegion, p_event.facility_id)
+
+			# Account for when the client decides to give an empty object despite having a correct ID.
+			if vFacility == None and self.lastFacilityCaptured.facilityID == -999:
+				self.lastFacilityCaptured.participants += 1
+			elif vFacility == None:
+				self.lastFacilityCaptured.facilityID = -999
+				self.lastFacilityCaptured.facilityObj = None
+				self.lastFacilityCaptured.timestamp = datetime.utcnow()
+				return
+
 
 		# First facility capture.
 		if self.lastFacilityCaptured == None:
@@ -582,17 +596,31 @@ class OpsEventTracker():
 		"""# NEW FACILITY CAPTURE
 		Convenience function for new facility capture to avoid repetition.
 		"""
-		vNewFacilityData = FacilityData(
-				facilityID=p_facility.id, 
-				timestamp=datetime.now(tz=timezone.utc),
-				facilityObj = p_facility,
+		vNewFacilityData = None
+		bFacilityNotFound = False
+
+		if p_facility == None:
+			BUPrint.Debug("Client failed to find matching facility.")
+			bFacilityNotFound= True
+			# Make fake data:
+			vNewFacilityData = FacilityData(
+				facilityID=-999,
+				timestamp=datetime.utcnow(),
 				participants=1
 			)
-
+		else:
+			vNewFacilityData = FacilityData(
+					facilityID=p_facility.id, 
+					timestamp=datetime.now(tz=timezone.utc),
+					facilityObj = p_facility,
+					participants=1
+				)
 		self.lastFacilityCaptured = vNewFacilityData
 
-		
-		self.sessionStats.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp, DateFormat.TimeShorthand)} | **CAPTURED** | {p_facility.facility_name} | {p_facility.facility_type}" )
+		if bFacilityNotFound:
+			self.sessionStats.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp, DateFormat.TimeShorthand)} | **CAPTURED** | *FacilityLookupFailed* | {p_facility.facility_type}" )
+		else:
+			self.sessionStats.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp, DateFormat.TimeShorthand)} | **CAPTURED** | {p_facility.facility_name} | {p_facility.facility_type}" )
 		self.currentEventPoint.captured += 1
 		self.sessionStats.facilitiesCaptured += 1
 
@@ -601,7 +629,10 @@ class OpsEventTracker():
 		"""# FACILITY DEFENSE
 		Function to call when a player participates in a facility defense."""
 		vFacility:MapRegion = await MapRegion.get_by_facility_id(facility_id=p_event.facility_id, client=self.auraxClient)
-		
+
+		if vFacility == None:
+			vFacility = await self.auraxClient.get_by_id(FacilityData, p_event.facility_id)
+
 		# First facility capture.
 		if self.lastFacilityDefended == None:
 			self.NewFacilityDefense(vFacility)
@@ -634,16 +665,31 @@ class OpsEventTracker():
 		"""# NEW FACILITY DEFENSE
 		Convenience function for new facility capture to avoid repetition.
 		"""
-		vNewFacilityData = FacilityData(
-				facilityID=p_facility.id, 
-				timestamp=datetime.now(tz=timezone.utc),
-				facilityObj = p_facility,
+		vNewFacilityData = None
+		bFacilityNotFound = False
+
+		if p_facility == None:
+			BUPrint.Debug("Client failed to find matching facility.")
+			bFacilityNotFound = True
+			# Make fake data:
+			vNewFacilityData = FacilityData(
+				facilityID=-999,
+				timestamp=datetime.utcnow(),
 				participants=1
 			)
+		else:
+			vNewFacilityData = FacilityData(
+					facilityID=p_facility.id, 
+					timestamp=datetime.now(tz=timezone.utc),
+					facilityObj = p_facility,
+					participants=1
+				)
 
 		self.lastFacilityDefended = vNewFacilityData
 
-		
-		self.sessionStats.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp, DateFormat.TimeShorthand)} | **DEFENDED** | {p_facility.facility_name} | {p_facility.facility_type}" )
+		if bFacilityNotFound:
+			self.sessionStats.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp, DateFormat.TimeShorthand)} | **DEFENDED** | *FacilityLookupFailed* | {p_facility.facility_type}" )
+		else:
+			self.sessionStats.facilityFeed.append( f" {GetDiscordTime(vNewFacilityData.timestamp, DateFormat.TimeShorthand)} | **DEFENDED** | {p_facility.facility_name} | {p_facility.facility_type}" )
 		self.currentEventPoint.defended += 1
 		self.sessionStats.facilitiesDefended += 1

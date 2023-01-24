@@ -68,7 +68,7 @@ class BotSettings:
 	"""# BOT FEATURES:  Convenience setting to Enable or Disable Cog functionality.  Any co-dependnacy will behave based on these settings.
 	"""
 
-	bDebugEnabled = True
+	bDebugEnabled = False
 	"""# Debug Enabled: set to false during live use to reduce console clutter.
 	"""
 
@@ -138,13 +138,24 @@ class Roles:
 	"""	# ROLE RESTRICT: ADMIN
 	A special role restrict reserved specifically for those entrusted with BotAdmin. While named roleRestrict, only User IDs should be used."""
 	
+	
 	recruit = 780253442605842472
 	"""# Recruit
 	ID of the recruit role."""
 
+	
 	recruitPromotion = 710472193045299260 # DrunkenDog
 	"""# recruit Promotion
-	The ID of the role recruits are promoted to."""
+	The ID of the role recruits are promoted to.
+	
+	NOTE: If sleeper feature is enabled; 
+	this is the role used to check if the user is part of the outfit."""
+
+
+	sleeperRoleID = 0
+	"""# Sleeper Role ID
+	ID of a role assigned to users who meet the sleeper requirements."""
+
 
 	autoAssignOnAccept = [
 		818218528372424744, # Tags
@@ -161,6 +172,7 @@ class Roles:
 	]
 	"""New User Roles:  Roles listed in a new user join request that an admin may assign."""
 
+
 	addRoles_TDKD = [
 		SelectOption(label="Planetside Pings", value="977873609815105596", description="Non-major PS2 events/fellow\n drunken doggos looking for company"),
 		SelectOption(label="Sober Dogs", value="745004244171620533", description="More serious, coordinated infantry events"),
@@ -172,6 +184,7 @@ class Roles:
 		SelectOption(label="Jaeger", value="1024713062776844318", description="Jeager events")
 	]
 	"""Add Roles: TDKD:  Roles listed in the "TDKD" selector for the /roles commands."""
+
 
 	addRoles_games1 = [
 		SelectOption(label="Apex Legends", value="825106272856571985"),
@@ -322,7 +335,7 @@ class Channels:
 	Since multiple features may use these, they're stored here to avoid duplicates and messy name inclusions.
 	"""
 
-	botAdminID = 0 # LIVE VALUE
+	botAdminID = 0
 	"""# Bot Admin: 
 	The channel administrative tasks and notifications are sent to."""
 
@@ -440,7 +453,7 @@ class Commander:
 	When true, the PS2 tracker is used for PS2 events."""
 
 	
-	markedPresent = botData.dataObjects.PS2EventAttended.InGameAndDiscordVC
+	markedPresent = botData.dataObjects.PS2EventAttended.InGameOnly
 	"""# Marked Present: 
 	Setting to determine when a participant is considered part of the event and their userLib entry is updated.
 	A present participant has their "attended" value updated and the session stats saved."""
@@ -663,7 +676,8 @@ class UserLib:
 	
 	entryRetention = botData.dataObjects.EntryRetention.alwaysLoaded
 	"""# Entry Retention: 
-	How user library entries are kept in memory: Always loaded, UnloadAfter, and WhenNeeded."""
+	How user library entries are kept in memory: Always loaded, UnloadAfter, and WhenNeeded.
+	NOTE: Unload after hasn't been properly tested."""
 
 	
 	entryRetention_unloadAfter = 30 # minutes.
@@ -734,6 +748,21 @@ class UserLib:
 	)
 	"""# Auto Promote Rules: 
 	A dataclass containing rules/conditions for auto promotion."""
+	
+	sleeperRules = botData.dataObjects.SleeperRules(
+		bIsEnabled= True,
+		bSelfOutfitOnly=True,
+
+		bInbRecentEvent=True,
+		mostRecentEvent=relativedelta(months=3)
+	)
+	"""# SLEEPER RULES
+	A set of rules to determine when to apply the sleeper role to members.
+	"""
+	
+	sleeperCheckTime = time(hour=4, minute=0, tzinfo=timezone.utc)
+	"""# Sleeper Check Time:
+	The time of the day all users are queried for being asleep(inactive)."""
 
 	
 	sessionPreviewMax = 5

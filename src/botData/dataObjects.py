@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from discord import Member, Message
+from discord import Member, Message, Guild
 from dataclasses import dataclass, field
-from datetime import datetime, time
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 import botData.settings as Settings
 import botUtils
 from auraxium.ps2 import Character as PS2Character
@@ -61,6 +62,35 @@ class BotFeatures:
 
 
 # # # # USER LIBRARY
+
+
+@dataclass
+class SleeperRules:
+	"""# SLEEPER RULES
+	Rules to determine when a user is asleep/inactive"""
+	bIsEnabled:bool
+	"""Set as false to disable."""
+
+	bSelfOutfitOnly: bool
+	"""# Self Outfit Only:
+	If true, only members with the `Roles.promotion` role are checked."""
+
+	bInbRecentEvent:bool
+	"""# In recent event:
+	Set to true to check if the user was in a recent event.
+	"""
+
+	mostRecentEvent:relativedelta
+	"""# Most recent event:
+	The offset by which to test the most recent event."""
+
+
+	def __repr__(self) -> str:
+		vstring = f"	> Sleeper Rules {self.bIsEnabled}  (Only drunken dogs: {self.bSelfOutfitOnly})\n"
+		vstring += f"	>> RULE: In most recent event: {self.bInbRecentEvent} | {self.mostRecentEvent}\n"
+
+		return vstring
+
 
 @dataclass
 class UserSettings:

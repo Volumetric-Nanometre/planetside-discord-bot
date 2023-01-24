@@ -290,7 +290,7 @@ class FilesAndFolders():
 		return True
 
 
-def GetGuildNF(p_botRef: commands.Bot) -> discord.guild.Guild:
+def GetGuildNF(p_botRef: commands.Bot) -> discord.Guild:
 	"""
 	# GET GUILD: No Fetch.
 	Similar to GetGuild, but does not fetch if no guild found.
@@ -300,7 +300,7 @@ def GetGuildNF(p_botRef: commands.Bot) -> discord.guild.Guild:
 	"""
 	BotPrinter.Debug("Getting Guild from ID.")
 	try:
-		guild = p_botRef.get_guild( int(BotSettings.discordGuild) )
+		guild = p_botRef.get_guild( BotSettings.discordGuild )
 		if guild != None:
 			return guild
 
@@ -325,12 +325,12 @@ async def GetGuild(p_BotRef : commands.Bot):
 	"""
 	BotPrinter.Debug("Getting Guild from ID.")
 	try:
-		guild = p_BotRef.get_guild( int(BotSettings.discordGuild) )
+		guild = p_BotRef.get_guild(BotSettings.discordGuild )
 		if guild != None:
 			return guild
 
 		BotPrinter.Debug(f"	-> Failed to GET, attempting fetch instead.")
-		guild = await p_BotRef.fetch_guild( int(BotSettings.discordGuild) )
+		guild = await p_BotRef.fetch_guild( BotSettings.discordGuild)
 		if guild == None:
 			BotPrinter.Info("Unable to fetch guild!  Ensure you have the right ID.")
 			return None
@@ -598,6 +598,9 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Library Data Memory Retention: {UserLib.entryRetention.name}\n"
 	if UserLib.entryRetention == EntryRetention.unloadAfter:
 		vString += f"		> Unload After: {UserLib.entryRetention_unloadAfter} | Check Interval {UserLib.entryRetention_checkInterval}\n"
+	vString += f"	> User Auto Sleeper: {UserLib.sleeperRules}\n"
+	if UserLib.sleeperRules.bIsEnabled:
+		vString += f"	> Sleeper Check Time: {UserLib.sleeperCheckTime}\n"
 
 	if bGetOnly:
 		return vString

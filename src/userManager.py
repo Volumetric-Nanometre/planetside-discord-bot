@@ -19,7 +19,7 @@ from datetime import datetime, timezone, timedelta
 from enum import Enum
 
 from botUtils import BotPrinter as BUPrint
-from botUtils import FilesAndFolders, GetDiscordTime, UserHasCommandPerms
+from botUtils import FilesAndFolders, GetDiscordTime, UserHasCommandPerms, GetGuildNF
 
 from botData.dataObjects import User, Session, OpsStatus, LibraryViewPage, UserInboxItem, EntryRetention
 
@@ -202,7 +202,8 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 	def __init__(self, p_botRef):
 		self.adminLevel = settings.CommandLimit.userLibraryAdmin
 		self.botRef:commands.Bot = p_botRef
-		self.UserLibRetentionTask = None
+		self.userLibRetentionTask = None
+		self.querySleeperTask = None
 
 		if settings.BotSettings.botFeatures.UserLibrary:
 			self.contextMenu_setAsRecruit = app_commands.ContextMenu(
@@ -210,6 +211,7 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 				callback=self.SetUserAsRecruit
 			)
 			self.botRef.tree.add_command(self.contextMenu_setAsRecruit)
+
 
 			if settings.BotSettings.botFeatures.userLibraryInboxSystem and settings.BotSettings.botFeatures.userLibraryInboxAdmin:
 				self.contextMenu_warnMessage = app_commands.ContextMenu(
@@ -224,12 +226,28 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 				self.botRef.tree.add_command(self.contextMenu_warnUser)
 				self.botRef.tree.add_command(self.contextMenu_warnMessage)
 
-			if settings.UserLib.entryRetention == EntryRetention.unloadAfter:
 
-				self.UserLibRetentionTask = tasks.Loop(coro=self.CheckEntryRetention,
-					time=None, seconds=None, hours=None,
-					minutes=settings.UserLib.entryRetention_checkInterval
-					)
+			if settings.UserLib.entryRetention == EntryRetention.unloadAfter:
+				self.userLibRetentionTask = tasks.Loop(
+					coro=self.CheckEntryRetention,
+					seconds=None, hours=None,
+					minutes=settings.UserLib.entryRetention_checkInterval,
+					time=None, count=None, reconnect=True
+				)
+
+				self.userLibRetentionTask.start()
+
+
+			if settings.UserLib.sleeperRules.bIsEnabled:
+				self.querySleeperTask = tasks.Loop(
+					coro=self.CheckSleepingUsers,
+					time=settings.UserLib.sleeperCheckTime,
+					seconds=None, hours=None, minutes=None,
+					count= None, reconnect=True
+				)
+				self.querySleeperTask.start()
+				
+
 
 
 		BUPrint.Info("COG: User Library Admin loaded!")
@@ -323,6 +341,20 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 				del UserLibrary.loadedEntries[entry.discordID]
 
 
+	async def CheckSleepingUsers(self):
+		"""# CHECK SLEEPING USERS
+		Loads all saved entries and queries if users are asleep"""
+
+		allEntries = UserLibrary.GetAllEntries()
+		sleeperRole = GetGuildNF(self.botRef).get_role(settings.Roles.sleeperRoleID)
+
+		BUPrint.Info("Querying member sleep/awake...")
+		for entry in allEntries:
+			await UserLibrary.QuerySleeper(entry, sleeperRole)
+
+		BUPrint.Info("Query finished!")
+
+
 
 # # # NORMAL COMMANDS
 	@app_commands.command(name="edit_user", description="Opens the Edit modal for the specified user entry, if they have one.")
@@ -380,7 +412,41 @@ class UserLibraryAdminCog(commands.GroupCog, name="userlib_admin"):
 
 		await p_interaction.edit_original_response(content=vMessage)
 
+
+	@app_commands.command(name="create_missing_entries", description="Creates library entries for general users without them.")
+	@app_commands.describe(bOutfitOnly="(Default: True) If false, creates entries for all users regardless of whether they're part of the outfit.")
+	@app_commands.rename(bOutfitOnly="only_outfit")
+	async def CreateMissingEntries(self, p_interaction:discord.Interaction, bOutfitOnly:bool = True):
+		# HARDCODED ROLE USEAGE:
+		if not await UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
+			return
+
+		await p_interaction.response.defer(thinking=True, ephemeral=True)
+
+		# HARDCODED ADMIN: to prevent the command iterating over everyone, only the bot admin(s) can run this command with outfitOnly on false.
+		if not bOutfitOnly and p_interaction.user.id not in settings.Roles.roleRestrict_ADMIN:
+			await p_interaction.edit_original_response(content="You do not have permission to run this command with `outfit_only` on false.")
+			return
+
+		BUPrint.Info("Creating entries for missing users...")
+		entriesCreated = 0
+		for member in p_interaction.guild.members:
+			memberRoleIDs = [role.id for role in member.roles]
+			bIsOutfitMember = bool(settings.Roles.recruit in memberRoleIDs or settings.Roles.recruitPromotion in memberRoleIDs)
+			if not bIsOutfitMember and bOutfitOnly:
+				BUPrint.Debug(f"{member.display_name} not part of outfit, and command is running: outfit only. Skipping")
+				continue
+
+			if not UserLibrary.HasEntry(member.id):
+				BUPrint.Debug(f"{member.display_name} had no entry, creating one.")
+
+				newEntry = User(discordID=member.id)
+				UserLibrary.SaveEntry(newEntry)
+				entriesCreated += 1
+
+		await p_interaction.edit_original_response(content=f"Task completed. {entriesCreated} entries created.")
 	
+
 
 	@commands.Cog.listener("on_raw_member_remove")
 	async def UserLeft(self, p_Event:discord.RawMemberRemoveEvent):
@@ -471,12 +537,14 @@ class UserLibrary():
 		return f"{settings.Directories.userLibrary}{p_userID}.bin"
 
 
+
 	def GetRecruitEntryPath(p_userID:int):
 		"""
 		# GET ENTRY PATH: RECRUIT
 		Same as GetEntryPath, but for recruits.
 		"""
 		return f"{settings.Directories.userLibraryRecruits}{p_userID}.bin"
+
 
 
 	def HasEntry(p_UserID:int):
@@ -498,6 +566,7 @@ class UserLibrary():
 		return False
 
 
+
 	def IsRecruitEntry(p_userID:int):
 		"""
 		# IS RECRUIT ENTRY
@@ -508,6 +577,7 @@ class UserLibrary():
 			return True
 		else:
 			return False
+
 
 
 	def SaveEntry(p_entry:User):
@@ -638,7 +708,8 @@ class UserLibrary():
 		return vLibEntry
 
 
-	def GetAllEntries():
+
+	def GetAllEntries() -> list[User]:
 		"""
 		# GET ALL ENTRIES
 		Loads all entries and returns them in a list.
@@ -675,7 +746,6 @@ class UserLibrary():
 
 		if vMember != None and vChannel != None:
 			await vChannel.send(content=f"{vMember.mention}, you have a new message in your inbox!", view=newView)
-
 
 
 
@@ -743,6 +813,7 @@ class UserLibrary():
 		return True
 
 
+
 	def RemoveEntry(p_userID:int, p_removeSpecial:bool = False):
 		"""
 		# REMOVE ENTRY
@@ -767,6 +838,7 @@ class UserLibrary():
 			BUPrint.LogErrorExc(f"Unable to remove file: {vPath}", error)
 
 
+
 	def GetRecruitRequirements(p_entry:User, p_asBool:bool = False):
 		"""
 		# GET RECRUIT REQUIREMENTS
@@ -780,7 +852,7 @@ class UserLibrary():
 			return "User is not a recruit."
 
 		vRequirementsMsg = ""
-		vGuild = UserLibrary.botRef.get_guild(int(settings.BotSettings.discordGuild))
+		vGuild = GetGuildNF(UserLibrary.botRef)
 		if vGuild == None:
 			BUPrint.Debug("Unable to get guild?")
 			return "*ERROR: Unable to get guild.*" if not p_asBool else False
@@ -861,7 +933,7 @@ class UserLibrary():
 			BUPrint.Debug("User is not a recruit.")
 			return
 
-		vGuild = UserLibrary.botRef.get_guild(int(settings.BotSettings.discordGuild))
+		vGuild = GetGuildNF(UserLibrary.botRef)
 		vDiscordUser = vGuild.get_member(p_entry.discordID)
 
 		if vDiscordUser == None:
@@ -917,6 +989,7 @@ class UserLibrary():
 			await UserLibrary.PromoteUser(vDiscordUser)
 
 
+
 	async def QueryAllRecruits():
 		recruitEntries = UserLibrary.GetRecruitEntries()
 
@@ -962,6 +1035,46 @@ class UserLibrary():
 			await vAdminChn.send(f"User {p_member.display_name} was promoted to {vPromotionRole.name} ({vRecruitRole.name} removed)")
 
 
+	async def QuerySleeper(p_entry:User, p_sleeperRole:discord.Role):
+		"""# QUERY SLEEPER
+		Checks if the user meets/fails the sleeper requirements and sets/removes the sleeper role accordingly."""		
+		vGuild = GetGuildNF(UserLibrary.botRef)
+		vUser = vGuild.get_member(p_entry.discordID)
+
+
+		if settings.UserLib.sleeperRules.bSelfOutfitOnly:
+			userRoles = [role.id for role in vUser.roles]
+			
+			if settings.Roles.recruitPromotion not in userRoles:
+				BUPrint.Debug(f"User {vUser.display_name} not part of outfit, skipping.")
+				return
+
+
+		bApplySleeper = False
+
+		# Query rule: In recent event.
+		if settings.UserLib.sleeperRules.bInbRecentEvent:
+			# The earliest date at which an event is considered "recent" and thus sets the requirement.
+			requiredDate = datetime.now(tz=timezone.utc) - settings.UserLib.sleeperRules.mostRecentEvent
+			
+			if p_entry.sessions.__len__() != 0:
+				if p_entry.sessions[0].date < requiredDate:
+					bApplySleeper = True
+
+			# User not taken part in any sessions, check join date instead.
+			else:
+				if vUser.joined_at < requiredDate:
+					bApplySleeper = True
+
+
+
+		if bApplySleeper:
+			await vUser.add_roles(p_sleeperRole, reason="User failed sleeper check.  Applying sleeper role.")
+			BUPrint.Info(f"User: {vUser.display_name} is now asleep.")
+		
+		elif p_sleeperRole in vUser.roles:
+			await vUser.remove_roles(p_sleeperRole, reason="User awoken from sleeper.  Removing sleeper role.")
+			BUPrint.Info(f"User: {vUser.display_name} is now awake.")
 
 
 
@@ -1113,7 +1226,7 @@ class LibraryViewer():
 
 
 	def GenerateEmbed_General(self):
-		vGuild = UserLibrary.botRef.get_guild(int(settings.BotSettings.discordGuild))
+		vGuild = GetGuildNF(UserLibrary.botRef)
 		discordUser = vGuild.get_member(self.userID)
 		vEmbed = discord.Embed(
 			title=f"General Info for {discordUser.display_name}",
@@ -1281,21 +1394,30 @@ class LibraryViewer():
 
 
 		if p_session.kda != None:
+			if p_session.kda.kills + p_session.kda.assists != 0 and p_session.kda.deathTotal != 0:
+				vEmbed.add_field(
+					name="KDA Ratio",
+					value=f"{((p_session.kda.kills + p_session.kda.assists) / p_session.kda.deathTotal):.2f}"
+				)
+
 			vEmbed.add_field(
-				name="Kills, Deaths & Assists",
+				name="Kills/Assists",
 				value=f"""Kills:{p_session.kda.kills}
 				Allies: {p_session.kda.killedAllies}
 				Squadmates: {p_session.kda.killedSquad}
 
-				Deaths: {p_session.kda.deathTotal}
-				From enemies: {p_session.kda.deathByEnemies}
-				From allies: {p_session.kda.deathByAllies}
-				From Squad: {p_session.kda.deathBySquad}
-
 				Assists: {p_session.kda.assists}
 
 				Vehicle Takedowns: {p_session.kda.vehiclesDestroyed}
-				"""
+				""".strip()
+			)
+
+			vEmbed.add_field(
+				name="Deaths",
+				value=f"""Total: {p_session.kda.deathTotal}
+				From enemies: {p_session.kda.deathByEnemies}
+				From allies: {p_session.kda.deathByAllies}
+				From Squad: {p_session.kda.deathBySquad}""".strip()
 			)
 
 		if p_session.medicData != None:
@@ -1303,7 +1425,7 @@ class LibraryViewer():
 				name="Medic Stats",
 				value=f"""Heals: {p_session.medicData.heals}
 				Revives: {p_session.medicData.revives}
-				"""
+				""".strip()
 			)
 
 		if p_session.engineerData != None:
@@ -1311,7 +1433,7 @@ class LibraryViewer():
 				name="Engineer Stats",
 				value=f"""Vehicle Repairs: {p_session.engineerData.repairScore}
 				Resupplies: {p_session.engineerData.resupplyScore}
-				"""
+				""".strip()
 			)
 
 
