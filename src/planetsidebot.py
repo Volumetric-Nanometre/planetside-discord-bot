@@ -126,5 +126,15 @@ class Bot(commands.Bot):
                 BUPrint.LogError(f"A problem occured while ending {liveOp.vOpData.name}", "ERROR ENDING EVENT | ")
 
 
+        BUPrint.Info("	> Ending task loops")
+        if settings.BotSettings.botFeatures.UserLibrary:
+            userLibAdmin:UserLibraryAdminCog = self.get_cog("userlib_admin")
+            if userLibAdmin.userLibRetentionTask != None:
+                userLibAdmin.userLibRetentionTask.stop()
+
+            if userLibAdmin != None:
+                userLibAdmin.querySleeperTask.stop()
+
+
         BUPrint.Info("Closing bot connections")
         await self.close()
