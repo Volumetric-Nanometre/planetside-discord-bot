@@ -340,7 +340,7 @@ class Channels:
 	The channel administrative tasks and notifications are sent to."""
 
 	
-	gateID = 1041860598822096950
+	gateID = 0
 	"""# Gate Channel: 
 	The channel considered to be the servers gate: should be viewable to new users.  It does not require chatting privilages."""
 
@@ -799,7 +799,7 @@ class UserLib:
 
 	maxQuotes = 3
 	"""# Max Quotes:
-	The maximum number of saved/displayed top quotes."""
+	The maximum number of saved/displayed top quotes a user can have in their entry."""
 
 
 
