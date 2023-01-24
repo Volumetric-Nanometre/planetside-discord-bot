@@ -58,7 +58,7 @@ class SanityCheck():
 
 		await SanityCheck.CheckGuild(p_botRef)
 		await SanityCheck.CheckRoles(p_botRef)
-		SanityCheck.CheckChannels(p_botRef)
+		await SanityCheck.CheckChannels(p_botRef)
 
 		if not BotSettings.bDebugEnabled:
 			BUPrint.Info("	-> Settings Sanity Check Passed!")
@@ -68,9 +68,11 @@ class SanityCheck():
 	async def CheckGuild(p_botRef:Bot):
 		BUPrint.Info("Sanity Checking Guild...")
 
-		vGuild = p_botRef.get_guild(int(BotSettings.discordGuild))
+		vGuild = p_botRef.get_guild(BotSettings.discordGuild)
 		if vGuild == None:
 			BUPrint.LogError(f"{BotSettings.discordGuild}", "INVALID GUILD ID:")
+
+			await p_botRef.close()
 			raise BadGuildError()
 
 
@@ -81,7 +83,7 @@ class SanityCheck():
 		"""
 		BUPrint.Info("Sanity Checking Roles...")
 
-		guild = p_botRef.get_guild(int(BotSettings.discordGuild))
+		guild = p_botRef.get_guild(BotSettings.discordGuild)
 		allRoles = guild.roles
 		checkOptions = BotSettings.sanityCheckOpts
 		bFailedCheck = False
@@ -140,6 +142,11 @@ class SanityCheck():
 				BUPrint.LogError(p_titleStr="INVALID ROLE |  UserLib: Promotion", p_string=str(Roles.recruitPromotion))
 				bFailedCheck = True
 
+			# SLEEPER ROLE
+			if not SanityCheck.RoleInRoles(Roles.sleeperRoleID, allRoles):
+				BUPrint.LogError(p_titleStr="INVALID ROLE |  UserLib: Sleeper", p_string=str(Roles.recruitPromotion))
+				bFailedCheck = True
+
 		if checkOptions.UsedByUserRoles:
 			# TDKD ROLES
 			for selectOpt in Roles.addRoles_TDKD:
@@ -166,6 +173,7 @@ class SanityCheck():
 			if BotSettings.bDebugEnabled:
 				BUPrint.LogError(p_titleStr="ROLES FAILED CHECK", p_string="One or more roles has an invalid value.\n\n")
 			else:
+				await p_botRef.close()
 				raise BadRoleError()
 
 
@@ -194,7 +202,7 @@ class SanityCheck():
 		return False
 
 
-	def CheckChannels(p_botRef:Bot):
+	async def CheckChannels(p_botRef:Bot):
 		""" # CHECK CHANNELS:
 		Checks if required channels are present.
 		"""
@@ -202,8 +210,9 @@ class SanityCheck():
 
 		checkOptions = BotSettings.sanityCheckOpts
 		checkChannel = None
-		vGuild = p_botRef.get_guild(int(BotSettings.discordGuild))
+		vGuild = p_botRef.get_guild(BotSettings.discordGuild)
 		if vGuild == None:
+			await p_botRef.close()
 			raise BadGuildError()
 		bFailedCheck = False
 
@@ -267,4 +276,5 @@ class SanityCheck():
 			if BotSettings.bDebugEnabled:
 				BUPrint.LogError(p_titleStr="CHANNELS FAILED CHECK", p_string="One or more channels has an invalid value.\n\n")
 			else:
+				await p_botRef.close()
 				raise BadChannelError
