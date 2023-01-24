@@ -68,7 +68,7 @@ class BotSettings:
 	"""# BOT FEATURES:  Convenience setting to Enable or Disable Cog functionality.  Any co-dependnacy will behave based on these settings.
 	"""
 
-	bDebugEnabled = False
+	bDebugEnabled = True
 	"""# Debug Enabled: set to false during live use to reduce console clutter.
 	"""
 
@@ -545,63 +545,6 @@ class Commander:
 
 
 
-@dataclass(frozen=True)
-class Directories:
-	"""
-	# DIRECTORIES
-
-	Directories used by the bot.
-
-	If changing the values, make sure slashes are present when needed.
-	"""
-
-	prefixDir = f"{BotSettings.botDir}/SavedData/"
-	"""Prefix Directory:
-	File directory to preceed all directories.  This is not hard-coded, if you so wish, each directory can be anywhere."""
-
-	liveOpsDir = f"{prefixDir}LiveOps/"
-	"""# Live Ops Dir:
-	Directory of saved data for LIVE events"""
-
-	savedDefaultsDir = f"{prefixDir}Defaults/"
-	"""# Saved Defaults:
-	Directory of saved data for DEFAULT events."""
-
-	userLibrary = f"{prefixDir}Users/"
-	"""# User Library:
-	Directory of saved data for user library entries"""
-
-	userLibraryRecruits = f"{userLibrary}Recruits/"
-	"""# User Library Recruits:
-	Directory of saved data for recruit user library entries.  
-	Seperated to make finding recruit entries more efficient."""
-
-	tempDir = f"{prefixDir}temp/"
-	"""# Temp Directory:
-	Directory of a temporary folder which is periodically cleaned out."""
-
-	lockFileAffix = ".LOCK"
-	"""# Lock File Affix:
-	Name of the affix to use for lock files."""
-
-	feedbackPrefix = "FEEDBACK_"
-	"""#Feedback Prefix:
-	The prefix to prepend on feedback text files."""
-
-	lockFileRetry = 5
-	"""# Lock File Retry:
-	Number of tries a function attempts to get a lock on a file- prevents multiple accessing at once."""
-
-	cleanTempEvery = 120 #Hours.
-	"""# Clean Temp Every:
-	Number of hours between each temp file emptying, starting from when the bot was started."""
-
-	bCleanTempOnShutdown = False
-	"""# Clean Temp on Shutdown:
-	When true, the bots temp directory is cleaned on shutdown."""
-
-
-
 
 @dataclass(frozen=True)
 class SignUps:
@@ -852,6 +795,64 @@ class ForFun:
 	"""# Planetside 2 Vehicle Death: 
 	Fun event- when true, same as above except its added to users' UserLibrary.
 	This only occurs during tracked events."""
+
+
+
+
+@dataclass(frozen=True)
+class Directories:
+	"""
+	# DIRECTORIES
+
+	Directories used by the bot.
+
+	If changing the values, make sure slashes are present when needed.
+	"""
+
+	prefixDir = f"{BotSettings.botDir}/SavedData/"
+	"""Prefix Directory:
+	File directory to preceed all directories.  This is not hard-coded, if you so wish, each directory can be anywhere."""
+
+	liveOpsDir = f"{prefixDir}LiveOps/"
+	"""# Live Ops Dir:
+	Directory of saved data for LIVE events"""
+
+	savedDefaultsDir = f"{prefixDir}Defaults/"
+	"""# Saved Defaults:
+	Directory of saved data for DEFAULT events."""
+
+	userLibrary = f"{prefixDir}Users/"
+	"""# User Library:
+	Directory of saved data for user library entries"""
+
+	userLibraryRecruits = f"{userLibrary}Recruits/"
+	"""# User Library Recruits:
+	Directory of saved data for recruit user library entries.  
+	Seperated to make finding recruit entries more efficient."""
+
+	tempDir = f"{prefixDir}temp/"
+	"""# Temp Directory:
+	Directory of a temporary folder which is periodically cleaned out."""
+
+	lockFileAffix = ".LOCK"
+	"""# Lock File Affix:
+	Name of the affix to use for lock files."""
+
+	feedbackPrefix = "FEEDBACK_"
+	"""#Feedback Prefix:
+	The prefix to prepend on feedback text files."""
+
+	lockFileRetry = 5
+	"""# Lock File Retry:
+	Number of tries a function attempts to get a lock on a file- prevents multiple accessing at once."""
+
+	cleanTempEvery = 120 #Hours.
+	"""# Clean Temp Every:
+	Number of hours between each temp file emptying, starting from when the bot was started."""
+
+	bCleanTempOnShutdown = False
+	"""# Clean Temp on Shutdown:
+	When true, the bots temp directory is cleaned on shutdown."""
 
 
 
