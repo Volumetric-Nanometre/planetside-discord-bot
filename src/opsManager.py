@@ -1377,6 +1377,56 @@ class OpsEditor(discord.ui.View):
 		vEditModal.custom_id="EditRolesModal"
 		await pInteraction.response.send_modal( vEditModal )
 
+# # # # # # TOGGLE BUTTONS
+	@discord.ui.button(
+		style=editButtonStyle,
+		label="Toggle Auto Start",
+		row=1
+	)
+	async def btnToggleOption_AutoStart(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
+		self.vOpsData.options.bAutoStart = not self.vOpsData.options.bAutoStart
+		await pInteraction.response.send_message(content=f"Option: AutoStart is now: {self.vOpsData.options.bAutoStart}", ephemeral=True)
+
+
+	@discord.ui.button(
+		style=editButtonStyle,
+		label="Toggle PS2 Event",
+		row=1
+	)
+	async def btnToggleOption_PS2Event(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
+		self.vOpsData.options.bIsPS2Event = not self.vOpsData.options.bIsPS2Event
+		await pInteraction.response.send_message(content=f"Option: PS2 Event is now {self.vOpsData.options.bIsPS2Event}", ephemeral=True)
+
+
+	@discord.ui.button(
+		style=editButtonStyle,
+		label="Toggle Compact",
+		row=1
+	)
+	async def btnToggleOption_Compact(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
+		self.vOpsData.options.bUseCompact = not self.vOpsData.options.bUseCompact
+		await pInteraction.response.send_message(content=f"Option: Use Compact is now {self.vOpsData.options.bUseCompact}", ephemeral=True)
+
+
+	@discord.ui.button(
+		style=editButtonStyle,
+		label="Toggle Reserves",
+		row=1
+	)
+	async def btnToggleOption_Reserves(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
+		self.vOpsData.options.bUseReserve = not self.vOpsData.options.bUseReserve
+		await pInteraction.response.send_message(content=f"Option: Reserves is now {self.vOpsData.options.bUseReserve}", ephemeral=True)
+
+
+	@discord.ui.button(
+		style=editButtonStyle,
+		label="Toggle Sober Feedback",
+		row=1
+	)
+	async def btnToggleOption_SoberFeedback(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
+		self.vOpsData.options.bUseSoberdogsFeedback = not self.vOpsData.options.bUseSoberdogsFeedback
+		await pInteraction.response.send_message(content=f"Option: SoberFeedback is now {self.vOpsData.options.bUseSoberdogsFeedback}", ephemeral=True)
+
 
 	# Edit Channels
 	@discord.ui.button(
