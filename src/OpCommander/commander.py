@@ -915,8 +915,10 @@ class Commander():
 		spareSpaces = ""
 
 		for role in self.vOpData.roles:
-			if role.players.__len__() < role.maxPositions or role.maxPositions < 0:
+			if role.players.__len__() < role.maxPositions:
 				spareSpaces += f"**{role.roleName}** has **{role.maxPositions - role.players.__len__()}** spots!\n"
+			elif role.maxPositions < 0:
+				spareSpaces += f"**{role.roleName}** is **open**!\n"
 
 		# Compile message
 		vMessage = f"**REMINDER** | {self.vOpData.name} starts in {GetDiscordTime(self.vOpData.date)}!"
