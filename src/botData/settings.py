@@ -664,6 +664,12 @@ class UserLib:
 	If False, a validation request is sent to the admin channel instead."""
 
 	
+	bEnforcePS2Rename = True
+	"""# Enforce PS2 Rename
+	When true, and a user provides a valid PS2 character name in the library viewer setup,
+	they are renamed to the newly provided name & outfit (if present)."""
+
+	
 	autoPromoteRules = botData.dataObjects.AutoPromoteRule(
 		# Attended Minimum Events: When true, a recruit must participate in the specified number of events.
 		bAttendedMinimumEvents = True,

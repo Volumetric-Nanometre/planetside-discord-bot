@@ -779,7 +779,6 @@ class UserLibrary():
 		"""
 
 		if p_entry.ps2Name == "":
-			BUPrint.Debug("Invalid PS2 name given, shouldn't have been able to get here!")
 			return False
 		
 		vAuraxClient = AuraxClient(service_id=settings.BotSettings.ps2ServiceID)
@@ -799,17 +798,26 @@ class UserLibrary():
 			BUPrint.Debug("Player not part of outfit.")
 			UserLibrary.SaveEntry(p_entry)
 			await vAuraxClient.close()
-			return True
-
-		vOutfit = await vOutfitChar.outfit()
+		else:
+			vOutfit = await vOutfitChar.outfit()
+			p_entry.ps2Outfit = f"{vOutfit.name} {vOutfit.alias}"
+			p_entry.ps2OutfitJoinDate = datetime.fromtimestamp(vOutfitChar.member_since, tz=timezone.utc)
+			p_entry.ps2OutfitRank = vOutfitChar.rank
 
 		p_entry.ps2ID = vPlayerChar.id
-		p_entry.ps2Outfit = f"{vOutfit.name} {vOutfit.alias}"
-		p_entry.ps2OutfitJoinDate = datetime.fromtimestamp(vOutfitChar.member_since, tz=timezone.utc)
-		p_entry.ps2OutfitRank = vOutfitChar.rank
 
 		await vAuraxClient.close()
-		UserLibrary.SaveEntry(p_entry)	
+		UserLibrary.SaveEntry(p_entry)
+
+		if settings.UserLib.bEnforcePS2Rename and vPlayerChar != None:
+			discordMember = GetGuildNF(UserLibrary.botRef).get_member(p_entry.discordID)
+			renameStr = f"{vPlayerChar}"
+			if vOutfit != None:
+				renameStr += f" [{vOutfit.alias}]"
+
+			BUPrint.Info(f"{discordMember.name} provided PS2 character name in UserLib setup. Renaming user to: {renameStr}")
+			await discordMember.edit(nick=renameStr)
+
 		return True
 
 

@@ -581,6 +581,7 @@ def PrintSettings(bGetOnly = False):
 
 
 	vString += "\nUSER LIBRARY SETTINGS\n"
+	vString += f"	> Enforce PS2 Names:	{UserLib.bEnforcePS2Rename}\n"
 	vString += f"	> Special Users:	{UserLib.bEnableSpecialUsers}\n"
 	vString += f"	> User Inbox Enabled:	{UserLib.bEnableInbox}\n"
 	vString += f"	> Show jump buttons	for GetEvents:	{UserLib.bShowJumpButtonsForGetEvents}\n"
