@@ -274,6 +274,17 @@ class OpSignUp(commands.Cog):
 
             OpSignUp.update_data_entry(self,obj,obj.messageHandlerID)
 
+#			NOTE: This one requires adding a role that the bot checks against to NOT send confirmation messages.
+#			You can remove this one if you don't feel like adding said role. :p  it's just a thought for those who may not want bot pokes.
+#			Inform the user they've been added to the event, IF they don't have a no-confirm role.
+#            if noConfirmRole not in payload.member.roles:
+#                await payload.user_id.send('  ')
+
+
+#			Inform the user they've been added to the event
+            eventTitle = obj.message.embeds[0]['title']
+            await payload.user_id.send('NOTICE: Your signup to {eventTitle} was successful!')
+
         else:
             obj.ignoreRemove = True
             await message.remove_reaction(payload.emoji,payload.member)
