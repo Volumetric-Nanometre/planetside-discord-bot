@@ -43,7 +43,7 @@ class Bot(commands.Bot):
         if settings.BotSettings.botFeatures.NewUser:
             await self.add_cog(newUser.NewUser(self))
 
-        if settings.BotSettings.botFeatures.NewUser:
+        if settings.BotSettings.botFeatures.UserRoles:
             await self.add_cog(roleManager.UserRoles(self))
 
         if settings.BotSettings.botFeatures.Operations:
