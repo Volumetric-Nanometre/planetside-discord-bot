@@ -9,9 +9,8 @@ import botUtils
 from botUtils import BotPrinter as BUPrint
 from botData import settings
 
-import opstart
-import opsignup
 import chatlinker
+import opsManager
 
 from botData.sanityChecker import SanityCheck
 
@@ -33,8 +32,10 @@ class Bot(commands.Bot):
         # Needed for later functions, which want a discord object instead of a plain string.
         self.vGuildObj = await botUtils.GetGuild(self)
 # COGS	
-        await self.add_cog(opstart.opschannels(self))
-        await self.add_cog(opsignup.OpSignUp(self))
+
+        if settings.BotSettings.botFeatures.Operations:
+            await self.add_cog(opsManager.Operations(self))
+
         await self.add_cog(chatlinker.ChatLinker(self))
 
         self.tree.copy_global_to(guild=self.vGuildObj)
@@ -44,7 +45,11 @@ class Bot(commands.Bot):
     async def on_ready(self):
         if settings.BotSettings.bCheckValues:
             await SanityCheck.CheckAll(p_botRef=self)
-        
+
+		# Objects with BOT refs
+        opsManager.OperationManager.vBotRef = self
+
+
         BUPrint.Info(f'\n\nBOT READY	|	{self.user.name} ({self.user.id}) on: {self.vGuildObj.name}\n')
 
         if settings.BotSettings.bShowSettingsOnStartup_discord:
