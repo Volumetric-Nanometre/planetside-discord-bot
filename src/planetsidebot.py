@@ -9,6 +9,8 @@ import botUtils
 from botUtils import BotPrinter as BUPrint
 from botData import settings
 
+import roleManager
+
 import opstart
 import opsignup
 import chatlinker
@@ -33,6 +35,8 @@ class Bot(commands.Bot):
         # Needed for later functions, which want a discord object instead of a plain string.
         self.vGuildObj = await botUtils.GetGuild(self)
 # COGS	
+        if settings.BotSettings.botFeatures.UserRoles:
+            await self.add_cog(roleManager.UserRoles(self))
         await self.add_cog(opstart.opschannels(self))
         await self.add_cog(opsignup.OpSignUp(self))
         await self.add_cog(chatlinker.ChatLinker(self))
