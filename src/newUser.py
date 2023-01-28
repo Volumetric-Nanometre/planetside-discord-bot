@@ -46,17 +46,24 @@ class NewUser(commands.Cog):
 		In the event the bot is shutdown while users are in the process of joining, the VIEWs cease to function.
 		Given the low likelyhood of a user being affected by down-time, post a message afterwards instructing them to leave and re-join.
 		"""
-		BotPrinter.Info("Purging Join Posts and sent Requests...")
-
 		gateChannel = self.botRef.get_channel(Channels.gateID)
-		await gateChannel.purge(reason="Start-up/Shutdown Purge.")
-		BotPrinter.Debug("	-> Gate channel Purged.")
-
 		adminRequestChannel = self.botRef.get_channel(Channels.botAdminID)
-		await adminRequestChannel.purge(reason="Startup/Shutdown Purge")
-		BotPrinter.Debug("	-> Request Channel Purged.")
+		
+		if NewUserSettings.bPurgeGate:
+			BotPrinter.Info("Purging Join Posts and sent Requests...")
+			await gateChannel.purge(reason="Start-up/Shutdown Purge.")
+			BotPrinter.Debug("	-> Gate channel Purged.")
 
 		await gateChannel.send(Messages.gateChannelDefaultMsg)
+
+
+		if BotSettings.bBotAdminCanPurge:
+			await adminRequestChannel.purge(reason="Startup/Shutdown Purge")
+			BotPrinter.Debug("	-> Request Channel Purged.")
+
+		else:
+			await adminRequestChannel.send("**\n\n\nControls before this message are non-functional!\n\n\n.**")
+
 
 
 

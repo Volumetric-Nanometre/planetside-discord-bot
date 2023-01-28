@@ -99,8 +99,14 @@ class BotSettings:
 
 
 	pickleProtocol = pickle.HIGHEST_PROTOCOL
-	"""# Pickle Protocol: Int value denoting the pickle protocol to use.
-	"""
+	"""# Pickle Protocol: 
+	Int value denoting the pickle protocol to use."""
+
+
+	bBotAdminCanPurge = False
+	"""# Bot Admin Can Purge:
+	When true, the bot admin channel can be purged on startup/shutdown.
+	Helpful to keep the channel clear of non-functional views after a bot restart."""
 
 
 	
@@ -398,6 +404,11 @@ class NewUsers:
 	# NEW USERS
 	Settings pertaining to the bot behaviour for `NewUser` cog.
 	"""
+
+	bPurgeGate = False
+	"""# Purge Gate:
+	When true, the gate channel is purged on shutdown/startup"""
+
 	bCreateLibEntryOnAccept = True
 	"""	# Create Library Entry on Accept: 
 	When true, after a user has been accepted, automatically create a user entry for them."""

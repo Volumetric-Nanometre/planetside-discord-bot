@@ -500,6 +500,7 @@ def PrintSettings(bGetOnly = False):
 	token = BotSettings.ps2ServiceID[:5]
 	vString += f"	> PS2ServiceID:	{token}...\n"
 	vString += f"	> BotDirectory:	{BotSettings.botDir}\n"
+	vString += f"	> Can Purge BotAdmin: {BotSettings.bBotAdminCanPurge}\n"
 	if BotSettings.errorOutput == stderr:
 		vString += f"	> Error Output:	stderr\n"
 	else:
@@ -550,6 +551,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"\n	> Warnings: Discord Account age: {NewUsers.newAccntWarn} months\n"
 	vString += f"	> Warnings: Outfit Rank (Ord): {NewUsers.outfitRankWarn}\n"
 	vString += f"	> AutoLock PS2 Character on Accept: {NewUsers.bLockPS2CharOnAccept}\n"
+	vString += f"	> Purge Gate: {NewUsers.bPurgeGate}\n"
 
 
 
