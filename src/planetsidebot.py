@@ -11,7 +11,8 @@ from botData import settings
 
 import opstart
 import opsignup
-import chatlinker
+from chatUtility import ChatUtilityCog
+
 
 from botData.sanityChecker import SanityCheck
 
@@ -35,7 +36,8 @@ class Bot(commands.Bot):
 # COGS	
         await self.add_cog(opstart.opschannels(self))
         await self.add_cog(opsignup.OpSignUp(self))
-        await self.add_cog(chatlinker.ChatLinker(self))
+        if settings.BotSettings.botFeatures.chatUtility:
+            await self.add_cog(ChatUtilityCog(self))
 
         self.tree.copy_global_to(guild=self.vGuildObj)
         await self.tree.sync(guild=self.vGuildObj)
