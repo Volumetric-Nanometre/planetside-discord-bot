@@ -9,6 +9,8 @@ import botUtils
 from botUtils import BotPrinter as BUPrint
 from botData import settings
 
+from userManager import UserLibraryCog, UserLibraryAdminCog, UserLibrary, UserLib_RecruitValidationRequest
+
 import opstart
 import opsignup
 import chatlinker
@@ -33,6 +35,11 @@ class Bot(commands.Bot):
         # Needed for later functions, which want a discord object instead of a plain string.
         self.vGuildObj = await botUtils.GetGuild(self)
 # COGS	
+        if settings.BotSettings.botFeatures.UserLibrary:
+            await self.add_cog(UserLibraryCog(self))
+            await self.add_cog(UserLibraryAdminCog(self))
+
+
         await self.add_cog(opstart.opschannels(self))
         await self.add_cog(opsignup.OpSignUp(self))
         await self.add_cog(chatlinker.ChatLinker(self))
@@ -44,7 +51,10 @@ class Bot(commands.Bot):
     async def on_ready(self):
         if settings.BotSettings.bCheckValues:
             await SanityCheck.CheckAll(p_botRef=self)
-        
+
+        # Objects with BOT refs
+        UserLibrary.botRef = self
+
         BUPrint.Info(f'\n\nBOT READY	|	{self.user.name} ({self.user.id}) on: {self.vGuildObj.name}\n')
 
         if settings.BotSettings.bShowSettingsOnStartup_discord:
