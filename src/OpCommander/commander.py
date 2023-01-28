@@ -495,7 +495,7 @@ class Commander():
 		if self.vOpData.options.bIsPS2Event:
 			movebackChannel = vGuild.get_channel(Channels.eventMovebackID)
 		else:
-			movebackChannel = vGuild.get_channel(Channels.voiceFallbackID)
+			movebackChannel = vGuild.get_channel(Channels.voiceFallback)
 		
 		try:
 			for member in vUsersToMove:
