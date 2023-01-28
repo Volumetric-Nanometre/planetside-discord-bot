@@ -26,7 +26,7 @@ from botData.dataObjects import User, Session, OpsStatus, LibraryViewPage, UserI
 from botData.utilityData import DateFormat
 
 import botData.settings as settings
-
+import opsManager
 
 
 
@@ -77,7 +77,57 @@ class UserLibraryCog(commands.GroupCog, name="user_library"):
 			await p_interaction.response.send_message(settings.Messages.NoUserEntrySelf)
 
 	
+	@app_commands.command(name="my_events", description="List all the events you are signed up to.")
+	async def GetMyEvents(self, p_interaction:discord.Interaction):
+		""" # GET MY EVENTS
+		App Command to get users signed up events.
+		"""
 
+		# HARDCODED ROLE USEAGE:
+		if not await UserHasCommandPerms(p_interaction.user, (settings.CommandLimit.userLibrary), p_interaction):
+			return
+
+		if not settings.BotSettings.botFeatures.Operations:
+			await p_interaction.response.send_message(settings.Messages.featureDisabled, ephemeral=True)
+			return
+
+		await p_interaction.response.defer(thinking=True, ephemeral=True)
+		vMessage = ""
+
+
+		vJumpBtns:list[discord.ui.Button] = []
+
+		for liveEvent in opsManager.OperationManager.vLiveOps:
+			signedUpRole = liveEvent.PlayerInOps(p_interaction.user.id)
+			if signedUpRole != "":
+				vMessage += f"- **{liveEvent.name}**, Starts {GetDiscordTime(liveEvent.date)}, signed up as: **{signedUpRole}**!\n"
+
+			if liveEvent.status != OpsStatus.started and settings.UserLib.bShowJumpButtonsForGetEvents:
+				plainDate = f"{liveEvent.date.day}/{liveEvent.date.month}/{liveEvent.date.year}"
+				newBtn = discord.ui.Button(
+					label=f"{liveEvent.name} {plainDate}",
+					url=liveEvent.jumpURL,
+				)
+				vJumpBtns.append(newBtn)
+
+
+		newView = discord.ui.View(timeout=180)
+		if settings.UserLib.bShowJumpButtonsForGetEvents and len(vJumpBtns) != 0:
+			for jumpBtn in vJumpBtns:
+				newView.add_item(item=jumpBtn)		
+
+		
+		if vMessage != "":
+			await p_interaction.edit_original_response(content=f"**Your Events:**\n{vMessage}", view=newView)
+			return
+
+		# user in no events.  If there are events, get the signup channels for them.  First check if there are any events.
+		if len(opsManager.OperationManager.vLiveOps) == 0:
+			await p_interaction.edit_original_response(content=settings.Messages.noEvents)
+			return
+		
+
+		await p_interaction.edit_original_response(content=settings.Messages.noSignedUpEvents, view=newView)
 
 
 
