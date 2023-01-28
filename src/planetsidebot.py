@@ -30,6 +30,7 @@ class Bot(commands.Bot):
             botUtils.PrintSettings()
 
         self.vGuildObj: discord.Guild
+        self.vOpsManager = opsManager.OperationManager()
 
     async def setup_hook(self):
         BUPrint.Info("Setting up hooks...")
@@ -56,6 +57,14 @@ class Bot(commands.Bot):
         opsManager.OperationManager.vBotRef = self
         Commander.vBotRef = self
 
+        self.vGuildObj = await botUtils.GetGuild(self)
+        await botUtils.ChannelPermOverwrites.Setup(self)
+        await self.vOpsManager.RefreshOps()
+ 
+
+        # Setup existing Ops auto-starts:
+        if settings.Commander.bAutoAlertsEnabled:
+            self.vOpsManager.RefreshAutostarts()
 
         BUPrint.Info(f'\n\nBOT READY	|	{self.user.name} ({self.user.id}) on: {self.vGuildObj.name}\n')
 
