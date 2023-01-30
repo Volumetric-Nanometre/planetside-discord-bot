@@ -567,7 +567,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		vGeneralChannel = vGuild.get_channel(Channels.generalID)
 		
 		vView = discord.ui.View()
-		if NewUserSettings.bShowAddRolesBtn:
+		if BotSettings.botFeatures.UserRoles and NewUserSettings.bShowAddRolesBtn:
 			vView.add_item(ShowRolesBtn(label="Click me to add roles!"))
 
 		if BotSettings.botFeatures.UserLibrary:
