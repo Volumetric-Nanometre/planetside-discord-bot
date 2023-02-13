@@ -91,7 +91,7 @@ class OpSignUp(commands.Cog):
 
 
     @commands.Cog.listener('on_raw_reaction_add')
-    async def react_sign_up_check(self,payload):
+    async def react_sign_up_check(self,payload:discord.RawReactionActionEvent ):
         """
         Captures all reactions, then filters through to
         use only those that are pertinent to the
@@ -133,7 +133,7 @@ class OpSignUp(commands.Cog):
 
     @commands.command(name='ps2-signup')
     @commands.has_any_role('CO','Captain','Lieutenant','Sergeant')
-    async def generic_signup(self,ctx,signup,date,*args):
+    async def generic_signup(self,ctx:discord.Interaction,signup,date,*args):
         """
         Usage 1: !ps2-signup <squadtype-1> <date>
         Usage 2: !ps2-signup <squadtype-2> <date> <op-type> <description> <additonal-roles>
@@ -205,6 +205,8 @@ class OpSignUp(commands.Cog):
                     print(obj)
                     print(obj.messageHandlerID)
                     await obj.set_reaction_details(ctx,*args)
+                    ctx
+                    await self.generic_update_embed(obj, await ctx.guild.get_channel(obj.signUpChannelID).fetch_message(obj.messageHandlerID), None)
 
                 except Exception:
                     traceback.print_exc()
@@ -217,7 +219,7 @@ class OpSignUp(commands.Cog):
         print('Complete')
 
 
-    async def generic_react_add(self,obj,payload):
+    async def generic_react_add(self,obj, payload:discord.RawReactionActionEvent):
 
         messageText  = obj.messageText
 
@@ -272,7 +274,7 @@ class OpSignUp(commands.Cog):
 
             await OpSignUp.generic_update_embed(self,obj,message,payload)
 
-            OpSignUp.update_data_entry(self,obj,obj.messageHandlerID)
+            # OpSignUp.update_data_entry(self,obj,obj.messageHandlerID)
 
         else:
             obj.ignoreRemove = True
@@ -294,33 +296,47 @@ class OpSignUp(commands.Cog):
             await OpSignUp.generic_update_embed(self,obj,message,payload)
 
 
-    async def generic_update_embed(self,obj, message,payload):
-
-
-        embedOrig = message.embeds[0]
+    async def generic_update_embed(self, obj, message:discord.Message ,payload:discord.RawReactionActionEvent = None):
+        """# Generic Update Embed:
+        Updates an existing embed.
+        If payload is None, titles are updated.
+        """
+        embedOrig:discord.Embed = message.embeds[0]
 
         embed_dict = embedOrig.to_dict()
         embed_fields = embed_dict['fields']
 
-        for index,field in enumerate(embed_fields):
-            if field['name'] == f'{obj.reactions[str(payload.emoji)].symbol} {obj.reactions[str(payload.emoji)].name}':
-                print(obj.reactions[str(payload.emoji)].members.values())
+        if payload != None:
+            for index,field in enumerate(embed_fields):
+                if field['name'] == f'{obj.reactions[str(payload.emoji)].oldDisplayName}':
+                    print(obj.reactions[str(payload.emoji)].members.values())
 
-                memberString = ""
-                for member in obj.reactions[str(payload.emoji)].members.values():
-                    memberString = memberString + f"{member}"
-                embed_dict['fields'][index].update({'value': str(memberString)})
+                    memberString = ""
+                    for member in obj.reactions[str(payload.emoji)].members.values():
+                        memberString += f"{member}"
+                    embed_dict['fields'][index].update({'title': {obj.reactions[str(payload.emoji)].displayName}})
+                    embed_dict['fields'][index].update({'value': str(memberString)})
+
+        else:
+            for index,field in enumerate(embed_fields):
+                if field['name'] == f'{obj.reactions[index].oldDisplayName}':
+                    print(obj.reactions[str(payload.emoji)].members.values())
+
+                    memberString = ""
+                    for member in obj.reactions[index].members.values():
+                        memberString += f"{member}"
+                    embed_dict['fields'][index].update({'title': {obj.reactions[index].displayName}})
+                    embed_dict['fields'][index].update({'value': str(memberString)})
+
 
         embedNew = discord.Embed().from_dict(embed_dict)
 
-        #for field in embed_dict.values():
-
-        #    print(field)
         await message.edit(embed = embedNew)
+    
 
 
 
-    async def locate_sign_up(self,ctx,signup):
+    async def locate_sign_up(self,ctx:discord.Interaction,signup):
         print('Lookup signup channel')
         try:
             channels = ctx.guild.text_channels
