@@ -91,7 +91,7 @@ class OpSignUp(commands.Cog):
 
 
     @commands.Cog.listener('on_raw_reaction_add')
-    async def react_sign_up_check(self,payload):
+    async def react_sign_up_check(self,payload:discord.RawReactionActionEvent ):
         """
         Captures all reactions, then filters through to
         use only those that are pertinent to the
@@ -133,7 +133,7 @@ class OpSignUp(commands.Cog):
 
     @commands.command(name='ps2-signup')
     @commands.has_any_role('CO','Captain','Lieutenant','Sergeant')
-    async def generic_signup(self,ctx,signup,date,*args):
+    async def generic_signup(self,ctx:discord.Interaction,signup,date,*args):
         """
         Usage 1: !ps2-signup <squadtype-1> <date>
         Usage 2: !ps2-signup <squadtype-2> <date> <op-type> <description> <additonal-roles>
@@ -205,7 +205,8 @@ class OpSignUp(commands.Cog):
                     print(obj)
                     print(obj.messageHandlerID)
                     await obj.set_reaction_details(ctx,*args)
-                    self.generic_update_embed_all(obj)
+                    ctx
+                    await self.generic_update_embed(obj, await ctx.guild.get_channel(obj.signUpChannelID).fetch_message(obj.messageHandlerID), None)
 
                 except Exception:
                     traceback.print_exc()
@@ -218,7 +219,7 @@ class OpSignUp(commands.Cog):
         print('Complete')
 
 
-    async def generic_react_add(self,obj,payload):
+    async def generic_react_add(self,obj, payload:discord.RawReactionActionEvent):
 
         messageText  = obj.messageText
 
@@ -273,7 +274,7 @@ class OpSignUp(commands.Cog):
 
             await OpSignUp.generic_update_embed(self,obj,message,payload)
 
-            OpSignUp.update_data_entry(self,obj,obj.messageHandlerID)
+            # OpSignUp.update_data_entry(self,obj,obj.messageHandlerID)
 
         else:
             obj.ignoreRemove = True
@@ -295,74 +296,47 @@ class OpSignUp(commands.Cog):
             await OpSignUp.generic_update_embed(self,obj,message,payload)
 
 
-    async def generic_update_embed(self,obj, message,payload):
-
-
-        embedOrig = message.embeds[0]
-
-        embed_dict = embedOrig.to_dict()
-        embed_fields = embed_dict['fields']
-
-        for index,field in enumerate(embed_fields):
-            if field['name'] == f'{obj.reactions[str(payload.emoji)].displayName}':
-                print(obj.reactions[str(payload.emoji)].members.values())
-
-                # memberString = f'LIMIT: {obj.reactions[str(payload.emoji)].currentReact} / {obj.reactions[str(payload.emoji)].maxReact}\n'
-                memberString = ""
-                for member in obj.reactions[str(payload.emoji)].members.values():
-                    memberString += f"{member}"
-                embed_dict['fields'][index].update({'value': str(memberString)})
-                embed_dict['fields'][index].update({'title': str(obj.reactions[str(payload.emoji)].displayName)})
-
-        embedNew = discord.Embed().from_dict(embed_dict)
-
-        #for field in embed_dict.values():
-
-        #    print(field)
-        await message.edit(embed = embedNew)
-
-
-	# Updates ALL embed items within the message.
-    async def generic_update_embed_all(message):
-        embedOrig = message.embeds[0]
+    async def generic_update_embed(self, obj, message:discord.Message ,payload:discord.RawReactionActionEvent = None):
+        """# Generic Update Embed:
+        Updates an existing embed.
+        If payload is None, titles are updated.
+        """
+        embedOrig:discord.Embed = message.embeds[0]
 
         embed_dict = embedOrig.to_dict()
         embed_fields = embed_dict['fields']
 
-        for index,field in enumerate(embed_fields):
-            for emojiIndex in message.reactions:
-                if field['name'] == emojiIndex.displayName:
-					# Handle overflow if the new limit is lower than current.
-                    if( emojiIndex.currentReact > emojiIndex.maxReact and emojiIndex.maxReact > 0 and emojiIndex.members > 0):
-                        vDifferential = emojiIndex.currentReact - emojiIndex.maxReact
-                        userIDsFromDic = list(emojiIndex.members)
-                        while vDifferential != 0:
-                            vDifferential - 1
-                            try:
-                                lastMember = emojiIndex.members[userIDsFromDic[-1]]
-                                emojiIndex.members.pop( lastMember )
-                                await message.remove(lastMember) # Removes the members react from the message
-                                await lastMember.user_id.send(f"**TDKD NOTICE**:\nDue to an updated maximum slot, you have been unassigned from {message.embeds[0]['title']}.\nSorry about that! \n\nPlease consider choosing another role or reserve.")
-                            except:
-                                traceback.print_exc()
-                    
-                    # Redo the new display title
-                    emojiIndex.update_displayName()
-                    embed_dict['fields'][index].update({'title': str(emojiIndex.displayName)})
+        if payload != None:
+            for index,field in enumerate(embed_fields):
+                if field['name'] == f'{obj.reactions[str(payload.emoji)].oldDisplayName}':
+                    print(obj.reactions[str(payload.emoji)].members.values())
 
-					# Redo the member list
-                    newMemberList = ""
-                    for member in emojiIndex.members.values():
-                        newMemberList += member                    
-                    embed_dict['fields'][index].update({'value':str( newMemberList )})
-                    
+                    memberString = ""
+                    for member in obj.reactions[str(payload.emoji)].members.values():
+                        memberString += f"{member}"
+                    embed_dict['fields'][index].update({'title': {obj.reactions[str(payload.emoji)].displayName}})
+                    embed_dict['fields'][index].update({'value': str(memberString)})
+
+        else:
+            for index,field in enumerate(embed_fields):
+                if field['name'] == f'{obj.reactions[index].oldDisplayName}':
+                    print(obj.reactions[str(payload.emoji)].members.values())
+
+                    memberString = ""
+                    for member in obj.reactions[index].members.values():
+                        memberString += f"{member}"
+                    embed_dict['fields'][index].update({'title': {obj.reactions[index].displayName}})
+                    embed_dict['fields'][index].update({'value': str(memberString)})
+
+
         embedNew = discord.Embed().from_dict(embed_dict)
+
         await message.edit(embed = embedNew)
+    
 
 
 
-
-    async def locate_sign_up(self,ctx,signup):
+    async def locate_sign_up(self,ctx:discord.Interaction,signup):
         print('Lookup signup channel')
         try:
             channels = ctx.guild.text_channels

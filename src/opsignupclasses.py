@@ -178,13 +178,15 @@ class ReactionData():
     def __init__(self,name,emoji,maxReact):
         self.name = name
         self.symbol = emoji
-		# displayName: Compiled title of emoji, name, and current/max.
-        self.displayName
-		# CombiendName: Premade string of Symbol + name.
+        self.displayName = ""        
+        self.oldDisplayName = ""
         self.combinedName = self.symbol + self.name
         self.maxReact = maxReact
         self.currentReact = 0
         self.members = {'perm':'\u200b'}
+
+        self.update_displayName()
+
 
     def add_member(self, userID,userNameText):
         """
@@ -194,6 +196,7 @@ class ReactionData():
         self.members.update({userID:userNameText})
         self.currentReact += 1
         self.update_displayName(self)
+
 
     def remove_member(self, userID):
         """
@@ -213,12 +216,19 @@ class ReactionData():
         else:
             return False
 
-    # Updates the name used for display purposes.
+
     def update_displayName(self):
+        """
+        Updates the name used for display.
+        """
+        self.oldDisplayName = self.displayName
+
         if( self.maxReact > 0 ):
-            self.displayName = self.combinedName + f'({self.currentReact}/{self.maxReact})'
+            self.displayName = self.combinedName + f' ({self.currentReact}/{self.maxReact})'
+
         else:
-            self.displayName = self.combinedName
+            self.displayName = self.combinedName + f" ({self.currentReact})"
+            
 
 
 class ArmourDogs(GenericEmbed):
