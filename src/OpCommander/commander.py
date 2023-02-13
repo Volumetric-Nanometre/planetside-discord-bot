@@ -555,7 +555,7 @@ class Commander():
 		"""# SET PARTICIPANT ATTENDED:
 		Convenience function that sets a users attendance to true,
 		while also setting whether the participant was late."""
-		if self.bAttendanceChecked:
+		if self.bAttendanceChecked and not p_participant.bAttended:
 			p_participant.bWasLate = True
 
 		p_participant.bAttended = True
@@ -792,6 +792,9 @@ class Commander():
 				vUsersInRole = ""
 				for user in role.players:
 					vUsersInRole += f"{self.vBotRef.get_user(int(user)).mention}\n"
+
+				if vUsersInRole.__len__ > 1024:
+					vUsersInRole = vUsersInRole[1024:]
 				
 			vEmbed.add_field( 
 				name=f"{role.GetRoleName()}", 
