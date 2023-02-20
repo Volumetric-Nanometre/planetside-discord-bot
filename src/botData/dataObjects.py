@@ -240,7 +240,8 @@ class NewUserData:
 	ps2OutfitName: str = ""
 	ps2OutfitAlias: str = ""
 	ps2OutfitCharObj: PS2OutfitMember = None
-	bIsRecruit = False
+	bIsRecruit:bool = False
+	bSentRequest:bool = False
 
 
 	############################################################################

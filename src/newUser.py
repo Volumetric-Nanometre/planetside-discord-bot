@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import discord
 from discord.ext import commands
 import auraxium
@@ -12,12 +14,11 @@ from botUtils import BotPrinter, GetDiscordTime, UserHasCommandPerms, GetGuild
 from botData.utilityData import Colours, DateFormat
 
 from botData.dataObjects import User, NewUserData
-from userManager import UserLibrary, LibraryViewer
-from roleManager import RoleManager
+
 
 
 class NewUser(commands.Cog):
-	userDatas = []
+	userDatas:list[NewUserData] = []
 	def __init__(self, pBot):
 		self.botRef: commands.Bot = pBot
 		self.newReq:NewUserRequest = NewUserRequest(p_userData=None)
@@ -34,7 +35,7 @@ class NewUser(commands.Cog):
 				return dataObj
 		BotPrinter.Info("No userdata matching the ID found!")
 		return None
-
+	
 
 	@commands.Cog.listener("on_ready")
 	async def startup(self):
@@ -48,13 +49,22 @@ class NewUser(commands.Cog):
 		"""
 		gateChannel = self.botRef.get_channel(Channels.gateID)
 		adminRequestChannel = self.botRef.get_channel(Channels.botAdminID)
-		
+
+		if adminRequestChannel != None:
+			NewUserRequest.vRequestChannel = adminRequestChannel
+		else:
+			BotPrinter.LogError(p_titleStr="NEW USER: REQUEST CHANNEL (ADMIN)", p_string="Unable to get channel for new user requests.")
+			return
+
 		if NewUserSettings.bPurgeGate:
 			BotPrinter.Info("Purging Join Posts and sent Requests...")
 			await gateChannel.purge(reason="Start-up/Shutdown Purge.")
 			BotPrinter.Debug("	-> Gate channel Purged.")
 
-		await gateChannel.send(Messages.gateChannelDefaultMsg)
+
+		vView = discord.ui.View(timeout=None)
+		vView.add_item(NewUser_btnGetStarted(self))
+		await gateChannel.send(content=Messages.gateChannelDefaultMsg, view=vView)
 
 
 		if BotSettings.bBotAdminCanPurge:
@@ -65,37 +75,55 @@ class NewUser(commands.Cog):
 			await adminRequestChannel.send("**\n\n\nControls before this message are non-functional!\n\n\n.**")
 
 
+	async def SendMessage(self, p_originalInteraction:discord.Interaction, p_userData:NewUserData):
+		"""# SEND MESSAGE
+		Convenience function that sends the message.
+		Should be called from within prompt user.
+		"""
+		vView = self.GenerateView(p_originalInteraction.user.id)
+		vEmbed = discord.Embed(colour=discord.Colour.from_rgb(0, 200, 50), 
+			title=f"Welcome to The Drunken Dogs, {p_originalInteraction.user.display_name}!", 
+			description=Messages.newUserInfo
+		) # End - vEmbed
+
+		vEmbed.add_field(name="ACCEPTANCE OF RULES", value=Messages.newUserRuleDeclaration, inline=True)
+
+		await p_originalInteraction.response.send_message(f"{p_originalInteraction.user.mention}", view=vView, embed=vEmbed, ephemeral=True)
+		
+		p_userData.joinMessage:discord.Message = await p_originalInteraction.original_response()
 
 
-	@commands.Cog.listener("on_member_join")
-	async def promptUser(self, p_member: discord.Member):
-		if NewUserRequest.vRequestChannel == None:
-			NewUserRequest.vRequestChannel = self.botRef.get_channel(Channels.botAdminID)
-			if(NewUserRequest.vRequestChannel == None):
-				BotPrinter.Info("NEW USER REQUEST CHANNEL NOT FOUND!")
+
+	async def PromptUser(self, p_originalInteraction: discord.Interaction):
+		"""# PROMPT USER:
+		Response function when a user has pressed the get started button.
+		"""
+		vCurrentIDs = [member.userObj.id for member in self.userDatas]
+
+		# Check if User has already sent a request
+		if p_originalInteraction.user.id in vCurrentIDs:
+			vEntry = self.GetUserData(p_originalInteraction.user.id)
+			if vEntry.bSentRequest:
+				await p_originalInteraction.response.send_message("You have already sent a request! Please wait for an admin to get to it.", ephemeral=True)
 				return
 
-	
-		if( p_member not in self.userDatas):
-			# self.botRef = p_bot
+
+		if( p_originalInteraction.user.id not in vCurrentIDs):
 			userData = NewUserData()
-			userData.userObj = p_member
+			userData.userObj = p_originalInteraction.guild.get_member(p_originalInteraction.user.id)
 			self.userDatas.append(userData)
 			BotPrinter.Debug(f"New User Data objects: {NewUser.userDatas}")
 
-			vEmbed = discord.Embed(colour=discord.Colour.from_rgb(0, 200, 50), 
-				title=f"Welcome to The Drunken Dogs, {p_member.display_name}!", 
-				description=Messages.newUserInfo
-			) # End - vEmbed
 
-			vEmbed.add_field(name="ACCEPTANCE OF RULES", value=Messages.newUserRuleDeclaration, inline=True)
-
-			vView = self.GenerateView(p_member.id)
-			gateChannel = self.botRef.get_channel(Channels.gateID)
-			userData.joinMessage:discord.Message = await gateChannel.send(f"{p_member.mention}", view=vView, embed=vEmbed)
+			await self.SendMessage(p_originalInteraction, userData)
 		
+
 		else:
 			BotPrinter.Info("User already has an entry!")
+			vEntry = self.GetUserData(p_originalInteraction.user.id)
+			await vEntry.joinMessage.delete()
+
+			await self.SendMessage(p_originalInteraction, vEntry)
 
 
 
@@ -111,6 +139,16 @@ class NewUser(commands.Cog):
 		vView.add_item(btnRequest)
 
 		return vView
+
+
+
+class NewUser_btnGetStarted(discord.ui.Button):
+	def __init__(self, p_newUser:NewUser):
+		self.newUserRef = p_newUser
+		super().__init__(label="Get Started...")
+
+	async def callback(self, p_interaction: discord.Interaction):
+		await self.newUserRef.PromptUser(p_interaction)
 
 
 
@@ -166,15 +204,7 @@ class NewUser_btnRequest(discord.ui.Button):
 			await vRequest.SendRequest()
 			await pInteraction.response.send_message("**Your request has been sent!**\n\nPlease wait, you will be notified if it has been accepted!", ephemeral=True)
 			await vUserData.joinMessage.delete()
-
-		else:
-			vUserData = NewUser.GetUserData(None, pInteraction.user.id)
-			
-			vView:discord.ui.View = discord.ui.view()
-			jumpBtn = discord.ui.Button(label="Jump to your join entry", url=vUserData.joinMessage.jump_url)
-			vView.add_item(jumpBtn)
-
-			await pInteraction.response.send_message("This is not your entry!", view=vView, ephemeral=True)
+			vUserData.bSentRequest = True
 
 
 
@@ -338,7 +368,7 @@ class NewUserRequest():
 		Creates and returns a list of embeds detailing the user who requested to join.
 		"""
 	# USER INFO EMBED
-		embed_userInfo = discord.Embed(colour=Colours.userRequest.value, title=f"JOIN REQUEST: {self.userData.userObj.display_name}", description=f"User joined the server: {GetDiscordTime( pDate=self.userData.joinMessage.created_at, pFormat=DateFormat.Dynamic)}")
+		embed_userInfo = discord.Embed(colour=Colours.userRequest.value, title=f"JOIN REQUEST: {self.userData.userObj.display_name}", description=f"User joined the server: {GetDiscordTime( pDate=self.userData.userObj.joined_at, pFormat=DateFormat.Dynamic)}")
 		
 		embed_userInfo.add_field(name="User ID", value=f"`{self.userData.userObj.id}`")
 		embed_userInfo.add_field(name="User Name", value=f"{self.userData.userObj.name}")
@@ -366,8 +396,11 @@ class NewUserRequest():
 
 		# New Discord Account
 		vDateNow = datetime.datetime.now(tz=datetime.timezone.utc)
-		vWarnDate = vDateNow - dateutil.relativedelta.relativedelta(months=-3)
-		if self.userData.userObj.created_at < vWarnDate:
+		vWarnDate = vDateNow - dateutil.relativedelta.relativedelta(months=3)
+
+		BotPrinter.Debug(f"WarnDate: {vWarnDate}")
+
+		if  vWarnDate < self.userData.userObj.created_at:
 			embed_warnings._colour = Colours.userWarning.value
 			strWarnings += f"DISCORD ACCOUNT AGE:\n> Account was created within the last {NewUserSettings.newAccntWarn} months!\n\n"
 		else:
@@ -388,8 +421,6 @@ class NewUserRequest():
 			strOkay += "- Users claimed character is not a high ranking outfit member.\n"
 
 
-		if UserLibrary.HasEntry(self.userData.userObj.id):
-			strOkay += "- User has been in the server previously.\n"
 
 		if strOkay == "":
 			strOkay = "*None*"
@@ -536,27 +567,7 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		await self.parentRequest.requestMessage.delete()
 
 
-		# Create library entry, if enabled and user doesn't already have one:
-		if BotSettings.botFeatures.UserLibrary and NewUserSettings.bCreateLibEntryOnAccept and not UserLibrary.HasEntry(self.userData.userObj.id):
-			vUserLibEntry = User(
-				discordID=self.userData.userObj.id,
-				ps2Name=self.userData.ps2CharName,
-				ps2ID=self.userData.ps2CharID
-				)
 
-			if self.userData.ps2OutfitName != "":
-				vUserLibEntry.ps2Outfit = f"{self.userData.ps2OutfitName} {self.userData.ps2OutfitAlias}"
-
-			if self.userData.ps2OutfitCharObj != None:
-				vUserLibEntry.ps2OutfitRank = self.userData.ps2OutfitCharObj.rank
-				vUserLibEntry.ps2OutfitJoinDate = datetime.datetime.fromtimestamp(self.userData.ps2OutfitCharObj.member_since, datetime.timezone.utc)
-
-			vUserLibEntry.bIsRecruit = self.userData.bIsRecruit
-
-			if NewUserSettings.bLockPS2CharOnAccept:
-				vUserLibEntry.settings.bLockPS2Char = True
-
-			UserLibrary.SaveEntry(vUserLibEntry)
 
 
 		BotPrinter.Debug("Removing Userdata from list.")
@@ -567,25 +578,8 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		vGeneralChannel = vGuild.get_channel(Channels.generalID)
 		
 		vView = discord.ui.View()
-		if BotSettings.botFeatures.UserRoles and NewUserSettings.bShowAddRolesBtn:
-			vView.add_item(ShowRolesBtn(label="Click me to add roles!"))
-
-		if BotSettings.botFeatures.UserLibrary:
-			vView.add_item(ShowUserLibViewerBtn(label="View & setup your library!"))
 
 		await vGeneralChannel.send(Messages.newUserWelcome.replace("_MENTION", self.userData.userObj.mention).replace("_ROLE", vAssignedRoleName), view=vView)
 
 
 
-
-class ShowRolesBtn(discord.ui.Button):
-	async def callback (self, p_interaction: discord.Interaction):
-		roleView = RoleManager(p_interaction.client, p_interaction.user, True)
-		roleView.vInteraction = p_interaction
-		await p_interaction.response.send_message( Messages.userAddingRoles, view=roleView, ephemeral=True )
-
-class ShowUserLibViewerBtn(discord.ui.Button):
-	"""A button used to show the user library for the clicking user."""
-	async def callback(self, p_interaction:discord.Interaction):
-		vLibViewer = LibraryViewer(p_interaction.user.id, True)
-		await vLibViewer.SendViewer(p_interaction=p_interaction)
