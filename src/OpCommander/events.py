@@ -465,6 +465,7 @@ class OpsEventTracker():
 			vParticipant.userSession.kda.deathTotal += 1
 			self.sessionStats.eventKDA.deathTotal += 1
 
+
 		# Attacker is squadmate (or self).
 		if vAttacker != None:
 			BUPrint.Debug(f"{vParticipant.discordUser.display_name} killed by squadmate: {vAttacker.discordUser.display_name}")
@@ -528,20 +529,21 @@ class OpsEventTracker():
 					else:
 						BUPrint.Debug(f"Vehicle ID was {p_event.attacker_vehicle_id}")
 
+
+			# Determine if killer character is allied or an enemy.
+			vAttackerPS2Char = await self.auraxClient.get_by_id(type_=Character, id_=p_event.attacker_character_id)
+			if vAttackerPS2Char.faction_id == 2: # NC
+				vParticipant.userSession.kda.deathByAllies += 1
+				self.sessionStats.eventKDA.deathByAllies += 1
+			else:
+				vParticipant.userSession.kda.deathByEnemies += 1
+				self.sessionStats.eventKDA.deathByEnemies += 1
+
+			# Potential to do enemy character death by name fun events here.
+
 			# End of: Attacker != None
 			return
 
-
-		# Determine if killer character is allied or an enemy.
-		vAttackerPS2Char = await self.auraxClient.get_by_id(type_=Character, id_=p_event.attacker_character_id)
-		if vAttackerPS2Char.faction_id == 2: # NC
-			vParticipant.userSession.kda.deathByAllies += 1
-			self.sessionStats.eventKDA.deathByAllies += 1
-		else:
-			vParticipant.userSession.kda.deathByEnemies += 1
-			self.sessionStats.eventKDA.deathByEnemies += 1
-
-		# Potential to do enemy character death by name fun events here.
 
 
 
