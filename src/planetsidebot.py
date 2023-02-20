@@ -29,6 +29,9 @@ class Bot(commands.Bot):
         self.vGuildObj: discord.Guild
 
     async def setup_hook(self):
+        if settings.BotSettings.bCheckValues:
+            await SanityCheck.CheckAll(p_botRef=self)
+
         BUPrint.Info("Setting up hooks...")
         # Needed for later functions, which want a discord object instead of a plain string.
         self.vGuildObj = await botUtils.GetGuild(self)
@@ -42,8 +45,6 @@ class Bot(commands.Bot):
 
 
     async def on_ready(self):
-        if settings.BotSettings.bCheckValues:
-            await SanityCheck.CheckAll(p_botRef=self)
         
         BUPrint.Info(f'\n\nBOT READY	|	{self.user.name} ({self.user.id}) on: {self.vGuildObj.name}\n')
 
