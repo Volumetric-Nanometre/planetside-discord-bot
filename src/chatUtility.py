@@ -185,8 +185,9 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 		# GET TEXT CHANNEL
 		Returns the discord.TextChannel with matching name.
 		"""
+		convertedChanName = p_voiceChn.name.lower().replace(" ", "-")
 		for textChan in p_guild.text_channels:
-			if textChan.name.lower() == f"{p_voiceChn.name.lower()}-chat":
+			if textChan.name.lower() == f"{convertedChanName}-chat":
 				if textChan.category == p_voiceChn.category:
 					return textChan
 
