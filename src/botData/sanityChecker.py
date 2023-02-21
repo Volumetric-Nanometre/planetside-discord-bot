@@ -185,16 +185,18 @@ class SanityCheck():
 
 		Returns TRUE if found. False if not.
 		"""
+		BUPrint.Debug(f"Checking role: {p_roleNameOrID}")
+
 		for role in p_RolesList:
 			if role.name == p_roleNameOrID:
 				return True
 
 			try:
 				if p_roleNameOrID.isnumeric():
-					if role.id == p_roleNameOrID:
+					if role.id == int(p_roleNameOrID):
 						return True
 			except AttributeError:
-				if role.id == p_roleNameOrID:
+				if role.id == int(p_roleNameOrID):
 					return True
 
 
