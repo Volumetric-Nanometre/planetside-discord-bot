@@ -14,7 +14,8 @@ from botUtils import BotPrinter, GetDiscordTime, UserHasCommandPerms, GetGuild
 from botData.utilityData import Colours, DateFormat
 
 from botData.dataObjects import User, NewUserData
-
+from userManager import UserLibrary, LibraryViewer
+from roleManager import RoleManager
 
 
 class NewUser(commands.Cog):
@@ -421,6 +422,8 @@ class NewUserRequest():
 			strOkay += "- Users claimed character is not a high ranking outfit member.\n"
 
 
+		if UserLibrary.HasEntry(self.userData.userObj.id):
+			strOkay += "- User has been in the server previously.\n"
 
 		if strOkay == "":
 			strOkay = "*None*"
@@ -567,7 +570,27 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		await self.parentRequest.requestMessage.delete()
 
 
+		# Create library entry, if enabled and user doesn't already have one:
+		if BotSettings.botFeatures.UserLibrary and NewUserSettings.bCreateLibEntryOnAccept and not UserLibrary.HasEntry(self.userData.userObj.id):
+			vUserLibEntry = User(
+				discordID=self.userData.userObj.id,
+				ps2Name=self.userData.ps2CharName,
+				ps2ID=self.userData.ps2CharID
+				)
 
+			if self.userData.ps2OutfitName != "":
+				vUserLibEntry.ps2Outfit = f"{self.userData.ps2OutfitName} {self.userData.ps2OutfitAlias}"
+
+			if self.userData.ps2OutfitCharObj != None:
+				vUserLibEntry.ps2OutfitRank = self.userData.ps2OutfitCharObj.rank
+				vUserLibEntry.ps2OutfitJoinDate = datetime.datetime.fromtimestamp(self.userData.ps2OutfitCharObj.member_since, datetime.timezone.utc)
+
+			vUserLibEntry.bIsRecruit = self.userData.bIsRecruit
+
+			if NewUserSettings.bLockPS2CharOnAccept:
+				vUserLibEntry.settings.bLockPS2Char = True
+
+			UserLibrary.SaveEntry(vUserLibEntry)
 
 
 		BotPrinter.Debug("Removing Userdata from list.")
@@ -578,8 +601,25 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		vGeneralChannel = vGuild.get_channel(Channels.generalID)
 		
 		vView = discord.ui.View()
+		if NewUserSettings.bShowAddRolesBtn:
+			vView.add_item(ShowRolesBtn(label="Click me to add roles!"))
+
+		if BotSettings.botFeatures.UserLibrary:
+			vView.add_item(ShowUserLibViewerBtn(label="View & setup your library!"))
 
 		await vGeneralChannel.send(Messages.newUserWelcome.replace("_MENTION", self.userData.userObj.mention).replace("_ROLE", vAssignedRoleName), view=vView)
 
 
 
+
+class ShowRolesBtn(discord.ui.Button):
+	async def callback (self, p_interaction: discord.Interaction):
+		roleView = RoleManager(p_interaction.client, p_interaction.user, True)
+		roleView.vInteraction = p_interaction
+		await p_interaction.response.send_message( Messages.userAddingRoles, view=roleView, ephemeral=True )
+
+class ShowUserLibViewerBtn(discord.ui.Button):
+	"""A button used to show the user library for the clicking user."""
+	async def callback(self, p_interaction:discord.Interaction):
+		vLibViewer = LibraryViewer(p_interaction.user.id, True)
+		await vLibViewer.SendViewer(p_interaction=p_interaction)
