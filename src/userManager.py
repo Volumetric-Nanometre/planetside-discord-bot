@@ -912,7 +912,7 @@ class UserLibrary():
 					bPromote = False
 
 
-		if not bPromote:
+		if not bPromote and not p_asBool:
 			BUPrint.Debug("Not promoting user.")
 			return vRequirementsMsg
 		
