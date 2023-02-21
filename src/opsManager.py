@@ -823,7 +823,7 @@ class OperationManager():
 		opsCategory = discord.utils.find(lambda items: items.name.lower() == botSettings.SignUps.signupCategory.lower(), vGuild.categories)
 
 		if opsCategory == None:
-			BUPrint.Info("SIGNUP CATEGORY NOT FOUND!  Check settings and ensure signupCategory matches the name of the category to be used; including capitalisation!")
+			BUPrint.Info("SIGNUP CATEGORY NOT FOUND!  Check settings and ensure signupCategory matches the name of the category to be used!")
 			return None
 
 		channel = None

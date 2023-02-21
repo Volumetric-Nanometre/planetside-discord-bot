@@ -576,7 +576,7 @@ class SignUps:
 	signupCategory = "SIGN UP"
 	"""# Signup Category
 	The category name (results are searched in lower, so this is generally case insensitive.)
-	If not found, this category is created."""
+	"""
 
 	
 	bResignAsButton = True
@@ -873,7 +873,7 @@ class Messages:
 	"""
 	
 	# Displayed in the GATE channel on bot startup (after purging).
-	gateChannelDefaultMsg = "Welcome to TDKD.\nIf a join request has not been created for you, or you have already sent one and it's no longer here, please re-join the server. \nOur bot has been restarted."
+	gateChannelDefaultMsg = "Welcome to TDKD.\nUse the button below to get started!"
 
 	# Displayed in the embed for new users in their gate message.
 	newUserInfo = "Use the buttons below to provide your Planetside 2 character name (if you have one) and accept the rules.\nThen you can request access, and wait for one of our admins to get you set up!"
@@ -919,7 +919,7 @@ class Messages:
 	noMatchingPS2Char = """No matching Planetside 2 Character was found with your current discord name.
 	If you wish for your statistics to be tracked, you can either:
 	 - Rename yourself to your Planetside2 Character.
-	 - Use `!About` and press `Setup`.
+	 - Use `/about` and press `Setup`.
 	Make sure you do this BEFORE the event starts, otherwise you will not be tracked!
 	"""
 
