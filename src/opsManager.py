@@ -932,6 +932,9 @@ class OperationManager():
 								botUtils.BotPrinter.LogError(f"User ID {user} is not found! Removing from data")
 								role.players.remove(user)
 
+				if vSignedUpUsers.__len__() > 1024:
+					vSignedUpUsers = vSignedUpUsers[1024:]
+
 				vEmbed.add_field(inline=True,
 				name=role.GetRoleName(),
 				value=vSignedUpUsers)
