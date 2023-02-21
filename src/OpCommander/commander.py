@@ -793,7 +793,7 @@ class Commander():
 				for user in role.players:
 					vUsersInRole += f"{self.vBotRef.get_user(int(user)).mention}\n"
 
-				if vUsersInRole.__len__ > 1024:
+				if vUsersInRole.__len__() > 1024:
 					vUsersInRole = vUsersInRole[1024:]
 				
 			vEmbed.add_field( 
