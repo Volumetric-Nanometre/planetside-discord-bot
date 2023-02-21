@@ -44,7 +44,7 @@ class EditRoles(baseModal.BaseModal):
 
 	async def on_submit(self, pInteraction: discord.Interaction):
 		BUPrint.Debug("Edit Roles Modal submitted...")
-		self.vOpData.pingables = self.txtPingables.value.split(" ")
+		self.vOpData.pingables = self.txtPingables.value.split(",")
 
 		vRoleNames = self.txtRoleName.value.splitlines()
 		vRoleEmoji = self.txtEmoji.value.splitlines()
