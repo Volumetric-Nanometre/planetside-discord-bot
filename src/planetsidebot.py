@@ -1,45 +1,78 @@
 """
 @author Michael O'Donnell
 """
-import os
 
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv
-#import auraxium
-#from auraxium import ps2
-import asyncio
 
+import botUtils
+from botUtils import BotPrinter as BUPrint
+from botData import settings
 
-# internal modules
-import discordbasics
 import opstart
-import settings
 import opsignup
-import chatlinker
-import bullybully
-#import outfittracking
+from chatUtility import ChatUtilityCog
+
+
+from botData.sanityChecker import SanityCheck
+
 
 class Bot(commands.Bot):
 
     def __init__(self):
-        super(Bot, self).__init__(command_prefix=['!'])
+        discord.utils.setup_logging(root=False)
+        super().__init__(command_prefix=['!'], intents=discord.Intents.all())
+        
+        if settings.BotSettings.bShowSettingsOnStartup:
+            BUPrint.Info(f"Starting bot with settings:\n")
+            botUtils.PrintSettings()
 
-        self.add_cog(opstart.opschannels(self))
-        self.add_cog(opsignup.OpSignUp(self))
-        self.add_cog(chatlinker.ChatLinker(self))
-        #self.add_cog(bullybully.Bully(self))
-        #self.add_cog(outfittracking.PS2OutfitTracker(self))
+        self.vGuildObj: discord.Guild
+
+    async def setup_hook(self):
+        BUPrint.Info("Setting up hooks...")
+        # Needed for later functions, which want a discord object instead of a plain string.
+        self.vGuildObj = await botUtils.GetGuild(self)
+# COGS	
+        await self.add_cog(opstart.opschannels(self))
+        await self.add_cog(opsignup.OpSignUp(self))
+        if settings.BotSettings.botFeatures.chatUtility:
+            await self.add_cog(ChatUtilityCog(self))
+
+        self.tree.copy_global_to(guild=self.vGuildObj)
+        await self.tree.sync(guild=self.vGuildObj)
+
 
     async def on_ready(self):
-        print(f'Logged in as {self.user.name} | {self.user.id} on Guild {settings.DISCORD_GUILD}')
-bot = Bot()        
+        if settings.BotSettings.bCheckValues:
+            await SanityCheck.CheckAll(p_botRef=self)
+        
+        BUPrint.Info(f'\n\nBOT READY	|	{self.user.name} ({self.user.id}) on: {self.vGuildObj.name}\n')
 
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.errors.CheckFailure):
-        await ctx.send('You do not have the correct role for this command.')
-    
-print("loop running")
+        if settings.BotSettings.bShowSettingsOnStartup_discord:
+            vAdminChannel = self.get_channel(settings.Channels.botAdminID)
+            if vAdminChannel != None and settings.BotSettings.bShowSettingsOnStartup_discord:
+                vSettingStr = botUtils.PrintSettings(True)
+                splitString = [(vSettingStr[index:index+1990]) for index in range(0, len(vSettingStr), 1990)]
+                for segment in splitString:
+                    segment = f"```{segment}```"
+                    await vAdminChannel.send( f"{segment}\n" )
 
-bot.run(settings.DISCORD_TOKEN)
+
+
+    async def ExitCalled(self):
+        """
+		# EXIT CALLED
+		Called when an exit signal is sent.
+		"""
+        if self._closed:
+            return
+        vAdminChan = self.get_channel(settings.Channels.botAdminID)
+        if vAdminChan != None:
+            await vAdminChan.send("**Bot shutting down.**")
+
+        BUPrint.Info("Bot shutting down. Performing cleanup...")
+        botUtils.FilesAndFolders.CleanupTemp()
+
+        BUPrint.Info("Closing bot connections")
+        await self.close()
