@@ -530,17 +530,19 @@ class NewUserRequest_btnAssignRole(discord.ui.Select):
 		if not await UserHasCommandPerms(pInteraction.user, (CommandLimit.validateNewuser), pInteraction):
 			return
 
-		vAssignedRoleName = self.options[0].label
-
 		# Assign given role:
 		vGuild = await GetGuild(pInteraction.client)
-		vAllRoles = vGuild.roles
-		# vRole: discord.Role = None
+		
 		rolesToAssign = [role
-		for role in vAllRoles
-		if role.id == int(self.values[0])
-		or (role.id == Roles.recruit and int(self.values[0]) == Roles.recruit) 
-		or role.id in Roles.autoAssignOnAccept]
+			for role in vGuild.roles
+			if role.id == int(self.values[0])
+			or (role.id == Roles.recruit and int(self.values[0]) == Roles.recruit) 
+			or role.id in Roles.autoAssignOnAccept
+		]
+
+		for role in rolesToAssign:
+			if role.id == int(self.values[0]):
+				vAssignedRoleName = role.name
 
 		if Roles.recruit in [role.id for role in rolesToAssign]:
 			self.userData.bIsRecruit = True
