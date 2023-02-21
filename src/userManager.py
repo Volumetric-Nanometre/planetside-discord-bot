@@ -766,7 +766,10 @@ class UserLibrary():
 				renameStr += f" [{vOutfit.alias}]"
 
 			BUPrint.Info(f"{discordMember.name} provided PS2 character name in UserLib setup. Renaming user to: {renameStr}")
-			await discordMember.edit(nick=renameStr)
+			try:
+				await discordMember.edit(nick=renameStr)
+			except discord.Forbidden:
+				BUPrint.Info(f"Bot does not have the required privileges to rename {discordMember.display_name}")
 
 		return True
 
@@ -1629,12 +1632,12 @@ class LibViewer_ConfigureModal(discord.ui.Modal):
 
 		if self.vUserEntry.ps2Name != "" and not self.vUserEntry.settings.bLockPS2Char:
 			self.txt_ps2Char.placeholder = self.vUserEntry.ps2Name
-		elif self.vUserEntry.settings.bLockPS2Char:
+		elif self.vUserEntry.settings.bLockPS2Char and not self.bIsAdminEdit:
 			self.remove_item(self.txt_ps2Char)
 		
 		if self.vUserEntry.aboutMe != "" and not self.vUserEntry.settings.bLockAbout:
 			self.txt_about.default = self.vUserEntry.aboutMe
-		elif self.vUserEntry.settings.bLockAbout:
+		elif self.vUserEntry.settings.bLockAbout and not self.bIsAdminEdit:
 			self.remove_item(self.txt_about)
 
 		if self.vUserEntry.birthday != None:
