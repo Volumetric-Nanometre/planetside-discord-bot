@@ -16,7 +16,8 @@ from botData.settings import BotSettings
 FilesAndFolders.SetupFolders()
 
 ps2Bot = Bot()
-mainLoop = asyncio.get_event_loop()
+mainLoop = asyncio.new_event_loop()
+asyncio.set_event_loop(mainLoop)
 asyncio_atexit.register(callback=ps2Bot.ExitCalled, loop=mainLoop)
 
 try:
