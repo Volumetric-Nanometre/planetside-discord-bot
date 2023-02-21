@@ -104,18 +104,20 @@ class RoleManager(discord.ui.View):
 
 
 	async def UpateUserRoles(self):
+		"""# UPDATE USER ROLES
+		Updates the users roles using the ones selected from the dropdowns.
+
+		Whether the roles are added or removed is dependant on which command was called,
+		and the behaviour is managed by a single if statement at the end of this function.
+		"""
+
 		# Create a list of all the roles a user can self-assign.
 		# This will be used later to check and remove unassigned roles.
 		vOptionList = self.vTDKDRoles.options + self.vGameRoles1.options + self.vGameRoles2.options + self.vGameRoles3.options
-		vUserRolesList: list = []
-		role: discord.SelectOption
-		for role in vOptionList:
-			vUserRolesList.append(role.value)
-
-		BUPrint.Debug(f"User Role List: {vUserRolesList}")
-
-		# Create a list of selected user roles.
+		vUserRoleIDs: list[int] = [int(role.value) for role in vOptionList]
 		vUserSelectedRoles = self.vTDKDRoles.values + self.vGameRoles1.values + self.vGameRoles2.values
+
+		BUPrint.Debug(f"User Role ID List: {vUserRoleIDs}")
 		BUPrint.Debug(f"Selected Roles: {vUserSelectedRoles}")
 
 		# Ensure we're operating on TDKD server.
@@ -126,19 +128,11 @@ class RoleManager(discord.ui.View):
 			return
 
 		# Roles To Use: list of role objects corresponding to user choices.
-		vRolesToUse = []
-
-		if len(vRolesToUse):
-			for serverRoleIndex in self.vGuild.roles:
-				# Only proceed if role is one a user can add/remove
-				if f"{serverRoleIndex.id}" in vUserRolesList:
-					if f"{serverRoleIndex.id}" in vUserSelectedRoles:
-						vRolesToUse.append(serverRoleIndex)
-				else:
-					BUPrint.Debug(f"Role: {serverRoleIndex.name} is not user-assignable. Skipping...")
+		vRolesToUse = [role for role in self.vGuild.roles if str(role.id) in vUserSelectedRoles]
 
 
-			BUPrint.Debug("Modifying user roles...")
+		if len(vRolesToUse) != 0:
+			BUPrint.Debug(f"Adding roles: {vRolesToUse}")
 			try:
 				if self.bAddRoles:
 					await self.vUser.add_roles(*vRolesToUse, reason="User self assigned role with /role command")
