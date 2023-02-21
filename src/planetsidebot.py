@@ -36,12 +36,11 @@ class Bot(commands.Bot):
         self.vOpsManager = opsManager.OperationManager()
 
     async def setup_hook(self):
-        if settings.BotSettings.bCheckValues:
-            await SanityCheck.CheckAll(p_botRef=self)
 
         BUPrint.Info("Setting up hooks...")
         # Needed for later functions, which want a discord object instead of a plain string.
         self.vGuildObj = await botUtils.GetGuild(self)
+
 # COGS	
         if settings.BotSettings.botFeatures.NewUser:
             await self.add_cog(newUser.NewUser(self))
@@ -74,7 +73,10 @@ class Bot(commands.Bot):
         await self.tree.sync(guild=self.vGuildObj)
 
 
-    async def on_ready(self): 		
+    async def on_ready(self):
+        if settings.BotSettings.bCheckValues:
+            await SanityCheck.CheckAll(p_botRef=self)
+
 		# Objects with BOT refs
         opsManager.OperationManager.vBotRef = self
         Commander.vBotRef = self
