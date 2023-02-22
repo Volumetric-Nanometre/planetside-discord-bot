@@ -47,7 +47,7 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 		if not await botUtils.UserHasCommandPerms(p_interaction.user, self.adminLevel, p_interaction):
 			return
 
-		p_interaction.response.defer()
+		await p_interaction.response.defer()
 		
 		vMessage = f"{p_interaction.user.display_name} removed the Category: {p_category.name}\n\n"
 		vAdminChannel = p_interaction.guild.get_channel( Settings.Channels.botAdminID )
@@ -62,7 +62,7 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 
 		# Remove voice channels, moving any connected users to fallback (if found).
 		# This is done first, since movin connected members should remove all the chat-linked text channels.
-		fallbackVC = p_interaction.guild.get_channel( Settings.Channels.voiceFallbackID )
+		fallbackVC = p_interaction.guild.get_channel( Settings.Channels.voiceFallback )
 		vMessage += f"**Voice Channels: {len(p_category.voice_channels)}"
 		for voiceChan in p_category.voice_channels:
 			if fallbackVC != None:
@@ -94,12 +94,12 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 
 		# Finally, delete category
 		try:
-			await p_category.delete(vReasonMsg)
+			await p_category.delete(reason=vReasonMsg)
 		except (discord.Forbidden, discord.NotFound, discord.HTTPException):
 			vMessage += f"Category {p_category.name} not removed! If empty, remove it manually.\n"
 
 		try:
-			await p_interaction.response.send_message("Category has been removed!", ephemeral=True)
+			await p_interaction.edit_original_response(content="Category has been removed!")
 		except discord.NotFound:
 			BUPrint.Info("Response not found.  Command likely used in channel that was removed (or the operation took longer than discords time-out.)")
 

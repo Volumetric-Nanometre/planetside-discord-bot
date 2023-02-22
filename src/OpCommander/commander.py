@@ -1103,13 +1103,27 @@ class Commander():
 			facilityFeed += f"{facility}\n"
 		if facilityFeed.__len__() > 4000:
 			facilityFeed = facilityFeed[3900:]
+
 		if self.vOpData.options.bUseSoberdogsFeedback:
 			BUPrint.Debug("using soberdogs feedback")
 			if self.soberdogFeedbackMsg == None:
-				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.send(content=vFeedbackMsg, file=feedbackFile)
+				self.soberdogFeedbackForum = self.vBotRef.get_channel(Channels.soberFeedbackID)
 
-				await self.soberdogFeedbackThread.send(content=f"**Facility Feed:**\n{facilityFeed}")
-				await self.soberdogFeedbackThread.send(content="Stat Visualisation", file=statGraphAll)
+				threadName = f"{self.vOpData.name} {self.vOpData.date.date()}"
+
+				if self.vOpData.managedBy != "":
+					threadName += f" ({self.vBotRef.get_user(int(self.vOpData.managedBy))})"
+
+				self.soberdogFeedbackThread = await self.soberdogFeedbackForum.create_thread(
+					name= threadName,
+					content=f"**Facility Feed:**\n{facilityFeed}",
+					files=[statGraphAll]
+				)
+
+				# await self.soberdogFeedbackThread.send()
+				# await self.soberdogFeedbackThread.send(content="Stat Visualisation", file=statGraphAll)
+
+				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.thread.send(content=vFeedbackMsg, file=feedbackFile)
 			else:
 				await self.soberdogFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
 
