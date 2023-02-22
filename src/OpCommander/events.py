@@ -50,7 +50,7 @@ class OpsEventTracker():
 
 		# More detailed, time set data.
 		self.eventPoints: list[EventPoint] = []
-		self.currentEventPoint:EventPoint = EventPoint(timestamp=datetime.now(timezone.utc), activeParticipants=self.participants.__len__())
+		self.currentEventPoint:EventPoint = None
 		BUPrint.Info("Ops Event Tracker initialised!")
 
 
@@ -60,6 +60,8 @@ class OpsEventTracker():
 		# START
 		Starts the tracking and locks in the participants.
 		"""
+
+		self.currentEventPoint = EventPoint(timestamp=datetime.now(timezone.utc), activeParticipants=self.participants.__len__())
 		# Redundancy, the event should be closed without ever calling start if there's no participants.
 		if self.participants.__len__() == 0:
 			BUPrint.LogError(p_titleStr="OPS EVENT TRACKER | ", p_string="Not starting tracker, no participants!")
