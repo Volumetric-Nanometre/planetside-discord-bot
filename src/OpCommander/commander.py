@@ -977,7 +977,7 @@ class Commander():
 		"""
 		self.scheduler.add_job(
 			OpsEventTracker.CreateTriggers,
-			"date", run_date=datetime.utcnow() + timedelta(minutes=5),
+			"date", run_date=datetime.now(tz=timezone.utc) + timedelta(minutes=5),
 			args=[self.vOpsEventTracker]
 		)
 
@@ -1089,14 +1089,10 @@ class Commander():
 				if feedback != "":
 					vFeedbackMsg += f"{feedback}\n"
 
-		feedbackFile = discord.File( self.vFeedback.SaveToFile(f"{Directories.feedbackPrefix}{self.vOpData.fileName}") )
-		
-		statGraphAll = None
-		if self.vOpData.options.bIsPS2Event and commanderSettings.bTrackingIsEnabled:
-			statGraphAll = discord.File(GraphMaker.CreateGraphAll(self.vOpData.fileName, self.vOpsEventTracker.eventPoints))
+
 
 		if vFeedbackMsg.__len__() > 2000: # greater than discords max message limit
-			vFeedbackMsg = vFeedbackMsg[:1900] + "\n\n**Feedback is too large!**\nDownload file to see entire message."
+			vFeedbackMsg = vFeedbackMsg[1900:] + "\n\n**Feedback is too large!**\nDownload file to see entire message."
 
 		facilityFeed = ""
 		for facility in self.vOpsEventTracker.sessionStats.facilityFeed:
@@ -1106,6 +1102,8 @@ class Commander():
 
 		if self.vOpData.options.bUseSoberdogsFeedback:
 			BUPrint.Debug("using soberdogs feedback")
+			feedbackFile = discord.File( self.vFeedback.SaveToFile(f"{Directories.feedbackPrefix}{self.vOpData.fileName}") )
+
 			if self.soberdogFeedbackMsg == None:
 				self.soberdogFeedbackForum = self.vBotRef.get_channel(Channels.soberFeedbackID)
 
@@ -1117,34 +1115,45 @@ class Commander():
 				self.soberdogFeedbackThread = await self.soberdogFeedbackForum.create_thread(
 					name= threadName,
 					content=f"**Facility Feed:**\n{facilityFeed}",
-					files=[statGraphAll]
+					files=self.GetGraphs()
 				)
 
-				# await self.soberdogFeedbackThread.send()
-				# await self.soberdogFeedbackThread.send(content="Stat Visualisation", file=statGraphAll)
 
 				self.soberdogFeedbackMsg = await self.soberdogFeedbackThread.thread.send(content=vFeedbackMsg, file=feedbackFile)
+				return
 			else:
 				await self.soberdogFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
-
-		# Guard catch; allows suberdogs feedback to be updated since its a persistent channel, but prevents errors when not soberfeedback
-		if self.vCommanderStatus == CommanderStatus.Ended:
-			BUPrint.Debug("User submitting feedback after event has ended, returning.")
-			return
+				return
 
 		
 		BUPrint.Debug("using normal feedback")
 		if self.notifFeedbackMsg == None:
+			feedbackFile = discord.File( self.vFeedback.SaveToFile(f"{Directories.feedbackPrefix}{self.vOpData.fileName}") )
+
 			self.notifFeedbackMsg = await self.notifChn.send(content=vFeedbackMsg, file=feedbackFile)
 			if self.vOpData.options.bIsPS2Event and commanderSettings.bTrackingIsEnabled:
 				await self.notifChn.send(content=f"**Facility Feed:**:\n{facilityFeed}")
-				await self.notifChn.send(content="Stat visualisation", file=statGraphAll)
+				await self.notifChn.send(content="Stat visualisation", files=self.GetGraphs() )
 		
 		else:
 			await self.notifFeedbackMsg.edit(content=vFeedbackMsg, attachments=[feedbackFile])
 
 
 		await self.UpdateCommanderLive()
+
+
+
+	def GetGraphs(self):
+		""" # GET GRAPHS
+		Returns a list[discord.File] of graphs for the event. """
+		graphList = []
+		if not self.vOpData.options.bIsPS2Event or not commanderSettings.bTrackingIsEnabled:
+			return []
+
+		graphList.append( discord.File(GraphMaker.CreateGraphAll(self.vOpData.fileName, self.vOpsEventTracker.eventPoints)) )
+
+
+		return graphList
 
 
 
@@ -1198,13 +1207,13 @@ class Commander_btnDebrief(discord.ui.Button):
 		super().__init__(label="DEBRIEF", emoji="🗳️", row=0)
 
 	async def callback(self, p_interaction:discord.Interaction):
+		await p_interaction.response.defer(thinking=True, ephemeral=True)
 		await self.vCommander.EndEventSoft()
 		
 		self.vCommander.vCommanderStatus = CommanderStatus.Debrief
 		await self.vCommander.UpdateCommanderLive()
 
-		# Updates the commander view.
-		await p_interaction.response.send_message("Debrief Started...", ephemeral=True)
+		await p_interaction.edit_original_response(content="Debrief/Feedback started!")
 
 		feedbackView = discord.ui.View(timeout=None)
 		feedbackView.add_item(Commander_btnGiveFeedback(self.vCommander))
