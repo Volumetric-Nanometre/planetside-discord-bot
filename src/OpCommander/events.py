@@ -534,6 +534,10 @@ class OpsEventTracker():
 
 			# Determine if killer character is allied or an enemy.
 			vAttackerPS2Char = await self.auraxClient.get_by_id(type_=Character, id_=p_event.attacker_character_id)
+			if vAttackerPS2Char == None:
+				vParticipant.userSession.kda.deathBySuicide += 1
+				return
+			
 			if vAttackerPS2Char.faction_id == 2: # NC
 				vParticipant.userSession.kda.deathByAllies += 1
 				self.sessionStats.eventKDA.deathByAllies += 1
