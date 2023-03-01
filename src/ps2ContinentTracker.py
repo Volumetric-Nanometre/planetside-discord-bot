@@ -13,10 +13,11 @@ from discord.ext.commands import GroupCog, Bot
 from discord.app_commands import command
 from discord import Interaction
 from auraxium.event import EventClient, ContinentLock, Trigger
-from auraxium.ps2 import Zone
+from auraxium.ps2 import Zone, World
+from auraxium.types import CensusData
 import time
 
-class ContinentTracker(GroupCog):
+class ContinentTrackerCog(GroupCog, name="continents"):
 	def __init__(self, p_bot:Bot):
 		self.botRef = p_bot
 		self.auraxClient = EventClient(service_id=BotSettings.ps2ServiceID)
@@ -51,13 +52,32 @@ class ContinentTracker(GroupCog):
 
 
 
-	def CreateTriggers(self):
+	# @command()
+	# async def debug(self, p_interaction:Interaction):
+	# 	await p_interaction.response.defer(thinking=True)
+
+		# world:World = await self.auraxClient.get_by_id(World, ContinentTrack.worldID)
+
+		# # indar = await world.map(zone=await self.auraxClient.get_by_id(Zone, PS2ZoneIDs.indarID))
+
+		# # BUPrint.Debug(indar)
+		# BUPrint.Debug( await world.events(kwargs=["ContinentLock"]) )
+
+
+
+	async def CreateTriggers(self):
 		"""# Create Triggers
 		Sets up the triggers to monitor """
-		self.auraxClient.add_trigger( Trigger(
-			Event=ContinentLock.event_name,
-			worlds=ContinentTrack.worldID,
-			action=self.NewContinentLock
+		worldToMonitor = await self.auraxClient.get_by_id(World, ContinentTrack.worldID)
+
+		if worldToMonitor == None:
+			BUPrint.LogError("Nop", "NO WORLD")
+
+		self.auraxClient.add_trigger( 
+			Trigger(
+				event="ContinentLock",
+				# worlds=[worldToMonitor],
+				action=self.NewContinentLock
 			)
 		)
 
@@ -66,10 +86,15 @@ class ContinentTracker(GroupCog):
 		"""# New Continent Lock
 		Called when a continent has been locked.
 		"""
+		if p_event.world_id != ContinentTrack.worldID:
+			BUPrint.Debug("World doesn't match tracked setting. Ignoring.")
+			return
+		
+		self.ReplaceOldLock(p_event)
+
 		notifChannel = self.botRef.get_channel(Channels.ps2ContinentNotifID)
 
-		p_event.timestamp
-		pass
+		await self.PostMessage_Sorted()
 
 
 	def ReplaceOldLock(self, p_event:ContinentLock):
@@ -113,6 +138,10 @@ class ContinentTracker(GroupCog):
 			]
 		
 		timestamps = [continent.timestamp for continent in continents if continent != None]
+
+		if timestamps.__len__() == 0:
+			return None
+
 		timestamps.sort()
 
 		for continent in continents:
@@ -129,6 +158,15 @@ class ContinentTracker(GroupCog):
 		If p_interaction is None, message is sent to the settings specified channel.
 		"""
 		oldestLock = self.GetOldestLock()
+		if oldestLock == None:
+			if p_interaction != None:
+				await p_interaction.response.send_message(content="Currently unable to fulfil this request. Sorry!", ephemeral=True)
+				return
+			else:
+				BUPrint.Debug("Unable to get oldest message.")
+				return
+
+
 		oldestContinent:Zone = await self.auraxClient.get_by_id(id_=oldestLock.zone_id, type_=Zone)
 		
 		vMessage = f"**Oldest continent lock:**\n{oldestContinent.name}, locked {GetDiscordTime(oldestLock.timestamp)}"
@@ -157,6 +195,15 @@ class ContinentTracker(GroupCog):
 			]
 
 		continents.sort(key=lambda continent: continent.timestamp)
+
+		if continents.__len__() == 0:
+			if p_interaction != None:
+				await p_interaction.response.send_message(content="Currently unable to fulfil this request. Sorry!", ephemeral=True)
+				return
+			else:
+				BUPrint.Debug("Unable to get oldest message.")
+				return
+			
 
 		vMessage = "***Continents Locked***\n"
 		for continent in continents:

@@ -490,6 +490,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> [{BotSettings.botFeatures.UserRoles}] User Roles\n"
 	vString += f"	> [{BotSettings.botFeatures.chatUtility}]  Chat Utility\n"
 	vString += f"	> [{BotSettings.botFeatures.ForFunCog}] For Fun Cog\n"
+	vString += f"	> [{BotSettings.botFeatures.continentTracker}] PS2 Continent Tracker\n"
 
 
 	vString += "\nGENERAL BOT SETTINGS\n"
@@ -570,8 +571,8 @@ def PrintSettings(bGetOnly = False):
 
 
 	vString += "\nCONTINENT TRACKER SETTINGS\n"
-	vString += f"	> [{ContinentTrack.bIsEnabled}] Enabled\n"
-	if ContinentTrack.bIsEnabled:
+	vString += f"	> [{BotSettings.botFeatures.continentTracker}] Enabled\n"
+	if BotSettings.botFeatures.continentTracker:
 		vString += f"	> [{ContinentTrack.bCheckOnStartup}] Check on Startup\n"
 		vString += f"	> [{ContinentTrack.bAlertCommanders}] Alert Commanders\n"
 		vString += f"	> World ID: {ContinentTrack.worldID}\n"

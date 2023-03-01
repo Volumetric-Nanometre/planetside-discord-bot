@@ -64,6 +64,9 @@ class BotSettings:
 
 		# For Fun Cog: Cog that implements 'for fun' features that do not depend on other bot functionality.
 		ForFunCog=True,
+
+		# Continent Tracker: Cog that enables tracking of PS2 continents, posting messages on updates.
+		continentTracker=True
 	)
 	"""# BOT FEATURES:  Convenience setting to Enable or Disable Cog functionality.  Any co-dependnacy will behave based on these settings.
 	"""
@@ -395,7 +398,7 @@ class Channels:
 	ID of the planetside 2 TEXT channel."""
 
 
-	ps2ContinentNotifID = -1
+	ps2ContinentNotifID = 1080562023483572315
 	"""# PS2 Continent Notification ID
 	Channel ID used for PS2 continent lock notifications."""
 
@@ -764,9 +767,9 @@ class UserLib:
 
 @dataclass(frozen=True)
 class ContinentTrack:
-	bIsEnabled: bool =  True
-	"""# Is Enabled: 
-	If true, continent tracker is enabled."""
+	"""# Continent Track
+	Settings pertaining to the behaviour of the Planetside 2 Continent Tracker.
+	"""
 
 	worldID: int = 13
 	"""# World ID

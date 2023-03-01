@@ -17,6 +17,7 @@ from OpCommander.commander import Commander
 from userManager import UserLibraryCog, UserLibraryAdminCog, UserLibrary, UserLib_RecruitValidationRequest
 from chatUtility import ChatUtilityCog
 from botAdmin import BotAdminCog
+from ps2ContinentTracker import ContinentTrackerCog
 from forFun import ForFunCog
 
 from botData.sanityChecker import SanityCheck
@@ -34,6 +35,7 @@ class Bot(commands.Bot):
 
         self.vGuildObj: discord.Guild
         self.vOpsManager = opsManager.OperationManager()
+        self.vcontTrackerClient = None
 
     async def setup_hook(self):
 
@@ -67,7 +69,13 @@ class Bot(commands.Bot):
             adminCog = BotAdminCog(self)
             await self.add_cog(adminCog)
             adminCog.shutdownFunction = self.ExitCalled
-
+            
+        if settings.BotSettings.botFeatures.continentTracker:
+            contTrackerCog = ContinentTrackerCog(self)
+            self.vcontTrackerClient = contTrackerCog.auraxClient
+            # await contTrackerCog.CreateTriggers()
+            await self.add_cog(contTrackerCog)
+            
 
         self.tree.copy_global_to(guild=self.vGuildObj)
         await self.tree.sync(guild=self.vGuildObj)
@@ -137,6 +145,13 @@ class Bot(commands.Bot):
 
             if userLibAdmin != None:
                 userLibAdmin.querySleeperTask.stop()
+            
+
+        if settings.BotSettings.botFeatures.continentTracker:
+            BUPrint.Info("	> Closing continent tracker client")
+            await self.vcontTrackerClient.close()
+
+
 
 
         BUPrint.Info("Closing bot connections")
