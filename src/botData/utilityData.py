@@ -82,3 +82,15 @@ class ConsoleStyles:
 	colourWarn = "\033[31m"
 	ColourInfo = "\033[37m"
 	timeStyle = dim + ColourInfo
+
+
+
+class PS2ZoneIDs:
+	""" PS2 Zone IDS
+	Convenience class to hold zone (continent) IDs
+	"""
+	indarID: int = 2
+	hossinID: int = 4
+	amerishID: int = 6
+	esamirID: int = 8
+	oshurID: int = 10

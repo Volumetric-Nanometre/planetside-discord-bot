@@ -64,6 +64,9 @@ class BotSettings:
 
 		# For Fun Cog: Cog that implements 'for fun' features that do not depend on other bot functionality.
 		ForFunCog=True,
+
+		# Continent Tracker: Cog that enables tracking of PS2 continents, posting messages on updates.
+		continentTracker=True
 	)
 	"""# BOT FEATURES:  Convenience setting to Enable or Disable Cog functionality.  Any co-dependnacy will behave based on these settings.
 	"""
@@ -321,6 +324,9 @@ class CommandLimit:
 	chatUtilities = CommandRestrictionLevels.level1
 	"""Command limit for chat utility commands."""
 
+	continentTracker = CommandRestrictionLevels.level3
+	"""Command limit for continent tracker commands."""
+
 
 
 @dataclass(frozen=True)
@@ -390,6 +396,11 @@ class Channels:
 	ps2TextID = 715337156255809568
 	"""# PS" Text ID:
 	ID of the planetside 2 TEXT channel."""
+
+
+	ps2ContinentNotifID = 1080562023483572315
+	"""# PS2 Continent Notification ID
+	Channel ID used for PS2 continent lock notifications."""
 
 
 	scheduleID = 818186731202936843
@@ -751,6 +762,30 @@ class UserLib:
 	maxQuotes = 3
 	"""# Max Quotes:
 	The maximum number of saved/displayed top quotes a user can have in their entry."""
+
+
+
+@dataclass(frozen=True)
+class ContinentTrack:
+	"""# Continent Track
+	Settings pertaining to the behaviour of the Planetside 2 Continent Tracker.
+	"""
+
+	worldID: int = 13
+	"""# World ID
+	The ID of the world to watch.
+	Obtained from: https://github.com/leonhard-s/auraxium/blob/master/tests/data/rest/datatype_payloads/world.json
+	"""
+
+	bAlertCommanders: bool = True
+	""" # Alert Commanders
+	When true, continent changes will also be put into non-started event notification channels, and event managers pinged.
+	"""
+
+	bCheckOnStartup: bool = True
+	"""# Check on Startup
+	When true, the tracker will check all continents on startup.
+	If this is false, not all information may be available until all continents have been updated."""
 
 
 

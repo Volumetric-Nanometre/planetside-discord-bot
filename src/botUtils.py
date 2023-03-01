@@ -3,7 +3,7 @@ import sys
 import datetime
 import time
 from sys import stderr
-from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib, CommandLimit, Roles, Channels
+from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib, CommandLimit, Roles, Channels, ContinentTrack
 from botData.dataObjects import EntryRetention
 import botData.utilityData as UtilityData
 import traceback
@@ -490,6 +490,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> [{BotSettings.botFeatures.UserRoles}] User Roles\n"
 	vString += f"	> [{BotSettings.botFeatures.chatUtility}]  Chat Utility\n"
 	vString += f"	> [{BotSettings.botFeatures.ForFunCog}] For Fun Cog\n"
+	vString += f"	> [{BotSettings.botFeatures.continentTracker}] PS2 Continent Tracker\n"
 
 
 	vString += "\nGENERAL BOT SETTINGS\n"
@@ -536,11 +537,12 @@ def PrintSettings(bGetOnly = False):
 	vString += f"\nCOMMAND LIMITS\n"
 	vString += f"	> Validate New User: {CommandLimit.validateNewuser.name}\n"
 	vString += f"	> User Roles: {CommandLimit.userRoles.name}\n"
-	vString += f"	> Op Manager:	{CommandLimit.opManager}\n"
+	vString += f"	> Op Manager:	{CommandLimit.opManager.name}\n"
 	vString += f"	> Op Commander: {CommandLimit.opCommander.name}\n"
 	vString += f"	> User Library: {CommandLimit.userLibrary.name}\n"
 	vString += f"	> User Library Admin: {CommandLimit.userLibraryAdmin.name}\n"
 	vString += f"	> Chat Utilities: {CommandLimit.chatUtilities.name}\n"
+	vString += f"	> Continent Tracker: {CommandLimit.continentTracker.name}\n"
 
 
 
@@ -566,6 +568,14 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Auto Move VC:		{Commander.bAutoMoveVCEnabled}\n"
 	vString += f"	> Default Channels: {Commander.defaultChannels}\n"
 
+
+
+	vString += "\nCONTINENT TRACKER SETTINGS\n"
+	vString += f"	> [{BotSettings.botFeatures.continentTracker}] Enabled\n"
+	if BotSettings.botFeatures.continentTracker:
+		vString += f"	> [{ContinentTrack.bCheckOnStartup}] Check on Startup\n"
+		vString += f"	> [{ContinentTrack.bAlertCommanders}] Alert Commanders\n"
+		vString += f"	> World ID: {ContinentTrack.worldID}\n"
 
 
 
@@ -602,6 +612,8 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> User Auto Sleeper: {UserLib.sleeperRules}\n"
 	if UserLib.sleeperRules.bIsEnabled:
 		vString += f"	> Sleeper Check Time: {UserLib.sleeperCheckTime}\n"
+
+
 
 	if bGetOnly:
 		return vString

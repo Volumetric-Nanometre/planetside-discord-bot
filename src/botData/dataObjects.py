@@ -34,6 +34,7 @@ class BotFeatures:
 	chatUtility: bool
 	UserRoles: bool
 	ForFunCog: bool
+	continentTracker: bool
 
 
 # # # # USER LIBRARY
