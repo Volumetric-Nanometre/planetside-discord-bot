@@ -14,8 +14,7 @@ from discord.app_commands import command
 from discord import Interaction
 from auraxium.event import EventClient, ContinentLock, Trigger
 from auraxium.ps2 import Zone, World
-from auraxium.types import CensusData
-import time
+
 
 class ContinentTrackerCog(GroupCog, name="continents"):
 	def __init__(self, p_bot:Bot):
