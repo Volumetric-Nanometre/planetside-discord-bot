@@ -3,7 +3,7 @@ import sys
 import datetime
 import time
 from sys import stderr
-from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib, CommandLimit, Roles, Channels
+from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib, CommandLimit, Roles, Channels, ContinentTrack
 from botData.dataObjects import EntryRetention
 import botData.utilityData as UtilityData
 import traceback
@@ -568,6 +568,14 @@ def PrintSettings(bGetOnly = False):
 
 
 
+	vString += "\nCONTINENT TRACKER SETTINGS\n"
+	vString += f"	> [{ContinentTrack.bIsEnabled}] Enabled\n"
+	if ContinentTrack.bIsEnabled:
+		vString += f"	> [{ContinentTrack.bCheckOnStartup}] Check on Startup\n"
+		vString += f"	> [{ContinentTrack.bAlertCommanders}] Alert Commanders\n"
+		vString += f"	> World ID: {ContinentTrack.worldID}\n"
+
+
 
 	vString += "\nSIGN UP SETTINGS\n"
 	vString += f"	> Parse Schedule: {SignUps.bAutoParseSchedule}\n"
@@ -602,6 +610,8 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> User Auto Sleeper: {UserLib.sleeperRules}\n"
 	if UserLib.sleeperRules.bIsEnabled:
 		vString += f"	> Sleeper Check Time: {UserLib.sleeperCheckTime}\n"
+
+
 
 	if bGetOnly:
 		return vString

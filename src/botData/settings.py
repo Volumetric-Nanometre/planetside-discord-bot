@@ -392,6 +392,11 @@ class Channels:
 	ID of the planetside 2 TEXT channel."""
 
 
+	ps2ContinentNotifID = -1
+	"""# PS2 Continent Notification ID
+	Channel ID used for PS2 continent lock notifications."""
+
+
 	scheduleID = 818186731202936843
 	"""# Schedule ID:
 	ID of the schedule text channel"""
@@ -751,6 +756,30 @@ class UserLib:
 	maxQuotes = 3
 	"""# Max Quotes:
 	The maximum number of saved/displayed top quotes a user can have in their entry."""
+
+
+
+@dataclass(frozen=True)
+class ContinentTrack:
+	bIsEnabled: bool =  True
+	"""# Is Enabled: 
+	If true, continent tracker is enabled."""
+
+	worldID: int = 13
+	"""# World ID
+	The ID of the world to watch.
+	Obtained from: https://github.com/leonhard-s/auraxium/blob/master/tests/data/rest/datatype_payloads/world.json
+	"""
+
+	bAlertCommanders: bool = True
+	""" # Alert Commanders
+	When true, continent changes will also be put into non-started event notification channels, and event managers pinged.
+	"""
+
+	bCheckOnStartup: bool = True
+	"""# Check on Startup
+	When true, the tracker will check all continents on startup.
+	If this is false, not all information may be available until all continents have been updated."""
 
 
 
