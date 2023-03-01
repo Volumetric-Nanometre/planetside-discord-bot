@@ -6,6 +6,7 @@ Handles tracking and displaying information of continent changes for a specified
 """
 
 from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit
+from botData.dataObjects import CommanderStatus
 from botUtils import BotPrinter as BUPrint
 from botUtils import GetDiscordTime, UserHasCommandPerms
 from botData.utilityData import PS2ZoneIDs
@@ -14,7 +15,7 @@ from discord.app_commands import command
 from discord import Interaction
 from auraxium.event import EventClient, ContinentLock, Trigger
 from auraxium.ps2 import Zone, World
-
+from opsManager import OperationManager
 
 class ContinentTrackerCog(GroupCog, name="continents"):
 	def __init__(self, p_bot:Bot):
@@ -51,19 +52,6 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 
 
-	# @command()
-	# async def debug(self, p_interaction:Interaction):
-	# 	await p_interaction.response.defer(thinking=True)
-
-		# world:World = await self.auraxClient.get_by_id(World, ContinentTrack.worldID)
-
-		# # indar = await world.map(zone=await self.auraxClient.get_by_id(Zone, PS2ZoneIDs.indarID))
-
-		# # BUPrint.Debug(indar)
-		# BUPrint.Debug( await world.events(kwargs=["ContinentLock"]) )
-
-
-
 	async def CreateTriggers(self):
 		"""# Create Triggers
 		Sets up the triggers to monitor """
@@ -90,8 +78,6 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			return
 		
 		self.ReplaceOldLock(p_event)
-
-		notifChannel = self.botRef.get_channel(Channels.ps2ContinentNotifID)
 
 		await self.PostMessage_Sorted()
 
@@ -215,4 +201,16 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			return
 
 		else:
+			if ContinentTrack.bAlertCommanders:
+				commanders = OperationManager().vLiveCommanders
+
+				if commanders.__len__() != 0:
+					userMentions = ""
+					for commander in commanders:
+						if commander.vCommanderStatus.value < CommanderStatus.Started.value and commander.vOpData.managedBy != "":
+							userMentions += self.botRef.get_user(int(commander.vOpData.managedBy)).mention
+					
+					vMessage = f"{userMentions}\n{vMessage}"
+
+
 			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(vMessage)
