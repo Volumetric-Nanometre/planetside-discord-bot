@@ -536,11 +536,12 @@ def PrintSettings(bGetOnly = False):
 	vString += f"\nCOMMAND LIMITS\n"
 	vString += f"	> Validate New User: {CommandLimit.validateNewuser.name}\n"
 	vString += f"	> User Roles: {CommandLimit.userRoles.name}\n"
-	vString += f"	> Op Manager:	{CommandLimit.opManager}\n"
+	vString += f"	> Op Manager:	{CommandLimit.opManager.name}\n"
 	vString += f"	> Op Commander: {CommandLimit.opCommander.name}\n"
 	vString += f"	> User Library: {CommandLimit.userLibrary.name}\n"
 	vString += f"	> User Library Admin: {CommandLimit.userLibraryAdmin.name}\n"
 	vString += f"	> Chat Utilities: {CommandLimit.chatUtilities.name}\n"
+	vString += f"	> Continent Tracker: {CommandLimit.continentTracker.name}\n"
 
 
 

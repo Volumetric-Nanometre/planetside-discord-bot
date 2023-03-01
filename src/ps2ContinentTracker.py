@@ -5,9 +5,9 @@ Handles tracking and displaying information of continent changes for a specified
 
 """
 
-from botData.settings import BotSettings, ContinentTrack, Channels
+from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit
 from botUtils import BotPrinter as BUPrint
-from botUtils import GetDiscordTime
+from botUtils import GetDiscordTime, UserHasCommandPerms
 from botData.utilityData import PS2ZoneIDs
 from discord.ext.commands import GroupCog, Bot
 from discord.app_commands import command
@@ -34,11 +34,19 @@ class ContinentTracker(GroupCog):
 
 	@command(name="oldest", description="Posts the oldest locked continent lock.")
 	async def GetOldestContinentLock(self, p_interaction:Interaction):
+		# HARDCODED ROLE USEAGE:
+		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.opManager), p_interaction):
+			return
+
 		await self.PostMessage_Oldest(p_interaction)
 
 
 	@command(name="locks", description="Posts all continent lock timestamps.")
 	async def GetAllContinentLocks(self, p_interaction:Interaction):
+		# HARDCODED ROLE USEAGE:
+		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.opManager), p_interaction):
+			return
+
 		await self.PostMessage_Oldest(p_interaction)
 
 

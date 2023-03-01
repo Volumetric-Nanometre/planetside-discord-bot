@@ -321,6 +321,9 @@ class CommandLimit:
 	chatUtilities = CommandRestrictionLevels.level1
 	"""Command limit for chat utility commands."""
 
+	continentTracker = CommandRestrictionLevels.level3
+	"""Command limit for continent tracker commands."""
+
 
 
 @dataclass(frozen=True)
