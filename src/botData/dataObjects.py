@@ -170,9 +170,9 @@ class User:
 	
 	Contains their planetside2 character information, and tracked event sessions.
 
-	NOTE: DO NOT adjust `__version`!
+	NOTE: DO NOT adjust `version`!
 	"""
-	__version = -1
+	version = -1
 
 	discordID: int = -1
 	"""Used to get the member from discord."""
@@ -305,9 +305,9 @@ class PS2SessionKDA:
 	""" # PS2 SESSION: KILLS ASSISTS AND DEATHS
 	Data object containing KDA information for a session.
 
-	NOTE: DO NOT adjust `__version`
+	NOTE: DO NOT adjust `version`
 	"""
-	__version:int = -1
+	version:int = -1
 
 	kills:int = 0
 	killedAllies:int = 0
@@ -329,9 +329,9 @@ class PS2SessionEngineer:
 
 	Role specific data for Engineers.
 
-	NOTE: DO NOT adjust `__version`.
+	NOTE: DO NOT adjust `version`.
 	"""
-	__version:int = -1
+	version:int = -1
 
 	repairScore:int = 0
 	resupplyScore:int = 0
@@ -344,9 +344,9 @@ class PS2SessionMedic:
 
 	Role specific data for medics.
 
-	NOTE: DO NOT adjust `__version`.
+	NOTE: DO NOT adjust `version`.
 	"""
-	__version:int = -1
+	version:int = -1
 	revives:int = 0
 	heals:int = 0
 
@@ -362,7 +362,7 @@ class Session:
 
 	NOTE: DO NOT adjust version.
 	Version will be used to ensure any changes to the Session Data object will be detectable and old data can still be dealt with.
-	EG: `if __version < current: User.sessions.remove(Session)`
+	EG: `if version < current: User.sessions.remove(Session)`
 	"""
 	eventName: str = ""
 	bIsPS2Event: bool = True
@@ -373,7 +373,7 @@ class Session:
 	engineerData:PS2SessionEngineer = None
 	score: int = 0
 	funEvents:list[str] = field(default_factory=list)
-	__version:int = -1
+	version:int = -1
 
 
 
