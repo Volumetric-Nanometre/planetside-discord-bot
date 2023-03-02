@@ -14,8 +14,10 @@ from botModals.opsManagerModals.editRoles import EditRoles
 import opsManager
 
 from discord.ui import View, Button, Select
-from discord import Interaction, ButtonStyle, SelectOption, Embed
+from discord import Interaction, Message, ButtonStyle, SelectOption, Embed, NotFound
 from enum import Enum
+
+from botUtils import BotPrinter as BUPrint
 import copy
 
 
@@ -30,13 +32,15 @@ class OpEditor():
 	`p_interaction` - The discord.Interaction that called the command
 	`p_opData` - The operation data object to edit. Can be None for new events.
 	"""
-	def __init__(self, p_interaction: Interaction, p_opData:OperationData = None):
+	def __init__(self, p_interaction:Interaction, p_message: Message, p_opData:OperationData = None):
 		self.interaction:Interaction = p_interaction
 		"""The interaction that called the editor."""
 
+		self.origMessage:Message = p_message
+		"""The message sent for the editor."""
+
 		self.currentPath:str = ""
 		"""The current file path of the operations file being edited. Empty if custom."""
-
 		self.originalData: OperationData = p_opData
 		"""The original data passed into the editor.  May be NONE!"""
 
@@ -51,13 +55,30 @@ class OpEditor():
 		"""# Update Editor
 		Called to update the editors message with an updated embed and view.
 		"""
-		await self.interaction.edit_original_response(embed=self.CreateEmbed(), view=self.CreateView())
+		await self.origMessage.edit(embed=self.CreateEmbed(), view=self.CreateView())
 
 		
 	def CreateView(self) -> View:
 		"""# Create View
 		Returns a view with appropriate button labels & enablement for the status of the data."""
 		newView = View(timeout=None)
+
+		newView.add_item(EditorBtn_Info(self))
+		newView.add_item(EditorBtn_Roles(self))
+		newView.add_item(EditorBtn_Date(self))
+
+		newView.add_item(EditorBtn_Actions(self))
+
+		newView.add_item(EditorToggleBtn(self, self.newOpData.options.bAutoStart, "Auto Start", self.newOpData.options.SetAutoStart))
+		newView.add_item(EditorToggleBtn(self, self.newOpData.options.bUseCompact, "Compact", self.newOpData.options.SetCompact))
+		newView.add_item(EditorToggleBtn(self, self.newOpData.options.bIsPS2Event, "PS2 Event", self.newOpData.options.SetIsPs2))
+		if self.newOpData.options.bIsPS2Event:
+			newView.add_item(EditorToggleBtn(self, self.newOpData.options.bUseSoberdogsFeedback, "Soberdogs", self.newOpData.options.SetSoberFeedback))
+		else:
+			self.newOpData.options.bUseSoberdogsFeedback = False
+		newView.add_item(EditorToggleBtn(self, self.newOpData.options.bUseReserve, "Reserves", self.newOpData.options.SetReserves))
+
+		return newView
 
 
 	def CreateEmbed(self) -> Embed:
@@ -98,7 +119,7 @@ class OpEditor():
 
 		newEmbed.add_field(
 			name="Roles",
-			value=f"Pingables: {self.newOpData.GetPingables(self.interaction.guild)}\n Managing User: {self.interaction.guild.get_member(self.newOpData.managedBy)}"
+			value=f"Pingables: {self.newOpData.GetPingables(self.interaction.guild)}\n Managing User: {self.newOpData.managedBy}"
 		)
 
 
@@ -121,6 +142,36 @@ class EditorBtn(Button):
 			row=p_row
 		)
 
+class EditorToggleBtn(EditorBtn):
+	def __init__(self,p_parentEditor:OpEditor, p_option:bool, p_label:str, p_setter:callable):
+		self.toggleOpt = p_option
+		self.optLabel = p_label
+		self.parentEditor = p_parentEditor
+		self.optionSetterFunc:callable = p_setter
+
+		styleToUse = None
+		label = ""
+		if p_option:
+			label = f"Disable {self.optLabel}"
+			styleToUse = ButtonStyle.secondary
+		else:
+			label = f"Enable {self.optLabel}"
+			styleToUse = ButtonStyle.primary
+
+		super().__init__(
+			p_btnStyle=styleToUse,
+			p_label=label,
+			p_row=toggleRow
+		)
+
+
+	async def callback(self, p_interaction:Interaction):
+		self.toggleOpt = not self.toggleOpt
+		self.optionSetterFunc(self.toggleOpt)
+
+		await self.parentEditor.UpdateEditor()
+		await p_interaction.response.defer()
+
 
 class EditorBtn_Date(EditorBtn):
 	def __init__(self, p_parentEditor: OpEditor):
@@ -138,7 +189,7 @@ class EditorBtn_Date(EditorBtn):
 
 
 
-class EditorBtn_Info(Button):
+class EditorBtn_Info(EditorBtn):
 	def __init__(self, p_parentEditor: OpEditor):
 		self.parentEditor = p_parentEditor
 
@@ -154,7 +205,7 @@ class EditorBtn_Info(Button):
 
 
 
-class EditorBtn_Roles(Button):
+class EditorBtn_Roles(EditorBtn):
 	def __init__(self, p_parentEditor: OpEditor):
 		self.parentEditor = p_parentEditor
 
@@ -165,12 +216,8 @@ class EditorBtn_Roles(Button):
 		)
 
 	async def callback(self, p_interaction:Interaction):
-		modal = EditRoles(p_opData=self.parentEditor.originalData, p_updateFunction=self.parentEditor.UpdateEditor)
+		modal = EditRoles(p_OpData=self.parentEditor.originalData, p_updateFunction=self.parentEditor.UpdateEditor)
 		await p_interaction.response.send_modal(modal)
-
-
-# TOGGLES	|	TOGGLES	|	TOGGLES	|	TOGGLES	|	TOGGLES	|	TOGGLES	|
-
 
 
 # ACTIONBAR	|	ACTIONBAR	|	ACTIONBAR	|	ACTIONBAR	|	ACTIONBAR	|
@@ -218,7 +265,7 @@ class EditorBtn_Actions(Select):
 	async def callback(self, p_interaction:Interaction):
 		"""Callback.
 		If non destructive and destructive options are chosen for the same type (live/default), the destructive option is ignored."""
-		p_interaction.response.defer(thinking=True, ephemeral=True)
+		await p_interaction.response.defer(thinking=True, ephemeral=True)
 
 		responseMsg = "Performed:\n"
 		actions = self.values
@@ -238,7 +285,18 @@ class EditorBtn_Actions(Select):
 
 	# SAVE/UPDATE LIVE
 		if ActionBarValues.saveLive.value in actions:
-			await opsMan.UpdateMessage(self.parentEditor.newOpData)
+			# Remove reserve users if any present and use reserve is false:
+			if not self.parentEditor.newOpData.options.bUseReserve:
+				self.parentEditor.newOpData.reserves.clear()
+
+			# If name or date is modified, recreate event (easier than attempting rename)
+			if self.parentEditor.newOpData.name != self.parentEditor.originalData.name or self.parentEditor.newOpData.date != self.parentEditor.originalData.date:
+				await opsMan.RemoveOperation(self.parentEditor.originalData)
+
+				await opsMan.AddNewLiveOp(self.parentEditor.newOpData)
+		
+			else:
+				await opsMan.UpdateMessage(self.parentEditor.newOpData)
 			responseMsg += "[---]	Update Event\n"
 	
 	# DELETE LIVE
@@ -275,7 +333,7 @@ class EditorBtn_Actions(Select):
 			else:
 				responseMsg += "[FAIL]	Save Default\n"
 
-		
+	# DELETE DEFAULT
 		if ActionBarValues.deleteDefault.value in actions:
 			if bIgnoreDefaultDestructive:
 				responseMsg += "[FAIL]	Delete Default | Conflisting options\n"
@@ -290,9 +348,15 @@ class EditorBtn_Actions(Select):
 				else:
 					responseMsg += "[FAIL]	Remove Default\n"
 
-			
+	
+	# CLOSE EDITOR
 		if ActionBarValues.closeEditor.value in actions:
-			await self.parentEditor.interaction.delete_original_response()
-				
-
+			try:
+				await self.parentEditor.interaction.delete_original_response()
+			except NotFound:
+				pass
+			self.parentEditor.newOpData.status = OpsStatus.open
+			await opsMan.UpdateMessage(self.parentEditor.newOpData)
+	
+		
 		await p_interaction.edit_original_response(content=responseMsg)

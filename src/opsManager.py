@@ -107,7 +107,7 @@ class Operations(commands.GroupCog):
 			# await pInteraction.edit_original_response(content="**OPS EDITOR**", view=vEditor)
 			# vEditor.vEditorMsg = await pInteraction.original_response()
 
-			opsEditor = operationEditor.OpEditor(pInteraction, newOpsData)
+			opsEditor = operationEditor.OpEditor(pInteraction, await pInteraction.original_response(), newOpsData)
 			await opsEditor.UpdateEditor()
 			return
 
@@ -135,7 +135,7 @@ class Operations(commands.GroupCog):
 
 
 			if(edit):
-				opsEditor = operationEditor.OpEditor(pInteraction, newOpsData)
+				opsEditor = operationEditor.OpEditor(pInteraction, await pInteraction.original_response(),newOpsData)
 				await opsEditor.UpdateEditor()
 				return
 
@@ -183,6 +183,8 @@ class Operations(commands.GroupCog):
 		# HARDCODED ROLE USEAGE:
 		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandLimit.opManager), pInteraction):
 			return
+		
+		await pInteraction.response.defer(thinking=True, ephemeral=True)
 
 		BUPrint.Info(f"**Editing Ops data for** *{pOpsToEdit}*")
 		vLiveOpData:OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
@@ -201,7 +203,7 @@ class Operations(commands.GroupCog):
 
 			# await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
 			# vEditor.vEditorMsg = await pInteraction.original_response()
-			opsEditor = operationEditor.OpEditor(pInteraction, vLiveOpData)
+			opsEditor = operationEditor.OpEditor(pInteraction,await pInteraction.original_response(), vLiveOpData)
 			await opsEditor.UpdateEditor()
 			return
 
