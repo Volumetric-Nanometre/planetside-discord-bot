@@ -358,7 +358,9 @@ class EditorBtn_Actions(Select):
 				BUPrint.Debug(" Interaction Edit failed.  Channel likely removed.")		
 
 			self.parentEditor.newOpData.status = OpsStatus.open
-			await opsMan.UpdateMessage(self.parentEditor.newOpData)
+
+			if ActionBarValues.deleteLive.value not in actions:
+				await opsMan.UpdateMessage(self.parentEditor.newOpData)
 	
 		try:
 			await p_interaction.edit_original_response(content=responseMsg)
