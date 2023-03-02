@@ -293,6 +293,7 @@ class EditorBtn_Actions(Select):
 			if self.parentEditor.newOpData.name != self.parentEditor.originalData.name or self.parentEditor.newOpData.date != self.parentEditor.originalData.date:
 				await opsMan.RemoveOperation(self.parentEditor.originalData)
 
+				self.parentEditor.newOpData.GenerateFileName()
 				await opsMan.AddNewLiveOp(self.parentEditor.newOpData)
 		
 			else:
@@ -354,9 +355,12 @@ class EditorBtn_Actions(Select):
 			try:
 				await self.parentEditor.interaction.delete_original_response()
 			except NotFound:
-				pass
+				BUPrint.Debug(" Interaction Edit failed.  Channel likely removed.")		
+
 			self.parentEditor.newOpData.status = OpsStatus.open
 			await opsMan.UpdateMessage(self.parentEditor.newOpData)
 	
-		
-		await p_interaction.edit_original_response(content=responseMsg)
+		try:
+			await p_interaction.edit_original_response(content=responseMsg)
+		except NotFound:
+			BUPrint.Debug(" Interaction Edit failed.  Channel likely removed.")		
