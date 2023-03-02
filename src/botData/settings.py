@@ -398,7 +398,7 @@ class Channels:
 	ID of the planetside 2 TEXT channel."""
 
 
-	ps2ContinentNotifID = 1080562023483572315
+	ps2ContinentNotifID = ps2TextID
 	"""# PS2 Continent Notification ID
 	Channel ID used for PS2 continent lock notifications."""
 
