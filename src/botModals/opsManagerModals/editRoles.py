@@ -38,8 +38,9 @@ class EditRoles(baseModal.BaseModal):
 		style=discord.TextStyle.paragraph,
 		required=False
 	)
-	def __init__(self, p_opData: OperationData):
-		super().__init__(p_opData, p_title="Edit Roles")
+	def __init__(self, p_OpData: OperationData, p_updateFunction:callable):
+		super().__init__(p_OpData, p_title="Edit Roles")
+		self.parentCallback = p_updateFunction
 		self.reservedUsers = [] # Get users who were moved to reserve as a result of this change.
 
 	async def on_submit(self, pInteraction: discord.Interaction):
@@ -111,6 +112,8 @@ class EditRoles(baseModal.BaseModal):
 
 		else:
 			await pInteraction.response.defer()
+
+		await self.parentCallback()
 
 
 
