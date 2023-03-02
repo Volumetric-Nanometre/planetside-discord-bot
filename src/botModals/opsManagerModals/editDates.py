@@ -35,7 +35,8 @@ class EditDates(baseModal.BaseModal):
 		min_length=1, max_length=2,
 		required=False
 	)
-	def __init__(self, *, p_opData: OperationData, p_liveOps:list = None):
+	def __init__(self, *, p_opData: OperationData, p_liveOps:list = None, p_updateFunction:callable):
+		self.parentCallback = p_updateFunction
 		self.vLiveOps:list[OperationData] = p_liveOps
 		super().__init__(p_opData=p_opData, p_title="Edit Dates")
 
@@ -72,6 +73,8 @@ class EditDates(baseModal.BaseModal):
 
 
 		await pInteraction.response.send_message("New date set succesfully.", ephemeral=True)
+
+		await self.parentCallback()
 
 
 

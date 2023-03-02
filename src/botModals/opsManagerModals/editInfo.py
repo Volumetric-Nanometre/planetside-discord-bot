@@ -34,8 +34,9 @@ class EditInfo(baseModal.BaseModal):
 	)
 
 
-	def __init__(self, *, p_OpData: OperationData):
+	def __init__(self, p_OpData: OperationData, p_updateFunction:callable):
 		super().__init__(p_OpData, p_title="Edit Ops Info")
+		self.parentCallback = p_updateFunction
 
 	# Where the fun happens!
 	async def on_submit(self, pInteraction: discord.Interaction):

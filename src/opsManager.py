@@ -26,6 +26,8 @@ import botUtils
 from botUtils import GetPOSIXTime, GetDiscordTime
 from botUtils import BotPrinter as BUPrint
 
+import operationEditor
+
 from botModals.opsManagerModals import *
 import re
 
@@ -98,12 +100,15 @@ class Operations(commands.GroupCog):
 			# USER IS USING A NON-DEFAULT/CUSTOM
 			newOpsData.status = OpsStatus.editing
 
-			vEditor: OpsEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
+			# vEditor: OpsEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
 
-			botUtils.BotPrinter.Debug(f"Editor: {vEditor}, Type: {type(vEditor)}")
+			# botUtils.BotPrinter.Debug(f"Editor: {vEditor}, Type: {type(vEditor)}")
 
-			await pInteraction.edit_original_response(content="**OPS EDITOR**", view=vEditor)
-			vEditor.vEditorMsg = await pInteraction.original_response()
+			# await pInteraction.edit_original_response(content="**OPS EDITOR**", view=vEditor)
+			# vEditor.vEditorMsg = await pInteraction.original_response()
+
+			opsEditor = operationEditor.OpEditor(pInteraction, await pInteraction.original_response(), newOpsData)
+			await opsEditor.UpdateEditor()
 			return
 
 		else:
@@ -130,9 +135,9 @@ class Operations(commands.GroupCog):
 
 
 			if(edit):
-				vEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
-				await pInteraction.edit_original_response(content=f"**Editing OpData for** *{optype}*", view=vEditor)
-				vEditor.vEditorMsg = await pInteraction.original_response()
+				opsEditor = operationEditor.OpEditor(pInteraction, await pInteraction.original_response(),newOpsData)
+				await opsEditor.UpdateEditor()
+				return
 
 			else:
 				if newOpsData.date < datetime.now(tz=timezone.utc):
@@ -178,6 +183,8 @@ class Operations(commands.GroupCog):
 		# HARDCODED ROLE USEAGE:
 		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandLimit.opManager), pInteraction):
 			return
+		
+		await pInteraction.response.defer(thinking=True, ephemeral=True)
 
 		BUPrint.Info(f"**Editing Ops data for** *{pOpsToEdit}*")
 		vLiveOpData:OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
@@ -189,13 +196,17 @@ class Operations(commands.GroupCog):
 				await pInteraction.response.send_message("You cannot edit an operation that is in progress!", ephemeral=True)
 				return
 
-			vEditor = OpsEditor(pBot=self.bot, pOpsData=vLiveOpData)
+			# vEditor = OpsEditor(pBot=self.bot, pOpsData=vLiveOpData)
 			vOpMan = OperationManager()
 			vLiveOpData.status = OpsStatus.editing
 			await vOpMan.UpdateMessage(vLiveOpData)
 
-			await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
-			vEditor.vEditorMsg = await pInteraction.original_response()
+			# await pInteraction.response.send_message(f"**Editing OpData for** *{vLiveOpData.fileName}*", view=vEditor, ephemeral=True)
+			# vEditor.vEditorMsg = await pInteraction.original_response()
+			opsEditor = operationEditor.OpEditor(pInteraction,await pInteraction.original_response(), vLiveOpData)
+			await opsEditor.UpdateEditor()
+			return
+
 
 		else:
 			botUtils.FilesAndFolders.DeleteCorruptFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit) )
@@ -1325,264 +1336,3 @@ class OpsRoleResign(discord.ui.Button):
 
 		else:
 			await pInteraction.edit_original_response(content=f"You are not signed up to {self.vOpsData.name}!")
-
-
-
-
-
-#########################################################################################
-# EDITOR
-
-
-class OpsEditor(discord.ui.View):
-	def __init__(self, pBot: commands.Bot, pOpsData: OperationData):
-		self.vBot = pBot
-		self.vOpsData = pOpsData # Original data, not edited.
-		# Used to check if file renaming needs to occur.
-		self.vOldName = pOpsData.name
-		self.vOldDate = pOpsData.date
-		self.vOldFileName = pOpsData.fileName
-		self.vEditorMsg :discord.Message = None
-
-		BUPrint.Info("Ops Editor Instantiated")
-		super().__init__(timeout=None)
-		helpBtn = btnHelp()
-		self.add_item(helpBtn)
-
-# # # # # # Edit Buttons
-	editButtonStyle = discord.ButtonStyle.grey
-	# Edit Date:
-	@discord.ui.button( label="Edit Date/Time",
-						style=editButtonStyle, 
-						row=0)
-	async def btnEditDate(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = editDates.EditDates(p_opData=self.vOpsData, p_liveOps=OperationManager.vLiveOps)
-		vEditModal.custom_id="EditDateModal"
-		await pInteraction.response.send_modal( vEditModal )
-	
-	# Edit Info
-	@discord.ui.button(
-						style=editButtonStyle, 
-						label="Edit Op Info",
-						row=0)
-	async def btnEditInfo(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = editInfo.EditInfo(p_OpData=self.vOpsData)
-		vEditModal.custom_id="EditInfoModal"
-		await pInteraction.response.send_modal( vEditModal )
-
-	# Edit Roles
-	@discord.ui.button(
-						style=editButtonStyle, 
-						label="Edit Roles",
-						row=0)
-	async def btnEditRoles(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = editRoles.EditRoles(p_opData=self.vOpsData)
-		vEditModal.custom_id="EditRolesModal"
-		await pInteraction.response.send_modal( vEditModal )
-
-# # # # # # TOGGLE BUTTONS
-	@discord.ui.button(
-		style=editButtonStyle,
-		label="Toggle Auto Start",
-		row=1
-	)
-	async def btnToggleOption_AutoStart(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		self.vOpsData.options.bAutoStart = not self.vOpsData.options.bAutoStart
-		await pInteraction.response.send_message(content=f"Option: AutoStart is now: {self.vOpsData.options.bAutoStart}", ephemeral=True)
-
-
-	@discord.ui.button(
-		style=editButtonStyle,
-		label="Toggle PS2 Event",
-		row=1
-	)
-	async def btnToggleOption_PS2Event(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		self.vOpsData.options.bIsPS2Event = not self.vOpsData.options.bIsPS2Event
-		await pInteraction.response.send_message(content=f"Option: PS2 Event is now {self.vOpsData.options.bIsPS2Event}", ephemeral=True)
-
-
-	@discord.ui.button(
-		style=editButtonStyle,
-		label="Toggle Compact",
-		row=1
-	)
-	async def btnToggleOption_Compact(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		self.vOpsData.options.bUseCompact = not self.vOpsData.options.bUseCompact
-		await pInteraction.response.send_message(content=f"Option: Use Compact is now {self.vOpsData.options.bUseCompact}", ephemeral=True)
-
-
-	@discord.ui.button(
-		style=editButtonStyle,
-		label="Toggle Reserves",
-		row=1
-	)
-	async def btnToggleOption_Reserves(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		self.vOpsData.options.bUseReserve = not self.vOpsData.options.bUseReserve
-		await pInteraction.response.send_message(content=f"Option: Reserves is now {self.vOpsData.options.bUseReserve}", ephemeral=True)
-
-
-	@discord.ui.button(
-		style=editButtonStyle,
-		label="Toggle Sober Feedback",
-		row=1
-	)
-	async def btnToggleOption_SoberFeedback(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		self.vOpsData.options.bUseSoberdogsFeedback = not self.vOpsData.options.bUseSoberdogsFeedback
-		await pInteraction.response.send_message(content=f"Option: SoberFeedback is now {self.vOpsData.options.bUseSoberdogsFeedback}", ephemeral=True)
-
-
-	# Edit Channels
-	@discord.ui.button(
-						style=editButtonStyle, 
-						label="Edit Channels",
-						row=0)
-	async def btnEditChannels(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vEditModal = editChannels.EditChannels(p_OpData=self.vOpsData)
-		vEditModal.custom_id="EditChannelsModal"
-		await pInteraction.response.send_modal( vEditModal )
-	
-# # # # # # # Confirm/Save buttons:
-	@discord.ui.button(
-						style=discord.ButtonStyle.green, 
-						label="Apply/Send",
-						emoji="📨",
-						row=3)
-	async def btnApplyChanges(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		vOpManager = OperationManager()
-		
-		if self.vOpsData.messageID == "":
-			BUPrint.Info("Adding new Live Op...")
-			self.vOpsData.GenerateFileName()
-			self.vOpsData.status = OpsStatus.open
-			bSucsessfulOp = await vOpManager.AddNewLiveOp(self.vOpsData)
-			
-			if bSucsessfulOp:
-				await pInteraction.response.send_message(botMessages.dismissEditor, ephemeral=True)
-				BUPrint.Debug(f"	-> Message ID of Ops Editor opdata after send: {self.vOpsData.messageID}")
-			else:
-				await pInteraction.response.send_message(botMessages.editorError, ephemeral=True)
-
-		else:
-			if not self.vOpsData.options.bUseReserve:
-				self.vOpsData.reserves.clear()
-
-			if self.vOpsData.name != self.vOldName or self.vOpsData.date != self.vOldDate:
-				vOriginalData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(self.vOpsData.fileName) )
-				await vOpManager.RemoveOperation(vOriginalData)
-
-
-				self.vOpsData.GenerateFileName()
-				self.vOpsData.status = OpsStatus.open
-				await vOpManager.AddNewLiveOp(self.vOpsData)
-				
-				await pInteraction.response.send_message(f"Operation data for {self.vOldName} has been recreated with updated information", ephemeral=True)
-
-			else:
-				BUPrint.Info(f"Saving updated data for {self.vOpsData.name}")
-
-				self.vOpsData.status = OperationData.status.open
-				OperationManager.SaveToFile(self.vOpsData)
-				await pInteraction.response.send_message(f"Operation data for {self.vOpsData.name} saved! Updating signup message...", ephemeral=True)
-				await vOpManager.UpdateMessage(self.vOpsData)
-
-		try:
-			await self.vEditorMsg.delete()
-		except discord.errors.NotFound:
-			BUPrint.Info("Unable to delete Op Editor message; most likely due to the channel being removed. Safe to ignore.")
-
-
-
-	@discord.ui.button( 
-						style=discord.ButtonStyle.primary, 
-						label="New Default",
-						emoji="💾",
-						row=3)
-	async def btnNewDefault(self, pInteraction: discord.Interaction, pButton: discord.ui.button):
-		BUPrint.Info(f"Saving a new default! {self.vOpsData.name}")
-		# Create copy
-		vCopy:OperationData = copy.copy(self.vOpsData)
-		
-		# Set status of Ops back to OPEN.
-		vCopy.status = OpsStatus.open
-
-		# Ensure fileName is empty so its saved as a default
-		vCopy.fileName = ""
-
-		# Ensure roles is empty. 
-
-		role:OpRoleData
-		for role in vCopy.roles:
-			role.players.clear()
-		vCopy.reserves.clear()
-
-		# Save File
-		OperationManager.SaveToFile(vCopy)
-
-		# Check old name and rename if needed.
-		bWasRenamed = False
-		if self.vOldName != self.vOpsData.name and self.vOldName != "":
-			try:
-				vOriginal = f"{botSettings.Directories.savedDefaultsDir}{self.vOldName}.bin"
-				vNew = f"{botSettings.Directories.savedDefaultsDir}{self.vOpsData.name}.bin"
-
-				if os.path.exists( vOriginal ):
-					os.rename( vOriginal, vNew )
-					bWasRenamed = True
-
-				self.vOldName = self.vOpsData.name
-
-			except OSError as vError:
-				BUPrint.LogErrorExc(f"Unable to rename Saved Default from {vOriginal} to {vNew}", vError)
-
-
-		BUPrint.Debug("	-> Saved!")
-		
-		if bWasRenamed:
-			await pInteraction.response.send_message(f"Saved default: {self.vOpsData.name}\nOriginal Op was renamed:\nFrom:{vOriginal}\nTo:{vNew}")
-		else:
-			await pInteraction.response.send_message(f"Added new default: {self.vOpsData.name}!", ephemeral=True)
-
-# # # # # # DELETE BUTTON
-	@discord.ui.button(
-						style=discord.ButtonStyle.danger,
-						label="Delete",
-						emoji="⚠️",
-						row=3)
-	async def btnDelete(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):
-		BUPrint.Info("Deleting Operation!")
-		vOpMan = OperationManager()
-		await vOpMan.RemoveOperation(self.vOpsData)
-		await pInteraction.response.send_message("Operation was removed!", ephemeral=True)
-
-
-# # # # # # CLOSE BUTTON
-	@discord.ui.button(
-						label="Close/Cancel",
-						style=discord.ButtonStyle.success,
-						emoji="🔓",
-						row=4)
-	async def btnFinish(self, pInteraction:discord.Interaction, pButton: discord.ui.Button):		
-		if self.vOpsData != None and self.vOpsData.messageID != "":
-			vOpMan = OperationManager()
-
-			vOriginalData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath( self.vOpsData.fileName ) )
-			vOriginalData.status = OpsStatus.open
-			OperationManager.SaveToFile(vOriginalData)
-			await vOpMan.UpdateMessage(vOriginalData)
-
-		await pInteraction.response.send_message(botMessages.dismissEditor, ephemeral=True)
-		await self.vEditorMsg.delete()
-
-
-# # # # # # HELP BUTTON
-class btnHelp(discord.ui.Button):
-	def __init__(self):
-		super().__init__(
-			label="Help",
-			style=discord.ButtonStyle.link,
-			url="https://github.com/LCWilliams/planetside-discord-bot/wiki/Ops-Editor",
-			emoji="❓",
-			row=3
-		)
-
-
