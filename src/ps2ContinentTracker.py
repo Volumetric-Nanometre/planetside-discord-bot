@@ -36,7 +36,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 	@command(name="oldest", description="Posts the oldest locked continent lock.")
 	async def GetOldestContinentLock(self, p_interaction:Interaction):
 		# HARDCODED ROLE USEAGE:
-		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.opManager), p_interaction):
+		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.continentTracker), p_interaction):
 			return
 
 		await self.PostMessage_Oldest(p_interaction)
@@ -45,7 +45,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 	@command(name="locks", description="Posts all continent lock timestamps.")
 	async def GetAllContinentLocks(self, p_interaction:Interaction):
 		# HARDCODED ROLE USEAGE:
-		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.opManager), p_interaction):
+		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.continentTracker), p_interaction):
 			return
 
 		await self.PostMessage_Oldest(p_interaction)
