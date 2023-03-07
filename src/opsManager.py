@@ -833,15 +833,23 @@ class OperationManager():
 
 		opsCategory = discord.utils.find(lambda items: items.name.lower() == botSettings.SignUps.signupCategory.lower(), vGuild.categories)
 
+
 		if opsCategory == None:
 			BUPrint.Info("SIGNUP CATEGORY NOT FOUND!  Check settings and ensure signupCategory matches the name of the category to be used!")
 			return None
 
 		channel = None
+		channelName = ""
+		if p_opsData.targetChannel == "":
+			channelName = p_opsData.name.lower().replace(" ", "-")
+		else:
+			channelName = p_opsData.targetChannel.lower().replace(" ", "-")
+
 		if p_opsData.targetChannel != "":
-			channel = discord.utils.find(lambda items: items.name == p_opsData.targetChannel.lower().replace(" ", "-"), vGuild.text_channels)
-			if channel != None:
-				return channel
+			for channel in opsCategory.text_channels:
+				if channel.name == channelName:
+					return channel
+
 			else:
 				BUPrint.Info(f"	-> No existing matching channel, creating channel: {p_opsData.targetChannel}")
 				try:
