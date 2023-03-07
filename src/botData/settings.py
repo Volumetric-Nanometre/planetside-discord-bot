@@ -365,7 +365,7 @@ class Channels:
 
 
 	scheduleID = 1077389246274482278
-	ps2ContinentNotifID = ps2TextID
+	ps2ContinentNotifID = 1080562023483572315
 	"""# PS2 Continent Notification ID
 	Channel ID used for PS2 continent lock notifications."""
 

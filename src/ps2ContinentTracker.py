@@ -48,7 +48,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.continentTracker), p_interaction):
 			return
 
-		await self.PostMessage_Oldest(p_interaction)
+		await self.PostMessage_Sorted(p_interaction)
 
 
 
@@ -104,7 +104,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		continent:Zone = await self.auraxClient.get_by_id(Zone, p_event.zone_id)
 		if continent != None:
 			chanToPostTo = self.botRef.get_channel(Channels.ps2ContinentNotifID)
-			await chanToPostTo.send(f"Continent: {continent.code} | IDField: {continent.id_field}| ID: {continent.id}")
+			# For working out what continent ID is which.  Looking at you, Oshur.
+			# await chanToPostTo.send(f"Continent: {continent.code} | ID: {continent.id}")
 
 			BUPrint.Debug(f"Debug: ContName: {continent.code}")
 		else:

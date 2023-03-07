@@ -93,7 +93,7 @@ class PS2ZoneIDs(Enum):
 	hossinID: int = 4
 	amerishID: int = 6
 	esamirID: int = 8
-	oshurID: int = 10
+	oshurID: int = 344
 
 	allIDs = [
 		indarID,
