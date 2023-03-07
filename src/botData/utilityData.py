@@ -85,12 +85,20 @@ class ConsoleStyles:
 
 
 
-class PS2ZoneIDs:
+class PS2ZoneIDs(Enum):
 	""" PS2 Zone IDS
-	Convenience class to hold zone (continent) IDs
+	Convenience Enum to hold zone (continent) IDs
 	"""
 	indarID: int = 2
 	hossinID: int = 4
 	amerishID: int = 6
 	esamirID: int = 8
 	oshurID: int = 10
+
+	allIDs = [
+		indarID,
+		hossinID,
+		amerishID,
+		esamirID,
+		oshurID
+		]
