@@ -341,9 +341,13 @@ class Channels:
 
 	
 	protectedCategoriesID = [
+		1077391179638915132, # Admin
+		1077413788468391936, # Signup
+		1077389123259736095, # Planetside
 		1077369453739778121, # Gen 1
 		1077381869592662157, # Gen 2
 		1077382157154136155, # Sober stuff
+		1080170944791855124, # Other Games
 	]
 	"""# Protected Categories: 
 	ID of categories that cannot be deleted by chatMonitor.remove_category"""
