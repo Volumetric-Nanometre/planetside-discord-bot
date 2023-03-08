@@ -222,10 +222,10 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		continents.sort(key=lambda continent: continent.timestamp)
 
 
-		vMessage = "***Continents Locked***\n"
+		vMessage = "***Continents Locked:***"
 		for continent in continents:
 			zoneData:Zone = await self.auraxClient.get_by_id(Zone, continent.zone_id)
-			vMessage += f"{zoneData.name} last locked {GetDiscordTime(continent.timestamp)}"
+			vMessage += f"\n\n**{zoneData.name}** last locked {GetDiscordTime(continent.timestamp)}"
 
 
 		if p_interaction != None:
@@ -233,6 +233,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			return
 
 		else:
+			# Prefix message with mentions of people managing live events that are in pre-start phase.
 			if ContinentTrack.bAlertCommanders:
 				commanders = OperationManager().vLiveCommanders
 
