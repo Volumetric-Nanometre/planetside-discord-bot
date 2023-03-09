@@ -494,19 +494,19 @@ def PrintSettings(bGetOnly = False):
 
 
 	vString += "\nGENERAL BOT SETTINGS\n"
-	vString += f"	> DebugEnabled: {BotSettings.bDebugEnabled}\n"
+	vString += f"	> [{BotSettings.bDebugEnabled}] Debug Enabled \n"
 	token = BotSettings.discordToken[:5] # Always hide most of the token; shows JUST the first 5 characters.
 	vString += f"	> DiscordToken:	{token}...\n"
 	vString += f"	> DiscordGuild:	{BotSettings.discordGuild}\n"
 	token = BotSettings.ps2ServiceID[:5]
 	vString += f"	> PS2ServiceID:	{token}...\n"
 	vString += f"	> BotDirectory:	{BotSettings.botDir}\n"
-	vString += f"	> Can Purge BotAdmin: {BotSettings.bBotAdminCanPurge}\n"
+	vString += f"	> [{BotSettings.bBotAdminCanPurge}] Can Purge BotAdmin\n"
 	if BotSettings.errorOutput == stderr:
 		vString += f"	> Error Output:	stderr\n"
 	else:
 		vString += f"	> Error Output:	{BotSettings.errorOutput}\n"
-	vString += f"	> Sanity Check Values: {BotSettings.bCheckValues}\n"
+	vString += f"	> [{BotSettings.bCheckValues}] Sanity Check Values\n"
 	vString += f"\n	> Force Role Restrictions: {BotSettings.bForceRoleRestrictions}\n"
 	vString += f"	> Level 0:	{Roles.roleRestrict_level_0}\n"
 	vString += f"	> Level 1:	{Roles.roleRestrict_level_1}\n"
@@ -530,7 +530,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Event Moveback:{Channels.eventMovebackID}\n"
 	vString += f"	> Protected Categories:\n		> {Channels.protectedCategoriesID}\n"
 	vString += f"	> Quotes:	{Channels.quoteID}\n"
-	vString += f"	> Schedule {Channels.scheduleID}\n"
+	vString += f"	> Schedule:	{Channels.scheduleID}\n"
 
 
 
@@ -548,24 +548,24 @@ def PrintSettings(bGetOnly = False):
 
 	vString += "\nNEW USER SETTINGS\n"
 	vString += f"	> Rule Message:		{NewUsers.ruleMsgID}\n"
-	vString += f"	> Show AddRoles Button:	{NewUsers.bShowAddRolesBtn}\n"
-	vString += f"	> Create Library Entry on Accept: {NewUsers.bCreateLibEntryOnAccept}\n"
+	vString += f"	> [{NewUsers.bShowAddRolesBtn}] Show AddRoles Button\n"
+	vString += f"	> [{NewUsers.bCreateLibEntryOnAccept}] Create Library Entry on Accept\n"
 	vString += f"\n	> Warnings: Discord Account age: {NewUsers.newAccntWarn} months\n"
 	vString += f"	> Warnings: Outfit Rank (Ord): {NewUsers.outfitRankWarn}\n"
-	vString += f"	> AutoLock PS2 Character on Accept: {NewUsers.bLockPS2CharOnAccept}\n"
-	vString += f"	> Purge Gate: {NewUsers.bPurgeGate}\n"
+	vString += f"	> [{NewUsers.bLockPS2CharOnAccept}] AutoLock PS2 Character on Accept\n"
+	vString += f"	> [{NewUsers.bPurgeGate}] Purge Gate\n"
 
 
 
 	vString += "\nOP COMMANDER SETTINGS\n"
+	vString += f"	> [{Commander.bAutoStartEnabled}] Auto Start\n"
 	vString += f"	> Auto prestart:	{Commander.autoPrestart} minutes\n"
-	vString += f"	> Auto Start:		{Commander.bAutoStartEnabled}\n"
-	vString += f"	> Tracking Enabled: {Commander.bTrackingIsEnabled}"
+	vString += f"	> [{Commander.bTrackingIsEnabled}] Tracking Enabled\n"
 	vString += f"	> Tracking Interval:	{Commander.dataPointInterval} seconds\n"
 	vString += f"	> Marked Present:	{Commander.markedPresent.name}\n"
-	vString += f"	> Auto Alerts:		{Commander.bAutoAlertsEnabled}\n"
+	vString += f"	> [{Commander.bAutoAlertsEnabled}] Auto Alerts\n"
 	vString += f"	> Auto Alert count:	{Commander.autoAlertCount}\n"
-	vString += f"	> Auto Move VC:		{Commander.bAutoMoveVCEnabled}\n"
+	vString += f"	> [{Commander.bAutoMoveVCEnabled}] Auto Move VC\n"
 	vString += f"	> Default Channels: {Commander.defaultChannels}\n"
 
 
@@ -580,37 +580,39 @@ def PrintSettings(bGetOnly = False):
 
 
 	vString += "\nSIGN UP SETTINGS\n"
-	vString += f"	> Parse Schedule: {SignUps.bAutoParseSchedule}\n"
+	vString += f"	> [{SignUps.bAutoParseSchedule}] Parse Schedule\n"
 	vString += f"	> Parse Schedule timeout: {SignUps.autoParseTimeout}\n"
-	vString += f"	> Autoremove Outdated: {SignUps.bAutoRemoveOutdated}\n"
+	vString += f"	> [{SignUps.bAutoRemoveOutdated}] Autoremove Outdated\n"
 	vString += f"	> Signup Cat  : {SignUps.signupCategory}\n"
 	vString += f"	> Resign Icon : {SignUps.resignIcon}\n" 
 	vString += f"	> Reserve Icon: {SignUps.reserveIcon}\n"
-	vString += f"	> Resign As Button : {SignUps.bResignAsButton}\n" 
-	vString += f"	> Auto Prestart:{SignUps.bAutoPrestartEnabled}\n"
-	vString += f"	> Show Opts in Footer: {SignUps.bShowOptsInFooter}\n"
+	vString += f"	> [{SignUps.bResignAsButton}] Resign As Button\n" 
+	vString += f"	> [{SignUps.bAutoPrestartEnabled}] Auto Prestart\n"
+	vString += f"	> [{SignUps.bShowOptsInFooter}] Show Opts in Footer\n"
 
 
 
 	vString += "\nUSER LIBRARY SETTINGS\n"
-	vString += f"	> Enforce PS2 Names:	{UserLib.bEnforcePS2Rename}\n"
-	vString += f"	> Special Users:	{UserLib.bEnableSpecialUsers}\n"
-	vString += f"	> User Inbox Enabled:	{UserLib.bEnableInbox}\n"
-	vString += f"	> Show jump buttons	for GetEvents:	{UserLib.bShowJumpButtonsForGetEvents}\n"
-	vString += f"	> Commander Create Entry: {UserLib.bCommanderCanAutoCreate}\n"
-	vString += f"	> User Self Create:	{UserLib.bUserCanSelfCreate}\n"
+	vString += f"	> [{UserLib.bEnforcePS2Rename}] Enforce PS2 Names\n"
+	vString += f"	> [{UserLib.bEnableSpecialUsers}] Special Users\n"
+	vString += f"	> [{UserLib.bEnableInbox}] User Inbox Enabled\n"
+	vString += f"	> [{UserLib.bShowJumpButtonsForGetEvents}] Show jump buttons for GetEvents\n"
+	vString += f"	> [{UserLib.bCommanderCanAutoCreate}] Commander Create Entry\n"
+	vString += f"	> [{UserLib.bUserCanSelfCreate}] User Self Create\n"
 	vString += f"	> Max Saved Events:	{UserLib.maxSavedEvents}\n"
-	vString += f"	> AutoPromote Users:	{UserLib.bAutoPromoteEnabled}\n"
+	vString += f"	> [{UserLib.bAutoPromoteEnabled}] AutoPromote Users\n"
 	vString += f"	> AutoPromote Rules:	{UserLib.autoPromoteRules}\n"
 	vString += f"	> AutoPromote Times:	{UserLib.autoQueryRecruitTime}\n"
 	vString += f"	> Max Session Previews:	{UserLib.sessionPreviewMax}\n"
 	vString += f"	> Max Sessions Browser:	{UserLib.sessionMaxPerPage}\n"
-	vString += f"	> Remove Entry/Special on leave: {UserLib.bRemoveEntryOnLeave}/{UserLib.bRemoveSpecialEntryOnLeave}\n"
+	vString += f"	> [{UserLib.bRemoveEntryOnLeave}] Remove Entry on leave\n"
+	vString += f"	> [{UserLib.bRemoveSpecialEntryOnLeave}] Remove Special Entry on leave\n"
 	vString += f"	> Library Data Memory Retention: {UserLib.entryRetention.name}\n"
 	if UserLib.entryRetention == EntryRetention.unloadAfter:
 		vString += f"		> Unload After: {UserLib.entryRetention_unloadAfter} | Check Interval {UserLib.entryRetention_checkInterval}\n"
-	vString += f"	> User Auto Sleeper: {UserLib.sleeperRules}\n"
+	vString += f"	> [{UserLib.sleeperRules.bIsEnabled}] Inactivity Check"
 	if UserLib.sleeperRules.bIsEnabled:
+		vString += f"	> User Auto Sleeper: {UserLib.sleeperRules}\n"
 		vString += f"	> Sleeper Check Time: {UserLib.sleeperCheckTime}\n"
 
 

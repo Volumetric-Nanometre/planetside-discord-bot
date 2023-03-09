@@ -610,6 +610,20 @@ class OperationOptions:
 	bUseSoberdogsFeedback : bool = False # If true, debriefing opens a new forum thread and send the feedback message there.
 	bIsPS2Event : bool = True # If false, treats this event as a non-PS2 event.
 
+	def SetReserves(self, p_value:bool):
+		self.bUseReserve = p_value
+
+	def SetCompact(self, p_value:bool):
+		self.bUseCompact = p_value
+
+	def SetAutoStart(self, p_value:bool):
+		self.bAutoStart = p_value
+
+	def SetSoberFeedback(self, p_value:bool):
+		self.bUseSoberdogsFeedback = p_value
+
+	def SetIsPs2(self, p_value:bool):
+		self.bIsPS2Event = p_value
 
 @dataclass
 class OpRoleData:

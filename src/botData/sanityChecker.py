@@ -272,6 +272,12 @@ class SanityCheck():
 				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Planetside 2 Text")
 				bFailedCheck = True
 
+		if botFeatures.continentTracker:
+			checkChannel = vGuild.get_channel( Channels.ps2ContinentNotifID )
+			if checkChannel == None:
+				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Planetside 2 Continent Notif ID")
+				bFailedCheck = True
+
 
 		if bFailedCheck:
 			if BotSettings.bDebugEnabled:

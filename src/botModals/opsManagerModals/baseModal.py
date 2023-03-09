@@ -6,6 +6,10 @@ class BaseModal(discord.ui.Modal):
 	def __init__(self, p_opData:OperationData, p_title:str):
 		super().__init__(title=p_title)
 		self.vOpData:OperationData = p_opData
+
+		self.parentCallback:callable
+		"Function that should update the editor.  Needs to be set."
+
 		self.PresetFields()
 
 	async def on_error(self, pInteraction:discord.Interaction, error: Exception):

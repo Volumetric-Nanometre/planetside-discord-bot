@@ -73,7 +73,7 @@ class Bot(commands.Bot):
         if settings.BotSettings.botFeatures.continentTracker:
             contTrackerCog = ContinentTrackerCog(self)
             self.vcontTrackerClient = contTrackerCog.auraxClient
-            # await contTrackerCog.CreateTriggers()
+            await contTrackerCog.CreateTriggers()
             await self.add_cog(contTrackerCog)
             
 

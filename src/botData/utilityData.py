@@ -5,27 +5,27 @@ from discord import Colour
 
 class EmojiLibrary(Enum):
 	# Infantry Classes
-	ICON_LA  = "<:Icon_Light_Assault:795726936759468093>"
-	ICON_HA  = "<:Icon_Heavy_Assault:795726910344003605>"
-	ICON_ENG = "<:Icon_Engineer:795726888763916349>"
-	ICON_MED = "<:Icon_Combat_Medic:795726867960692806>"
-	ICON_INF = "<:Icon_Infiltrator:795726922264215612>"
-	ICON_MAX = "<:Icon_MAX:795726948365631559>"
+	ICON_LA  = "<:LA:1078709307337617438>"
+	ICON_HA  = "<:ha:1078709302333808750>"
+	ICON_ENG = "<:eng:1078709299834011658>"
+	ICON_MED = "<:medic:1078709312223985695>"
+	ICON_INF = "<:infil:1078709305324359780>"
+	ICON_MAX = "<:max:1078709310890184756>"
 	# Ground Vehicles
-	ICON_ANT  = "<:Icon_ANT:795727784239824896>"
-	ICON_MBT  = "<:Icon_Vanguard:795727955896565781>"
-	ICON_TANK = "<:Icon_Lightning:795727852875677776>"
-	ICON_HAR  = "<:Icon_Harasser:795727814220840970>"
-	ICON_SUN  = "<:Icon_Sunderer:795727911549272104>"
+	ICON_ANT  = "<:ant:1078709244209139712>"
+	ICON_MBT  = "<:vanguard:1078709313855557802>"
+	ICON_TANK = "<:lightning:1078709308906287146>"
+	ICON_HAR  = "<:harasser:1078709303906685018>"
+	ICON_SUN  = "<:sunderer:1078711388194738297>"
 	# Air Vehicles
-	ICON_VAL = "<:Icon_Valkyrie:795727937735098388>"
-	ICON_GAL = "<:Icon_Galaxy:795727799591239760>"
-	ICON_LIB = "<:Icon_Liberator:795727831605837874>"
-	ICON_REA = "<:Icon_Reaver:795727893342846986>"
-	ICON_DER = "<:Icon_Dervish:861303237062950942>"
-	ICON_BAS = "<:Icon_Bastion:861304226957361162>"
+	ICON_VAL = "<:valk:1078712140304744489>"
+	ICON_GAL = "<:gal:1078712136559243315>"
+	ICON_LIB = "<:lib:1078712393376477265>"
+	ICON_REA = "<:reaver:1078712137830117436>"
+	ICON_DER = "<:derv:1078712135061868554>"
+	ICON_BAS = "<:bastion:1078712132499165264>"
 	# OTHER
-	ICON_GUNNER = "<:Icon_Infiltrator:795726922264215612>"
+	ICON_GUNNER = "<:infil:1078709305324359780>"
 
 	def ParseStringToEmoji(p_str:str):
 		"""
@@ -85,12 +85,20 @@ class ConsoleStyles:
 
 
 
-class PS2ZoneIDs:
+class PS2ZoneIDs(Enum):
 	""" PS2 Zone IDS
-	Convenience class to hold zone (continent) IDs
+	Convenience Enum to hold zone (continent) IDs
 	"""
 	indarID: int = 2
 	hossinID: int = 4
 	amerishID: int = 6
 	esamirID: int = 8
-	oshurID: int = 10
+	oshurID: int = 344
+
+	allIDs = [
+		indarID,
+		hossinID,
+		amerishID,
+		esamirID,
+		oshurID
+		]
