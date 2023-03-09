@@ -48,6 +48,8 @@ class EditInfo(baseModal.BaseModal):
 		self.vOpData.managedBy = self.txtRunner.value
 
 		await pInteraction.response.defer()
+		await self.parentCallback()
+
 
 	def PresetFields(self):
 		BUPrint.Debug("Auto-filling modal (INFO) with existing data.")

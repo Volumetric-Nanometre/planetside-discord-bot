@@ -48,7 +48,35 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.continentTracker), p_interaction):
 			return
 
-		await self.PostMessage_Oldest(p_interaction)
+		await self.PostMessage_Sorted(p_interaction)
+
+
+
+	def GetContLocksAsArray(self) -> list[ContinentLock]:
+		"""# Get Continent Locks as Array
+		Returns all the continent locks as an array.  
+		Does not include the cont lock if it's not yet set.
+		"""
+
+		newArray = []
+
+		if self.lastOshurLock != None:
+			newArray.append(self.lastOshurLock)
+
+		if self.lastIndarLock !=  None:
+			newArray.append(self.lastIndarLock)
+		
+		if self.lastEsamirLock != None:
+			newArray.append(self.lastEsamirLock)
+		
+		if self.lastAmerishLock != None:
+			newArray.append(self.lastAmerishLock)
+		
+		if self.lastHossinLock != None:
+			newArray.append(self.lastHossinLock)
+
+		
+		return newArray
 
 
 
@@ -73,13 +101,28 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		"""# New Continent Lock
 		Called when a continent has been locked.
 		"""
+		continent:Zone = await self.auraxClient.get_by_id(Zone, p_event.zone_id)
+		if continent != None:
+			chanToPostTo = self.botRef.get_channel(Channels.ps2ContinentNotifID)
+			# For working out what continent ID is which.  Looking at you, Oshur.
+			# await chanToPostTo.send(f"Continent: {continent.code} | ID: {continent.id}")
+
+			BUPrint.Debug(f"Debug: ContName: {continent.code}")
+		else:
+			BUPrint.Debug("Dynamic zone. Ignoring.")
+			return
+
 		if p_event.world_id != ContinentTrack.worldID:
 			BUPrint.Debug("World doesn't match tracked setting. Ignoring.")
 			return
 		
-		self.ReplaceOldLock(p_event)
+		
+		if p_event.zone_id in PS2ZoneIDs.allIDs.value:
+			self.ReplaceOldLock(p_event)
 
-		await self.PostMessage_Sorted()
+			await self.PostMessage_Sorted()
+		else:
+			BUPrint.Debug(f"Ignoring continent lock. ({p_event.zone_id})")
 
 
 	def ReplaceOldLock(self, p_event:ContinentLock):
@@ -88,19 +131,19 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		"""
 		continentID = p_event.zone_id
 
-		if continentID == PS2ZoneIDs.amerishID:
+		if continentID == PS2ZoneIDs.amerishID.value:
 			self.lastAmerishLock = p_event
 		
-		elif continentID == PS2ZoneIDs.esamirID:
+		elif continentID == PS2ZoneIDs.esamirID.value:
 			self.lastEsamirLock = p_event
 
-		elif continentID == PS2ZoneIDs.hossinID:
+		elif continentID == PS2ZoneIDs.hossinID.value:
 			self.lastHossinLock = p_event
 		
-		elif continentID == PS2ZoneIDs.indarID:
+		elif continentID == PS2ZoneIDs.indarID.value:
 			self.lastIndarLock = p_event
 
-		elif continentID == PS2ZoneIDs.oshurID:
+		elif continentID == PS2ZoneIDs.oshurID.value:
 			self.lastOshurLock = p_event
 
 		else:
@@ -114,13 +157,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		
 		Returns NONE if continent data is invalid.
 		"""
-		continents = [
-			self.lastAmerishLock, 
-			self.lastEsamirLock, 
-			self.lastHossinLock, 
-			self.lastIndarLock, 
-			self.lastOshurLock
-			]
+		continents = self.GetContLocksAsArray()
 		
 		timestamps = [continent.timestamp for continent in continents if continent != None]
 
@@ -148,7 +185,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				await p_interaction.response.send_message(content="Currently unable to fulfil this request. Sorry!", ephemeral=True)
 				return
 			else:
-				BUPrint.Debug("Unable to get oldest message.")
+				BUPrint.Debug("No oldest lock available.")
 				return
 
 
@@ -157,7 +194,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		vMessage = f"**Oldest continent lock:**\n{oldestContinent.name}, locked {GetDiscordTime(oldestLock.timestamp)}"
 
 		if p_interaction != None:
-			await p_interaction.response.send_message(content=vMessage)
+			await p_interaction.response.send_message(content=vMessage, ephemeral=True)
 			return
 
 		else:
@@ -171,36 +208,32 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		if p_interaction is None, message is sent to the settings specified channel.
 		"""
-		continents = [
-			self.lastAmerishLock, 
-			self.lastEsamirLock, 
-			self.lastHossinLock, 
-			self.lastIndarLock, 
-			self.lastOshurLock
-			]
-
-		continents.sort(key=lambda continent: continent.timestamp)
+		continents = self.GetContLocksAsArray()
 
 		if continents.__len__() == 0:
 			if p_interaction != None:
 				await p_interaction.response.send_message(content="Currently unable to fulfil this request. Sorry!", ephemeral=True)
 				return
 			else:
-				BUPrint.Debug("Unable to get oldest message.")
+				BUPrint.Debug("Unable to post sorted message.")
 				return
 			
 
-		vMessage = "***Continents Locked***\n"
+		continents.sort(key=lambda continent: continent.timestamp)
+
+
+		vMessage = "***Continents Locked:***"
 		for continent in continents:
 			zoneData:Zone = await self.auraxClient.get_by_id(Zone, continent.zone_id)
-			vMessage += f"{zoneData.name} last locked {GetDiscordTime(continent.timestamp)}"
+			vMessage += f"\n\n**{zoneData.name}** last locked {GetDiscordTime(continent.timestamp)}"
 
 
 		if p_interaction != None:
-			await p_interaction.response.send_message(content=vMessage)
+			await p_interaction.response.send_message(content=vMessage, ephemeral=True)
 			return
 
 		else:
+			# Prefix message with mentions of people managing live events that are in pre-start phase.
 			if ContinentTrack.bAlertCommanders:
 				commanders = OperationManager().vLiveCommanders
 

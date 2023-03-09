@@ -63,9 +63,10 @@ class OpEditor():
 		Returns a view with appropriate button labels & enablement for the status of the data."""
 		newView = View(timeout=None)
 
+		newView.add_item(EditorBtn_Date(self))
 		newView.add_item(EditorBtn_Info(self))
 		newView.add_item(EditorBtn_Roles(self))
-		newView.add_item(EditorBtn_Date(self))
+		newView.add_item(EditorBtn_Channels(self))
 
 		newView.add_item(EditorBtn_Actions(self))
 
@@ -216,8 +217,25 @@ class EditorBtn_Roles(EditorBtn):
 		)
 
 	async def callback(self, p_interaction:Interaction):
-		modal = EditRoles(p_OpData=self.parentEditor.originalData, p_updateFunction=self.parentEditor.UpdateEditor)
+		modal = EditRoles(p_OpData=self.parentEditor.newOpData, p_updateFunction=self.parentEditor.UpdateEditor)
 		await p_interaction.response.send_modal(modal)
+
+
+class EditorBtn_Channels(EditorBtn):
+	def __init__(self, p_parentEditor: OpEditor):
+		self.parentEditor = p_parentEditor
+
+		super().__init__(
+			p_btnStyle=ButtonStyle.gray,
+			p_label="Edit Channels",
+			p_row=editRow
+		)
+
+	async def callback(self, p_interaction:Interaction):
+		modal = EditChannels(p_OpData=self.parentEditor.newOpData, p_updateFunction=self.parentEditor.UpdateEditor)
+		await p_interaction.response.send_modal(modal)
+
+
 
 
 # ACTIONBAR	|	ACTIONBAR	|	ACTIONBAR	|	ACTIONBAR	|	ACTIONBAR	|
@@ -312,7 +330,7 @@ class EditorBtn_Actions(Select):
 					responseMsg += "[FAIL]	Delete Live Event | Consider manual removal of event data & components\n"
 		
 	# SAVE DEFAULT
-		if ActionBarValues.saveDefault in actions:
+		if ActionBarValues.saveDefault.value in actions:
 			newDefault = copy.deepcopy(self.parentEditor.newOpData)
 			
 			# Ensures status is set back to open for future posts.
@@ -357,9 +375,11 @@ class EditorBtn_Actions(Select):
 			except NotFound:
 				BUPrint.Debug(" Interaction Edit failed.  Channel likely removed.")		
 
-			self.parentEditor.newOpData.status = OpsStatus.open
 
 			if ActionBarValues.deleteLive.value not in actions:
+				BUPrint.Debug("Not deleting current live event, re-open & update.")
+				self.parentEditor.newOpData.status = OpsStatus.open
+				opsManager.OperationManager.SaveToFile(self.parentEditor.newOpData)
 				await opsMan.UpdateMessage(self.parentEditor.newOpData)
 	
 		try:

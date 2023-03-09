@@ -340,15 +340,15 @@ class Commander():
 		
 			await self.vOpsEventTracker.CreateLoginTriggers(vPS2CharactersToLoad)
 
-			for participant in self.participants:
-				if participant.userSession == None:
-					participant.userSession = Session(
-						eventName=self.vOpData.name,
-						date=self.trueStartTime,
-						bIsPS2Event=self.vOpData.options.bIsPS2Event
-						)
-					if self.vOpData.options.bIsPS2Event:
-						participant.userSession.kda = PS2SessionKDA()
+		for participant in self.participants:
+			if participant.userSession == None:
+				participant.userSession = Session(
+					eventName=self.vOpData.name,
+					date=self.trueStartTime,
+					bIsPS2Event=self.vOpData.options.bIsPS2Event
+					)
+				if self.vOpData.options.bIsPS2Event:
+					participant.userSession.kda = PS2SessionKDA()
 		
 
 		BUPrint.Debug("Participants Updated!")
@@ -1094,11 +1094,14 @@ class Commander():
 		if vFeedbackMsg.__len__() > 2000: # greater than discords max message limit
 			vFeedbackMsg = vFeedbackMsg[1900:] + "\n\n**Feedback is too large!**\nDownload file to see entire message."
 
+		
 		facilityFeed = ""
-		for facility in self.vOpsEventTracker.sessionStats.facilityFeed:
-			facilityFeed += f"{facility}\n"
-		if facilityFeed.__len__() > 4000:
-			facilityFeed = facilityFeed[3900:]
+		if self.vOpData.options.bIsPS2Event:
+			for facility in self.vOpsEventTracker.sessionStats.facilityFeed:
+				facilityFeed += f"{facility}\n"
+			if facilityFeed.__len__() > 4000:
+				facilityFeed = facilityFeed[3900:]
+
 
 		if self.vOpData.options.bUseSoberdogsFeedback:
 			BUPrint.Debug("using soberdogs feedback")

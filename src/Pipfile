@@ -13,6 +13,7 @@ asyncio-atexit = "*"
 matplotlib = "*"
 python-dotenv = "*"
 pynacl = "*"
+discord = "*"
 
 [dev-packages]
 
