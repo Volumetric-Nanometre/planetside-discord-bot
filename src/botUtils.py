@@ -573,7 +573,6 @@ def PrintSettings(bGetOnly = False):
 	vString += "\nCONTINENT TRACKER SETTINGS\n"
 	vString += f"	> [{BotSettings.botFeatures.continentTracker}] Enabled\n"
 	if BotSettings.botFeatures.continentTracker:
-		vString += f"	> [{ContinentTrack.bCheckOnStartup}] Check on Startup\n"
 		vString += f"	> [{ContinentTrack.bAlertCommanders}] Alert Commanders\n"
 		vString += f"	> World ID: {ContinentTrack.worldID}\n"
 
