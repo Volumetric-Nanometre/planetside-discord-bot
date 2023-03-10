@@ -6,14 +6,14 @@ Handles tracking and displaying information of continent changes for a specified
 """
 
 from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit
-from botData.dataObjects import CommanderStatus
+from botData.dataObjects import CommanderStatus, WarpgateCapture
 from botUtils import BotPrinter as BUPrint
 from botUtils import GetDiscordTime, UserHasCommandPerms
-from botData.utilityData import PS2ZoneIDs
+from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs, PS2ContLockFaction
 from discord.ext.commands import GroupCog, Bot
 from discord.app_commands import command
 from discord import Interaction
-from auraxium.event import EventClient, ContinentLock, Trigger
+from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
 from auraxium.ps2 import Zone, World
 from opsManager import OperationManager
 
@@ -23,6 +23,14 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		self.auraxClient = EventClient(service_id=BotSettings.ps2ServiceID)
 
 		# Continent Locks
+		self.bWatchContinent = False
+		"""Set to true when a warpgate ID is found in a facility takeover event.
+		If two faction IDs are found, the continent is locked."""
+		self.warpgateCaptures:list[WarpgateCapture] = []
+		"""Warpgate Captures
+		List of warpgate capture objects.
+		Should be cleared after determining continent un/lock."""
+
 		self.lastOshurLock: ContinentLock = None
 		self.lastIndarLock: ContinentLock = None
 		self.lastEsamirLock: ContinentLock = None
@@ -93,6 +101,15 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				event="ContinentLock",
 				# worlds=[worldToMonitor],
 				action=self.NewContinentLock
+			)
+		)
+
+
+		self.auraxClient.add_trigger(
+			Trigger(
+				event="FacilityControl",
+				worlds=["Cobalt"],
+				action=self.FacilityControlChange
 			)
 		)
 
@@ -247,3 +264,101 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 
 			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(vMessage)
+
+
+
+
+	async def FacilityControlChange(self, p_event:FacilityControl):
+		"""# Facility Control Change
+		Function called by the auraxium client for facility control event.
+		Current usage is just for determining if a continent has opened.
+		"""
+		if p_event.world_id != ContinentTrack.worldID:
+			return
+		
+		if p_event.facility_id not in PS2WarpgateIDs.allIDs.value:
+			BUPrint.Debug(f"Facility ID: {p_event.facility_id} not in list of warpgates.")
+			return
+			
+			
+	# Facility is a warpgate, append new 'capture' event.
+
+		self.warpgateCaptures.append(
+			WarpgateCapture(p_event.facility_id, p_event.zone_id, p_event.new_faction_id)
+		)
+
+		if self.warpgateCaptures.__len__() < 3:
+			# Less than 3 warpgate changes thus far, skip.
+			return
+		
+		if not self.GetIsLocked(p_event):
+			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(
+				f"{self.GetContinentNameFromWarpgate(p_event.facility_id)} is **OPEN**!"
+			)
+
+
+
+
+	def GetIsLocked(self, p_event:FacilityControl) -> bool:
+		"""# GET IS LOCKED
+		## Returns 
+		- True if the event passed is a lock event (or insufficient array length).
+		- False if the event passed is part of a continent opening.
+
+		Running the function also removes the associated entries from the warpgateCaptures array.
+		"""
+		bIsLocked = False
+		factionCount = 0
+
+		sanitisedList = [warpgate for warpgate in self.warpgateCaptures if warpgate.zoneID == p_event.zone_id]
+
+		if sanitisedList.__len__() != 3:
+			return True
+
+
+		for warpgate in sanitisedList:
+			factionCount += warpgate.factionID
+			self.warpgateCaptures.remove(warpgate)
+
+		BUPrint.Debug(f"Faction Count: {factionCount}")
+
+		if factionCount == PS2ContLockFaction.NCLock.value:
+			BUPrint.Debug("Continent is locked by NC!")
+			bIsLocked = True
+
+		elif factionCount == PS2ContLockFaction.TRLock.value:
+			BUPrint.Debug("Continent is locked by NC!")
+			bIsLocked = True
+
+		elif factionCount == PS2ContLockFaction.VSLock.value:
+			BUPrint.Debug("Continent is locked by NC!")
+			bIsLocked = True
+
+
+		return bIsLocked
+
+
+
+	def GetContinentNameFromWarpgate(self, p_facilityID:int) -> str:
+		"""# Get Continent Name from Facility ID 
+		NOTE: WARPGATE IDs ONLY
+
+		Returns a string of the continent name based on the facility ID.
+		
+		Name does not include whitespaces before or after.
+		"""
+
+		if p_facilityID in PS2WarpgateIDs.amerish.value:
+			return "Amerish"
+		
+		if p_facilityID in PS2WarpgateIDs.esamir.value:
+			return "Esamir"
+		
+		if p_facilityID in PS2WarpgateIDs.hossin.value:
+			return "Hossin"
+		
+		if p_facilityID in PS2WarpgateIDs.indar.value:
+			return "Indar"
+		
+		if p_facilityID in PS2WarpgateIDs.oshur.value:
+			return "Oshur"

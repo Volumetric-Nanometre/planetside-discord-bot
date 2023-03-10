@@ -568,6 +568,25 @@ class ForFunVehicleDeath:
 	bHasSetSchedTask = False
 
 
+
+#############################################################
+# CONTINENT TRACKER
+
+@dataclass
+class WarpgateCapture:
+	"""# Warpgate Capture
+	Holds the warpgate facility ID, Zone(Continent) ID and the ID of the 'capturing' faction.
+	Used to compare other warpgate captures to determine if the continent has opened.
+	Not needed for contiennt closure as that event is working.
+	"""
+	warpgateID:int
+	zoneID:int
+	factionID:int
+
+
+
+
+
 	#############################################################
 # OPERATIONS SIGNUP
 
