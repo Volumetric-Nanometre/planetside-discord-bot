@@ -108,7 +108,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		self.auraxClient.add_trigger(
 			Trigger(
 				event="FacilityControl",
-				worlds=["Cobalt"],
+				# worlds=[worldToMonitor],
 				action=self.FacilityControlChange
 			)
 		)
