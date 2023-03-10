@@ -164,7 +164,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			self.lastOshurLock = p_event
 
 		else:
-			BUPrint.Info(f"Continent ID: {continentID} did not match existing settings.")
+			BUPrint.Debug(f"Continent ID: {continentID} did not match existing settings.")
 		
 
 
@@ -277,8 +277,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			return
 		
 		if p_event.facility_id not in PS2WarpgateIDs.allIDs.value:
-			BUPrint.Debug(f"Facility ID: {p_event.facility_id} not in list of warpgates.")
+			# BUPrint.Debug(f"Facility ID: {p_event.facility_id} not in list of warpgates.")
 			return
+		
+		
+		BUPrint.Info(f"Facility ID: {p_event.facility_id} matched warpgate!")
 			
 			
 	# Facility is a warpgate, append new 'capture' event.
@@ -287,8 +290,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			WarpgateCapture(p_event.facility_id, p_event.zone_id, p_event.new_faction_id)
 		)
 
-		if self.warpgateCaptures.__len__() < 3:
-			# Less than 3 warpgate changes thus far, skip.
+		if self.warpgateCaptures.__len__() < 2:
+			# Less than 2 warpgate changes thus far, skip.
 			return
 		
 		if not self.GetIsLocked(p_event):

@@ -109,20 +109,22 @@ class PS2WarpgateIDs(Enum):
 	Convenience class to hold the `FACILITY ID`s of each continents warpgates. """
 
 	indar = [7801, 120000, 4801]
-	hossin = [4230, 4240, 4250]
-	amerish = [6001, 6002, 6003]
-	esamir = [18029, 18030, 18062]
-	oshur = [18303, 18304, 18305]
+	hossin = [308000, 309000, 310000]
+	amerish = [200000, 201000, 203000]
+	esamir = [258000, 259000, 260000]
+	oshur = [400369, 400370, 400371]
 	allIDs = indar + hossin + amerish + esamir + oshur
 
 
 
 class PS2ContLockFaction(Enum):
 	"""# PS2 Continent Lock Factions
-	Enum class holding values to assist in determining the faction holding the continent."""
+	Enum class holding values to assist in determining the faction holding the continent.
+	Lock values multiplied by 2 because only 2 warpgates will ever change faction on unlock.
+	"""
 	TR = 1
 	VS = 2
 	NC = 3
-	TRLock = TR * 3
-	VSLock = VS * 3
-	NCLock = NC * 3
+	TRLock = TR * 2
+	VSLock = VS * 2
+	NCLock = NC * 2
