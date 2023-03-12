@@ -22,20 +22,24 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		self.botRef = p_bot
 		self.auraxClient = EventClient(service_id=BotSettings.ps2ServiceID)
 
-		# Continent Locks
-		self.bWatchContinent = False
-		"""Set to true when a warpgate ID is found in a facility takeover event.
-		If two faction IDs are found, the continent is locked."""
 		self.warpgateCaptures:list[WarpgateCapture] = []
 		"""Warpgate Captures
 		List of warpgate capture objects.
 		Should be cleared after determining continent un/lock."""
 
+		# Continent Locks
 		self.lastOshurLock: ContinentLock = None
 		self.lastIndarLock: ContinentLock = None
 		self.lastEsamirLock: ContinentLock = None
 		self.lastAmerishLock: ContinentLock = None
 		self.lastHossinLock: ContinentLock = None
+
+		# Open continents
+		self.bIndarOpen = False
+		self.bEsamirOpen = False
+		self.bAmerishOpen = False
+		self.bHossinOpen = False
+		self.bOshurOpen = False
 
 		super().__init__()
 		BUPrint.Info("COG: ContinentTracker loaded.")
@@ -119,20 +123,18 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		Called when a continent has been locked.
 		"""
 		continent:Zone = await self.auraxClient.get_by_id(Zone, p_event.zone_id)
-		if continent != None:
-			chanToPostTo = self.botRef.get_channel(Channels.ps2ContinentNotifID)
-			# For working out what continent ID is which.  Looking at you, Oshur.
-			# await chanToPostTo.send(f"Continent: {continent.code} | ID: {continent.id}")
-
-			BUPrint.Debug(f"Debug: ContName: {continent.code}")
-		else:
-			BUPrint.Debug("Dynamic zone. Ignoring.")
-			return
-
+		# chanToPostTo = self.botRef.get_channel(Channels.ps2ContinentNotifID)
+		# For working out what continent ID is which.  Looking at you, Oshur.
+		# await chanToPostTo.send(f"Continent: {continent.code} | ID: {continent.id}")
+		# BUPrint.Debug(f"Debug: ContName: {continent.code}")
+		
 		if p_event.world_id != ContinentTrack.worldID:
 			BUPrint.Debug("World doesn't match tracked setting. Ignoring.")
 			return
 		
+		if continent == None:
+			BUPrint.Debug("Dynamic zone. Ignoring.")
+			return
 		
 		if p_event.zone_id in PS2ZoneIDs.allIDs.value:
 			self.ReplaceOldLock(p_event)
@@ -197,6 +199,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		If p_interaction is None, message is sent to the settings specified channel.
 		"""
 		oldestLock = self.GetOldestLock()
+
 		if oldestLock == None:
 			if p_interaction != None:
 				await p_interaction.response.send_message(content="Currently unable to fulfil this request. Sorry!", ephemeral=True)
@@ -242,7 +245,10 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		vMessage = "***Continents Locked:***"
 		for continent in continents:
 			zoneData:Zone = await self.auraxClient.get_by_id(Zone, continent.zone_id)
-			vMessage += f"\n\n**{zoneData.name}** last locked {GetDiscordTime(continent.timestamp)}"
+			if self.IsContinentLocked(zoneData.name):
+				vMessage += f"\n\n**{zoneData.name}** last locked {GetDiscordTime(continent.timestamp)}"
+			else:
+				vMessage += f"\n\n**{zoneData.name}** is currently **OPEN**!"
 
 
 		if p_interaction != None:
@@ -311,7 +317,10 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		Running the function also removes the associated entries from the warpgateCaptures array.
 		"""
 		bIsLocked = False
-		firstFaction = 0 # Used to check the faction in next iteration.  If it matches (more than one warpgate under a single faction), the continent is locked
+		firstFaction = -1 # 
+		"""Used to check the faction in next iteration.  
+		If it matches (more than one warpgate under a single faction), the continent is locked
+		Uses -1 as unset, just incase there's some fuckery with factions.  Looking at you, NSO."""
 
 		sanitisedList = [warpgate for warpgate in self.warpgateCaptures if warpgate.zoneID == p_event.zone_id]
 
@@ -320,7 +329,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		
 		for warpgate in sanitisedList:
-			if firstFaction == 0:
+			if firstFaction == -1:
 				firstFaction = warpgate.factionID
 
 			else:
@@ -330,17 +339,62 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				else:
 					# No matching faction ID, continent is open.
 					bIsLocked = False
+					
+				self.SetContinentOpen( self.GetContinentNameFromWarpgate(warpgate.warpgateID), bIsLocked )
 			
 			# Cleanup warpgate capture list array.
 			self.warpgateCaptures.remove(warpgate)
 
 
 		return bIsLocked
+	
+
+	def SetContinentOpen(self, p_continentName:str, p_isOpen = True) -> None:
+		"""# Set Continent Open
+		Convenience function to set the appropriate continent bool values to true by default.
+		Can be used to set open value to false."""
+		if p_continentName.lower().__contains__("indar"):
+			self.bIndarOpen = p_isOpen
+
+		elif p_continentName.lower().__contains__("amerish"):
+			self.bAmerishOpen = p_isOpen
+
+		elif p_continentName.lower().__contains__("hossin"):
+			self.bHossinOpen = p_isOpen
+
+		elif p_continentName.lower().__contains__("esamir"):
+			self.bEsamirOpen = p_isOpen
+
+		elif p_continentName.lower().__contains__("oshur"):
+			self.bOshurOpen	= p_isOpen
+
+
+
+	def IsContinentLocked(self, p_continentName:str) -> bool:
+		"""# Is Continent Locked
+		Returns the value of the continent lock boolean based on the passed continent name."""
+
+		if p_continentName.lower().__contains__("indar"):
+			return self.bIndarOpen
+
+		elif p_continentName.lower().__contains__("amerish"):
+			return self.bAmerishOpen
+
+		elif p_continentName.lower().__contains__("hossin"):
+			return self.bHossinOpen
+
+		elif p_continentName.lower().__contains__("esamir"):
+			return self.bEsamirOpen
+
+		elif p_continentName.lower().__contains__("oshur"):
+			return self.bOshurOpen
+		
+		return False
 
 
 
 	def GetContinentNameFromWarpgate(self, p_facilityID:int) -> str:
-		"""# Get Continent Name from Facility ID 
+		"""# Get Continent Name from Warpgate (facility ID) 
 		NOTE: WARPGATE IDs ONLY
 
 		Returns a string of the continent name based on the facility ID.
@@ -362,3 +416,6 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		
 		if p_facilityID in PS2WarpgateIDs.oshur.value:
 			return "Oshur"
+		
+		BUPrint.LogError(p_titleStr="Invalid warpgate ID", p_string=str(p_facilityID))
+		return "" # Invalid ID
