@@ -311,31 +311,28 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		Running the function also removes the associated entries from the warpgateCaptures array.
 		"""
 		bIsLocked = False
-		factionCount = 0
+		firstFaction = 0 # Used to check the faction in next iteration.  If it matches (more than one warpgate under a single faction), the continent is locked
 
 		sanitisedList = [warpgate for warpgate in self.warpgateCaptures if warpgate.zoneID == p_event.zone_id]
 
-		if sanitisedList.__len__() != 3:
+		if sanitisedList.__len__() < 2:
 			return True
 
-
+		
 		for warpgate in sanitisedList:
-			factionCount += warpgate.factionID
+			if firstFaction == 0:
+				firstFaction = warpgate.factionID
+
+			else:
+				if warpgate.factionID == firstFaction:
+				# Matching faction IDs, continent is locked.
+					bIsLocked = True
+				else:
+					# No matching faction ID, continent is open.
+					bIsLocked = False
+			
+			# Cleanup warpgate capture list array.
 			self.warpgateCaptures.remove(warpgate)
-
-		BUPrint.Debug(f"Faction Count: {factionCount}")
-
-		if factionCount == PS2ContLockFaction.NCLock.value:
-			BUPrint.Debug("Continent is locked by NC!")
-			bIsLocked = True
-
-		elif factionCount == PS2ContLockFaction.TRLock.value:
-			BUPrint.Debug("Continent is locked by NC!")
-			bIsLocked = True
-
-		elif factionCount == PS2ContLockFaction.VSLock.value:
-			BUPrint.Debug("Continent is locked by NC!")
-			bIsLocked = True
 
 
 		return bIsLocked
