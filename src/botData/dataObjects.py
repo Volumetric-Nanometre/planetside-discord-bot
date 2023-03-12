@@ -584,6 +584,24 @@ class WarpgateCapture:
 	factionID:int
 
 
+@dataclass
+class ContinentStatus:
+	"""# Continent Status
+	Simple dataclass holding minimal data about the status of each continent.
+	"""
+	name: str
+	"""The continents name.  Used for message printing."""
+
+	bIsLocked: bool = True
+	"""Is Locked?  Boolean for whether the continent is open or locked."""
+
+	lastLocked:datetime = None
+	"""Timestamp of when the continent was last locked.
+	
+	Will be NONE on first run."""
+
+
+
 
 
 

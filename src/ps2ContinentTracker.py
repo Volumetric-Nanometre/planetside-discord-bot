@@ -6,7 +6,7 @@ Handles tracking and displaying information of continent changes for a specified
 """
 
 from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit
-from botData.dataObjects import CommanderStatus, WarpgateCapture
+from botData.dataObjects import CommanderStatus, WarpgateCapture, ContinentStatus
 from botUtils import BotPrinter as BUPrint
 from botUtils import GetDiscordTime, UserHasCommandPerms
 from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs
@@ -34,12 +34,12 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		self.lastAmerishLock: ContinentLock = None
 		self.lastHossinLock: ContinentLock = None
 
-		# Open continents
-		self.bIndarOpen = False
-		self.bEsamirOpen = False
-		self.bAmerishOpen = False
-		self.bHossinOpen = False
-		self.bOshurOpen = False
+		# Continent Statuses
+		self.indarStatus = ContinentStatus("Indar)")
+		self.oshurStatus = ContinentStatus("Oshur")
+		self.esamirStatus = ContinentStatus("Esamir")
+		self.amerishStatus = ContinentStatus("Amerish")
+		self.hossinStatus = ContinentStatus("Hossin")
 
 		super().__init__()
 		BUPrint.Info("COG: ContinentTracker loaded.")
@@ -64,29 +64,20 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 
 
-	def GetContLocksAsArray(self) -> list[ContinentLock]:
+	def GetContLocksAsArray(self) -> list[ContinentStatus]:
 		"""# Get Continent Locks as Array
 		Returns all the continent locks as an array.  
 		Does not include the cont lock if it's not yet set.
 		"""
+		allConts = [
+			self.amerishStatus,
+			self.indarStatus,
+			self.oshurStatus,
+			self.esamirStatus,
+			self.hossinStatus
+		]
 
-		newArray = []
-
-		if self.lastOshurLock != None:
-			newArray.append(self.lastOshurLock)
-
-		if self.lastIndarLock !=  None:
-			newArray.append(self.lastIndarLock)
-		
-		if self.lastEsamirLock != None:
-			newArray.append(self.lastEsamirLock)
-		
-		if self.lastAmerishLock != None:
-			newArray.append(self.lastAmerishLock)
-		
-		if self.lastHossinLock != None:
-			newArray.append(self.lastHossinLock)
-
+		newArray = [status for status in allConts if status.lastLocked != None]
 		
 		return newArray
 
@@ -170,24 +161,22 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		
 
 
-	def GetOldestLock(self) -> ContinentLock:
+	def GetOldestLock(self) -> ContinentStatus:
 		"""# Get Oldest Lock:
-		Returns the continentLock event data of the oldest locked continent.
+		Returns the continent status data of the oldest locked continent.
 		
 		Returns NONE if continent data is invalid.
 		"""
 		continents = self.GetContLocksAsArray()
-		
-		timestamps = [continent.timestamp for continent in continents if continent != None]
 
-		if timestamps.__len__() == 0:
+		if continents.__len__() == 0:
 			return None
 
-		timestamps.sort()
+		continents.sort(key=lambda continent: continent.lastLocked)
 
-		for continent in continents:
-			if timestamps[0] == continent.timestamp:
-				return continent
+		for continentStatus in continents:
+			if continentStatus.bIsLocked:
+				return continentStatus
 			
 		return None
 
@@ -208,10 +197,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				BUPrint.Debug("No oldest lock available.")
 				return
 
-
-		oldestContinent:Zone = await self.auraxClient.get_by_id(id_=oldestLock.zone_id, type_=Zone)
 		
-		vMessage = f"**Oldest continent lock:**\n{oldestContinent.name}, locked {GetDiscordTime(oldestLock.timestamp)}"
+		vMessage = f"**Oldest continent lock:**\n{oldestLock.name}, locked {GetDiscordTime(oldestLock.lastLocked)}"
 
 		if p_interaction != None:
 			await p_interaction.response.send_message(content=vMessage, ephemeral=True)
@@ -239,16 +226,16 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				return
 			
 
-		continents.sort(key=lambda continent: continent.timestamp)
+		continents.sort(key=lambda continent: continent.lastLocked)
 
 
 		vMessage = "***Continents Locked:***"
 		for continent in continents:
-			zoneData:Zone = await self.auraxClient.get_by_id(Zone, continent.zone_id)
-			if self.IsContinentLocked(zoneData.name):
-				vMessage += f"\n\n**{zoneData.name}** last locked {GetDiscordTime(continent.timestamp)}"
+
+			if continent.bIsLocked:
+				vMessage += f"\n\n**{continent.name}** last locked {GetDiscordTime(continent.name)}"
 			else:
-				vMessage += f"\n\n**{zoneData.name}** is currently **OPEN**!"
+				vMessage += f"\n\n**{continent.name}** is currently **OPEN**!"
 
 
 		if p_interaction != None:
@@ -282,16 +269,23 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		if p_event.world_id != ContinentTrack.worldID:
 			return
 		
-		if p_event.facility_id not in PS2WarpgateIDs.allIDs.value:
+		if p_event.facility_id in PS2WarpgateIDs.allIDs.value:
+			BUPrint.Info(f"Facility ID: {p_event.facility_id} matched warpgate!")
+			await self.WarpgateFacilityCapture(p_event)
+		else:
 			# BUPrint.Debug(f"Facility ID: {p_event.facility_id} not in list of warpgates.")
-			return
+			pass
 		
-		
-		BUPrint.Info(f"Facility ID: {p_event.facility_id} matched warpgate!")
 			
-			
-	# Facility is a warpgate, append new 'capture' event.
 
+	
+	async def WarpgateFacilityCapture(self, p_event:FacilityControl):
+		"""# Warpgate Facility Capture
+
+		The facility provided MUST be a warpgate facility.
+
+		Sets the continentStatus object for the continent and sends a message if the event is a continent opening.
+		"""
 		self.warpgateCaptures.append(
 			WarpgateCapture(p_event.facility_id, p_event.zone_id, p_event.new_faction_id)
 		)
@@ -302,9 +296,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		
 		if not self.GetIsLocked(p_event):
 			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(
-				f"{self.GetContinentNameFromWarpgate(p_event.facility_id)} is **OPEN**!"
+				f"{self.GetContinentNameFromWarpgate(p_event.facility_id)} is now **OPEN**!"
 			)
-
 
 
 
