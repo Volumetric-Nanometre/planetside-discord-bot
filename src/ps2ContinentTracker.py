@@ -316,6 +316,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		Running the function also removes the associated entries from the warpgateCaptures array.
 		"""
+
+
 		bIsLocked = False
 		firstFaction = -1 # 
 		"""Used to check the faction in next iteration.  
@@ -403,19 +405,19 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		"""
 
 		if p_facilityID in PS2WarpgateIDs.amerish.value:
-			return "Amerish"
+			return str("Amerish")
 		
 		if p_facilityID in PS2WarpgateIDs.esamir.value:
-			return "Esamir"
+			return str("Esamir")
 		
 		if p_facilityID in PS2WarpgateIDs.hossin.value:
-			return "Hossin"
+			return str("Hossin")
 		
 		if p_facilityID in PS2WarpgateIDs.indar.value:
-			return "Indar"
+			return str("Indar")
 		
 		if p_facilityID in PS2WarpgateIDs.oshur.value:
-			return "Oshur"
+			return str("Oshur")
 		
 		BUPrint.LogError(p_titleStr="Invalid warpgate ID", p_string=str(p_facilityID))
 		return "" # Invalid ID
