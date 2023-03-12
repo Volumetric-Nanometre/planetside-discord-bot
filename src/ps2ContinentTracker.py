@@ -9,7 +9,7 @@ from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit
 from botData.dataObjects import CommanderStatus, WarpgateCapture
 from botUtils import BotPrinter as BUPrint
 from botUtils import GetDiscordTime, UserHasCommandPerms
-from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs, PS2ContLockFaction
+from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs
 from discord.ext.commands import GroupCog, Bot
 from discord.app_commands import command
 from discord import Interaction
