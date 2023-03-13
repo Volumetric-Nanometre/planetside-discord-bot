@@ -91,10 +91,10 @@ class PS2ZoneIDs(Enum):
 	""" PS2 Zone IDS
 	Convenience Enum to hold zone (continent) IDs
 	"""
-	Indar: int = 2
-	Hossin: int = 4
 	Amerish: int = 6
 	Esamir: int = 8
+	Indar: int = 2
+	Hossin: int = 4
 	Oshur: int = 344
 
 	allIDs = [
@@ -105,7 +105,7 @@ class PS2ZoneIDs(Enum):
 		Oshur
 		]
 	
-	
+
 
 class PS2WarpgateIDs(Enum):
 	""" # PS2 Warpgate IDs

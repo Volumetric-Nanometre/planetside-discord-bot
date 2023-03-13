@@ -6,7 +6,7 @@ from __future__ import annotations
 from enum import Enum
 from discord import Member, Message, Guild
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 import botData.settings as Settings
 import botUtils
@@ -599,16 +599,19 @@ class ContinentStatus:
 	bIsLocked: bool = True
 	"""Continent is Locked (Closed) when `True`."""
 
-	lastLocked:datetime = None
-	"""Timestamp of when the continent was last locked.
+	lastEventTimestamp:datetime = None
+	"""Timestamp of when the continent was last updated.
 	
 	Will be NONE on first run."""
 
 
 	def SetLocked(self, p_isLocked:bool):
 		"""# Set Locked
-		Sets the instances value of bIsLocked."""
+		Sets the instances value of bIsLocked.
+		
+		If lock is true, the lastLocked time is also set."""
 		self.bIsLocked = p_isLocked
+		self.lastEventTimestamp = datetime.now(timezone.utc)
 
 
 

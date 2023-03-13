@@ -82,14 +82,12 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		if p_event.zone_id not in PS2ZoneIDs.allIDs.value:
 			return
 
-		continent = self.GetContinentFromID(p_event.zone_id)
-		continent.SetLocked( True )
-		continent.lastLocked = p_event.timestamp
+		self.SetContinentIsLocked(True, p_event.zone_id)
 
 		if ContinentTrack.bPostFullMsgOnLock:
 			await self.PostMessage_Long()
 		else:
-			await self.PostMessage_Short(continent)
+			await self.PostMessage_Short( self.GetContinentFromID(p_event.zone_id) )
 
 
 
@@ -110,7 +108,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				) # END - Warpgate Capture
 			) # END - Append wg capture.
 
-			await self.CheckWarpgates(p_event.zone_id, p_event.timestamp)
+			await self.CheckWarpgates(p_event.zone_id)
 			return
 		
 
@@ -151,42 +149,51 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		]
 
 		if p_validOnly:
-			validList = [contStatus for contStatus in allContenents if contStatus.lastLocked != None]
+			validList = [contStatus for contStatus in allContenents if contStatus.lastEventTimestamp != None]
 			return validList
 		else:
 			return allContenents
-
-
-
-	def GetContinentFromWG(self, p_warpgateID:int) -> ContinentStatus:
-		"""# Get Continent From Warpgate
-		Returns the continent status object from a warpgate `Facility ID`
 		
-		Returns NONE if invalid ID given."""
 
-		for continent in self.GetContinentsAsArray(False):
-			if p_warpgateID in continent.warpgateIDs:
-				return continent
-		
-		BUPrint.LogError(p_titleStr="Invalid warpgate ID", p_string=str(p_warpgateID))
-		return None # Invalid ID
+
+	def SetContinentIsLocked(self, p_isLocked:bool, p_id:int):
+		"""# Set Continent Is Locked
+		Will take either a warpgate or continent ID.
+
+		## PARMETERS
+		- p_isLocked - The new locked status.
+		- p_id - Either a WARPGATE ID, or a Continent ID.
+		"""
+
+		if p_id in PS2WarpgateIDs.amerish.value or p_id == PS2ZoneIDs.Amerish.value:
+			self.amerishStatus.SetLocked(p_isLocked)
+
+		if p_id in PS2WarpgateIDs.esamir.value or p_id == PS2ZoneIDs.Esamir.value:
+			self.esamirStatus.SetLocked(p_isLocked)
+
+		if p_id in PS2WarpgateIDs.indar.value or p_id == PS2ZoneIDs.Indar.value:
+			self.indarStatus.SetLocked(p_isLocked)
+
+		if p_id in PS2WarpgateIDs.hossin.value or p_id == PS2ZoneIDs.Hossin.value:
+			self.hossinStatus.SetLocked(p_isLocked)
+
+		if p_id in PS2WarpgateIDs.oshur.value or p_id == PS2ZoneIDs.Oshur.value:
+			self.oshurStatus.SetLocked(p_isLocked)
 	
 
 
-	def GetContinentFromID(self, p_contID:int) -> ContinentStatus:
+	def GetContinentFromID(self, p_id:int) -> ContinentStatus:
 		"""# Get Continent from ID
-		Returns the continent status object from a continent ID.
+		Returns the continent status object from a continent ID or Warpgate ID.
 		
 		Returns NONE if invalid ID given."""
 		
 		for continent in self.GetContinentsAsArray(False):
-			BUPrint.Debug(f"Continent: {continent.ps2Zone.name}, ID: {continent.ps2Zone.value} | Checking against: {p_contID}")
-
-			if continent.ps2Zone.value == p_contID:
+			if continent.ps2Zone.value == p_id or p_id in continent.warpgateIDs:
 				BUPrint.Debug("	> Matched")
 				return continent
 			
-		BUPrint.LogError(p_titleStr="Invalid continent ID", p_string=str(p_contID))
+		BUPrint.LogError(p_titleStr="Invalid continent or Warpgate ID", p_string=str(p_id))
 		return None # Invalid ID
 	
 
@@ -232,60 +239,70 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			BUPrint.Debug("No continent data.  Can't send message.")
 			return
 		
+
+
+		if p_interaction != None:
+			await p_interaction.response.send_message(embed=self.CreateEmbed_Detailed(), ephemeral=True)
+
+		else:
+			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(embed=self.CreateEmbed_Detailed())
+
+		if ContinentTrack.bAlertCommanders:
+			await self.PostMessage_Commanders()
+
+
+
+	def CreateEmbed_Detailed(self) -> Embed:
+		"""# Create Embed: Detailed
+		Creates and returns an embed for a detailed breakdown of the continent statuses."""
+		allContenents = self.GetContinentsAsArray()
+
 		openConts = [continent for continent in allContenents if not continent.bIsLocked]
 		lockedConts = [continent for continent in allContenents if continent.bIsLocked]
 
 		BUPrint.Debug(f"Open Conts Length: {openConts.__len__()} | Locked Conts Length: {lockedConts.__len__()}")
 
 		# Sort locked
-		lockedConts.sort(key=lambda continent: continent.lastLocked)
+		lockedConts.sort(key=lambda continent: continent.lastEventTimestamp)
 
-		message = "."
 		newEmbed = Embed(title="CONTINENT STATUS")
 		# Compose message
 		if openConts.__len__() != 0:
-			# message += "\n\n**OPEN**"
 			for contenent in openConts:
 				newEmbed.add_field(
 					name=contenent.ps2Zone.name,
 					value="**OPEN**"
 				)
-				# message += f"\n- {contenent.ps2Zone.name}"
 
 		if lockedConts.__len__() != 0:
-			# message += "\n\n**LOCKED**"
 			for contenent in lockedConts:
-				# message += f"\n- {contenent.ps2Zone.name} | Locked: {GetDiscordTime(contenent.lastLocked)}"
 				newEmbed.add_field(
 					name=contenent.ps2Zone.name,
-					value=f"**LOCKED** | {GetDiscordTime(contenent.lastLocked)}"
+					value=f"**LOCKED** | {GetDiscordTime(contenent.lastEventTimestamp)}"
 				)
 
-		if p_interaction != None:
-			await p_interaction.response.send_message(content=message, embed=newEmbed, ephemeral=True)
-		else:
-			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(message)
 
-		if ContinentTrack.bAlertCommanders:
-			await self.PostMessage_Commanders(message, newEmbed)
+		return newEmbed
 
 
-
-	async def PostMessage_Commanders(self, p_message:str = None, p_embed:Embed = None):
+	async def PostMessage_Commanders(self):
 		"""# Post Message: Commander
-		Sends a copy of a message to the commander channel.
+		Sends a detailed embed of the continent statuses to any live commanders.
 		"""
 		for commander in OperationManager.vLiveCommanders:
 			if commander.vCommanderStatus.value < CommanderStatus.Started.value:
+				pingables = self.botRef.get_user(commander.vOpData.managedBy).mention
+				newMessage = f"{pingables}\n"
+
 				if commander.continentAlert == None:
-					commander.continentAlert = await commander.notifChn.send(content=p_message, embed=p_embed)
+					commander.continentAlert = await commander.notifChn.send(content=newMessage, embed=self.CreateEmbed_Detailed())
 
 				else:
-					await commander.continentAlert.edit(content=p_message, embed=p_embed)
+					await commander.continentAlert.edit(embed=self.CreateEmbed_Detailed())
 
 
 
-	async def CheckWarpgates(self, p_zoneID:int, p_timeStamp:datetime):
+	async def CheckWarpgates(self, p_zoneID:int):
 		"""# Check Warpgates
 		Checks the warpgate captures array, based on the passed Zone(continent) ID.
 		
@@ -299,14 +316,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			return
 
 		firstFaction = -1
-		continent:ContinentStatus = None
 		for gate in matchingGates:
 			if firstFaction == -1:
 				firstFaction = gate.factionID
 			
 			else:
-				continent = self.GetContinentFromWG(gate.warpgateID)
-
 				if gate.factionID == firstFaction:
 					BUPrint.Debug("Matching factions, Continent has locked.")
 					# Commented out, since the actual continent lock event works as intended.
@@ -318,13 +332,13 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				else:
 					BUPrint.Debug("Mismatched factions. Continent open!")
 					# Mismatching factions, continent has opened:
-					continent.SetLocked(False)
+					self.SetContinentIsLocked(False, gate.warpgateID)
 
 					if ContinentTrack.bPostFullMsgOnOpen:
 						await self.PostMessage_Long()
 
 					else:
-						await self.PostMessage_Short(continent)
+						await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
 
 		# Rerun loop & remove entries.
 		BUPrint.Debug(f"Removing: {len(matchingGates)}")
