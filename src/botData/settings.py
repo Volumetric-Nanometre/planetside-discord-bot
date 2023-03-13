@@ -368,14 +368,22 @@ class Channels:
 	ID of the planetside 2 TEXT channel."""
 
 
-	scheduleID = 1077389246274482278
 	ps2ContinentNotifID = 1080562023483572315
 	"""# PS2 Continent Notification ID
 	Channel ID used for PS2 continent lock notifications."""
 
 
+	ps2FacilityControlID = ps2TextID
+	"""# PS2 Facility Control ID (Continent Tracker)
+	ID of the channel where outfit facility control notifications are sent to."""
+
+
+	scheduleID = 1077389246274482278
 	"""# Schedule ID:
 	ID of the schedule text channel"""
+
+
+
 
 
 
@@ -759,11 +767,23 @@ class ContinentTrack:
 	Disabling this will just post the updated continents status.
 	"""
 
+
 	bPostFullMsgOnOpen: bool = True
 	"""# Post Full Message on Open
 	A 'full message' lists all the continents in the same message with their locked status.
 
 	Disabling this will just post the updated continents status.
+	"""
+
+
+	bMonitorFacilities: bool = True
+	"""# Monitor Facilities
+	When true, the facility control capture monitors for facilities who are captured by the specified outfit."""
+
+
+	facilityMonitorOutfitID: int = 37569919291875540
+	"""# Facility Monitor Outfit ID
+	The ID of the outfit who's facility captures should be monitored.
 	"""
 
 
@@ -971,3 +991,7 @@ class Messages:
 
 	# No Continent Data: When a user uses a continent command and there's no collected data yet.
 	noContinentData = "No continent data!  The bot has been restarted and needs to wait for continents to un/lock.  Try again later!"
+
+	
+	facilityOutfitCapture = "TDKD secured _DATA !"
+	"""Facility Outfit Capture:  Message for when the continent tracker sends a message for a facility capture.  `_DATA` is replaced with the facility info."""

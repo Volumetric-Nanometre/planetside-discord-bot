@@ -1084,6 +1084,8 @@ class ForFunData:
 		"https://media.tenor.com/lzNPKl40wigAAAAM/figaro-pinocchio.gif",
 		"https://media.tenor.com/bT5Ha1rqXpkAAAAM/no-u-michael-scott-no-u.gif",
 		"http://giphygifs.s3.amazonaws.com/media/ANbD1CCdA3iI8/200.gif",
+		"https://tenor.com/view/hello-there-baby-yoda-mandolorian-hello-gif-20136589",
+		"https://giphy.com/gifs/waking-up-d0THNFbZHEV4k",
 	]
 
 

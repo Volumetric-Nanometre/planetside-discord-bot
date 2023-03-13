@@ -16,7 +16,7 @@ from discord.ext.commands import GroupCog, Bot
 from discord.app_commands import command
 from discord import Interaction, Embed
 from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
-from auraxium.ps2 import Zone, World, _world
+from auraxium.ps2 import Zone, MapRegion, World, Outfit
 from opsManager import OperationManager
 from datetime import datetime
 
@@ -78,6 +78,9 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		The function called when a Continent Lock event is sent."""
 		if p_event.world_id != ContinentTrack.worldID:
 			return
+		
+		if p_event.zone_id not in PS2ZoneIDs.allIDs.value:
+			return
 
 		continent = self.GetContinentFromID(p_event.zone_id)
 		continent.bIsLocked = True
@@ -86,7 +89,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		if ContinentTrack.bPostFullMsgOnLock:
 			await self.PostMessage_Long()
 		else:
-			await self.PostMessage_Short( self.GetContinentFromID(p_event.zone_id) )
+			await self.PostMessage_Short(continent)
 
 
 
@@ -107,6 +110,20 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			) # END - Append wg capture.
 
 			await self.CheckWarpgates(p_event.zone_id, p_event.timestamp)
+			return
+		
+		if ContinentTrack.bMonitorFacilities:
+			if p_event.outfit_id == ContinentTrack.facilityMonitorOutfitID:
+				takenFacility:MapRegion = self.auraxClient.get(MapRegion, p_event.facility_id)
+
+				if takenFacility == None:
+					BUPrint.Debug("Invalid facility ID.")
+					return
+
+				message = Messages.facilityOutfitCapture.replace("_DATA", f"{takenFacility.facility_name} | {takenFacility.facility_type} | {GetDiscordTime(p_event.timestamp)}")
+
+				await self.botRef.get_channel(Channels.ps2FacilityControlID).send(message)
+
 
 
 		
@@ -160,10 +177,12 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		Returns NONE if invalid ID given."""
 		
 		for continent in self.GetContinentsAsArray(False):
+			BUPrint.Debug(f"Continent: {continent.ps2Zone.name}, ID: {continent.ps2Zone.value} | Checking against: {p_contID}")
+
 			if continent.ps2Zone.value == p_contID:
 				return continent
 			
-		BUPrint.LogError(p_titleStr="Invalid warpgate ID", p_string=str(p_contID))
+		BUPrint.LogError(p_titleStr="Invalid continent ID", p_string=str(p_contID))
 		return None # Invalid ID
 	
 

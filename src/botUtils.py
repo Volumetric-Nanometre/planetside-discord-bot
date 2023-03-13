@@ -524,6 +524,8 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Bot Admin:	{Channels.botAdminID}\n"
 	vString += f"	> General:	{Channels.generalID}\n"
 	vString += f"	> PS2 Text:	{Channels.ps2TextID}\n"
+	vString += f"	> Facility Control:	{Channels.ps2FacilityControlID}\n"
+	vString += f"	> Continent Status:	{Channels.ps2ContinentNotifID}\n"
 	vString += f"	> Rules:	{Channels.ruleID}\n"
 	vString += f"	> Gate:		{Channels.gateID}\n"
 	vString += f"	> Voice Fallback:{Channels.voiceFallback}\n"
@@ -577,6 +579,7 @@ def PrintSettings(bGetOnly = False):
 		vString += f"	> World ID: {ContinentTrack.worldID}\n"
 		vString += f"	> [{ContinentTrack.bPostFullMsgOnLock}] Full Message on LOCK events\n"
 		vString += f"	> [{ContinentTrack.bPostFullMsgOnOpen}] Full Message on OPEN events\n"
+		vString += f"	> [{ContinentTrack.bMonitorFacilities}] Monitor Facility Captures\n"
 
 
 	vString += "\nSIGN UP SETTINGS\n"
