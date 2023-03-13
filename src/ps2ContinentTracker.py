@@ -29,11 +29,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		self.warpgateCaptures: list[WarpgateCapture] = []
 		"""List of `Warpgate Capture` objects."""
 
-		self.oshurStatus = ContinentStatus(PS2ZoneIDs.OshurID, PS2WarpgateIDs.oshur.value)
-		self.amerishStatus = ContinentStatus(PS2ZoneIDs.AmerishID, PS2WarpgateIDs.amerish.value)
-		self.esamirStatus = ContinentStatus(PS2ZoneIDs.EsamirID, PS2WarpgateIDs.esamir.value)
-		self.hossinStatus = ContinentStatus(PS2ZoneIDs.HossinID, PS2WarpgateIDs.hossin.value)
-		self.indarStatus = ContinentStatus(PS2ZoneIDs.IndarID, PS2WarpgateIDs.indar.value)
+		self.oshurStatus = ContinentStatus(PS2ZoneIDs.Oshur, PS2WarpgateIDs.oshur.value)
+		self.amerishStatus = ContinentStatus(PS2ZoneIDs.Amerish, PS2WarpgateIDs.amerish.value)
+		self.esamirStatus = ContinentStatus(PS2ZoneIDs.Esamir, PS2WarpgateIDs.esamir.value)
+		self.hossinStatus = ContinentStatus(PS2ZoneIDs.Hossin, PS2WarpgateIDs.hossin.value)
+		self.indarStatus = ContinentStatus(PS2ZoneIDs.Indar, PS2WarpgateIDs.indar.value)
 
 		super().__init__()
 		BUPrint.Info("COG: ContinentTracker loaded.")
@@ -83,7 +83,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			return
 
 		continent = self.GetContinentFromID(p_event.zone_id)
-		continent.bIsLocked = True
+		continent.SetLocked( True )
 		continent.lastLocked = p_event.timestamp
 
 		if ContinentTrack.bPostFullMsgOnLock:
@@ -99,7 +99,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		Function called when a facility control event is sent."""
 		if p_event.world_id != ContinentTrack.worldID:
 			return
-		
+
+
 		if p_event.facility_id in PS2WarpgateIDs.allIDs.value:
 			self.warpgateCaptures.append(
 				WarpgateCapture(
@@ -112,16 +113,18 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			await self.CheckWarpgates(p_event.zone_id, p_event.timestamp)
 			return
 		
+
 		if ContinentTrack.bMonitorFacilities:
 			if p_event.outfit_id == ContinentTrack.facilityMonitorOutfitID:
-				takenFacility:MapRegion = await self.auraxClient.get(MapRegion, p_event.facility_id)
+				# takenFacility:MapRegion = await self.auraxClient.get(MapRegion, p_event.facility_id)
+				takenFacility:MapRegion = await MapRegion.get_by_facility_id(p_event.facility_id, self.auraxClient)
 
 				if takenFacility == None:
 					BUPrint.Debug("Invalid facility ID.")
 					return
 
 				message = Messages.facilityOutfitCapture.replace("_DATA", f"{takenFacility.facility_name} | {takenFacility.facility_type} | {GetDiscordTime(p_event.timestamp)}")
-
+				BUPrint.Info(message)
 				await self.botRef.get_channel(Channels.ps2FacilityControlID).send(message)
 
 
@@ -180,6 +183,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			BUPrint.Debug(f"Continent: {continent.ps2Zone.name}, ID: {continent.ps2Zone.value} | Checking against: {p_contID}")
 
 			if continent.ps2Zone.value == p_contID:
+				BUPrint.Debug("	> Matched")
 				return continent
 			
 		BUPrint.LogError(p_titleStr="Invalid continent ID", p_string=str(p_contID))
@@ -231,10 +235,12 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		openConts = [continent for continent in allContenents if not continent.bIsLocked]
 		lockedConts = [continent for continent in allContenents if continent.bIsLocked]
 
+		BUPrint.Debug(f"Open Conts Length: {openConts.__len__()} | Locked Conts Length: {lockedConts.__len__()}")
+
 		# Sort locked
 		lockedConts.sort(key=lambda continent: continent.lastLocked)
 
-		message = "Continent Status..."
+		message = "."
 		newEmbed = Embed(title="CONTINENT STATUS")
 		# Compose message
 		if openConts.__len__() != 0:
@@ -284,9 +290,12 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		Checks the warpgate captures array, based on the passed Zone(continent) ID.
 		
 		When a continent is considered locked or opened, the associated entries are removed from the array, and a message is posted."""
+		BUPrint.Debug("Checking Warpgates...")
+		
 		matchingGates = [gateCapture for gateCapture in self.warpgateCaptures if gateCapture.zoneID == p_zoneID]
 
 		if matchingGates.__len__() < 2:
+			BUPrint.Debug(f"	> Insufficient gate length: {matchingGates.__len__()}")
 			return
 
 		firstFaction = -1
@@ -299,16 +308,17 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				continent = self.GetContinentFromWG(gate.warpgateID)
 
 				if gate.factionID == firstFaction:
-					# Matching factions, continent has locked
+					BUPrint.Debug("Matching factions, Continent has locked.")
 					# Commented out, since the actual continent lock event works as intended.
 
-					# continent.bIsLocked = True
+					# continent.SetLocked(True)
 					# continent.lastLocked = p_timeStamp
 					pass
 
 				else:
+					BUPrint.Debug("Mismatched factions. Continent open!")
 					# Mismatching factions, continent has opened:
-					continent.bIsLocked = False
+					continent.SetLocked(False)
 
 					if ContinentTrack.bPostFullMsgOnOpen:
 						await self.PostMessage_Long()
@@ -317,5 +327,6 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 						await self.PostMessage_Short(continent)
 
 		# Rerun loop & remove entries.
+		BUPrint.Debug(f"Removing: {len(matchingGates)}")
 		for gate in matchingGates:
 			self.warpgateCaptures.remove(gate)

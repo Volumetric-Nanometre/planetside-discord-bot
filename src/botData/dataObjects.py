@@ -605,6 +605,10 @@ class ContinentStatus:
 	Will be NONE on first run."""
 
 
+	def SetLocked(self, p_isLocked:bool):
+		"""# Set Locked
+		Sets the instances value of bIsLocked."""
+		self.bIsLocked = p_isLocked
 
 
 
