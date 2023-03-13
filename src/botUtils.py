@@ -580,6 +580,8 @@ def PrintSettings(bGetOnly = False):
 		vString += f"	> [{ContinentTrack.bPostFullMsgOnLock}] Full Message on LOCK events\n"
 		vString += f"	> [{ContinentTrack.bPostFullMsgOnOpen}] Full Message on OPEN events\n"
 		vString += f"	> [{ContinentTrack.bMonitorFacilities}] Monitor Facility Captures\n"
+		if ContinentTrack.bMonitorFacilities:
+			vString += f"	> Outfit to monitor: {ContinentTrack.facilityMonitorOutfitID}\n"
 
 
 	vString += "\nSIGN UP SETTINGS\n"

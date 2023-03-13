@@ -114,7 +114,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		
 		if ContinentTrack.bMonitorFacilities:
 			if p_event.outfit_id == ContinentTrack.facilityMonitorOutfitID:
-				takenFacility:MapRegion = self.auraxClient.get(MapRegion, p_event.facility_id)
+				takenFacility:MapRegion = await self.auraxClient.get(MapRegion, p_event.facility_id)
 
 				if takenFacility == None:
 					BUPrint.Debug("Invalid facility ID.")
