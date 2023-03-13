@@ -760,7 +760,7 @@ class ContinentTrack:
 	When true, continent changes will also be put into non-started event notification channels, and event managers pinged.
 	"""
 
-	bPostFullMsgOnLock: bool = True
+	bPostFullMsgOnLock: bool = False
 	"""# Post Full Message on Lock
 	A 'full message' lists all the continents in the same message with their locked status.
 
@@ -768,7 +768,7 @@ class ContinentTrack:
 	"""
 
 
-	bPostFullMsgOnOpen: bool = True
+	bPostFullMsgOnOpen: bool = False
 	"""# Post Full Message on Open
 	A 'full message' lists all the continents in the same message with their locked status.
 
