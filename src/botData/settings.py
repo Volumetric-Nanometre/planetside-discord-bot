@@ -752,6 +752,19 @@ class ContinentTrack:
 	When true, continent changes will also be put into non-started event notification channels, and event managers pinged.
 	"""
 
+	bPostFullMsgOnLock: bool = True
+	"""# Post Full Message on Lock
+	A 'full message' lists all the continents in the same message with their locked status.
+
+	Disabling this will just post the updated continents status.
+	"""
+
+	bPostFullMsgOnOpen: bool = True
+	"""# Post Full Message on Open
+	A 'full message' lists all the continents in the same message with their locked status.
+
+	Disabling this will just post the updated continents status.
+	"""
 
 
 
@@ -955,3 +968,6 @@ class Messages:
 
 	# Feature Disabled: Shown when a command that depends on another feature is disabled.
 	featureDisabled = "That feature has been disabled."
+
+	# No Continent Data: When a user uses a continent command and there's no collected data yet.
+	noContinentData = "No continent data!  The bot has been restarted and needs to wait for continents to un/lock.  Try again later!"

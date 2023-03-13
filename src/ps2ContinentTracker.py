@@ -2,415 +2,301 @@
 
 Handles tracking and displaying information of continent changes for a specified world.
 
-
+Booleans relating to a continent being open or closed should follow:
+"IS LOCKED?"
+FALSE - Open 	| TRUE - Closed
 """
 
-from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit
+from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit, Messages
 from botData.dataObjects import CommanderStatus, WarpgateCapture, ContinentStatus
 from botUtils import BotPrinter as BUPrint
 from botUtils import GetDiscordTime, UserHasCommandPerms
 from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs
 from discord.ext.commands import GroupCog, Bot
 from discord.app_commands import command
-from discord import Interaction
+from discord import Interaction, Embed
 from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
-from auraxium.ps2 import Zone, World
+from auraxium.ps2 import Zone, World, _world
 from opsManager import OperationManager
+from datetime import datetime
 
 class ContinentTrackerCog(GroupCog, name="continents"):
 	def __init__(self, p_bot:Bot):
 		self.botRef = p_bot
 		self.auraxClient = EventClient(service_id=BotSettings.ps2ServiceID)
 
-		self.warpgateCaptures:list[WarpgateCapture] = []
-		"""Warpgate Captures
-		List of warpgate capture objects.
-		Should be cleared after determining continent un/lock."""
 
-		# Continent Locks
-		self.lastOshurLock: ContinentLock = None
-		self.lastIndarLock: ContinentLock = None
-		self.lastEsamirLock: ContinentLock = None
-		self.lastAmerishLock: ContinentLock = None
-		self.lastHossinLock: ContinentLock = None
+		self.warpgateCaptures: list[WarpgateCapture] = []
+		"""List of `Warpgate Capture` objects."""
 
-		# Continent Statuses
-		self.indarStatus = ContinentStatus("Indar)")
-		self.oshurStatus = ContinentStatus("Oshur")
-		self.esamirStatus = ContinentStatus("Esamir")
-		self.amerishStatus = ContinentStatus("Amerish")
-		self.hossinStatus = ContinentStatus("Hossin")
+		self.oshurStatus = ContinentStatus(PS2ZoneIDs.OshurID, PS2WarpgateIDs.oshur.value)
+		self.amerishStatus = ContinentStatus(PS2ZoneIDs.AmerishID, PS2WarpgateIDs.amerish.value)
+		self.esamirStatus = ContinentStatus(PS2ZoneIDs.EsamirID, PS2WarpgateIDs.esamir.value)
+		self.hossinStatus = ContinentStatus(PS2ZoneIDs.HossinID, PS2WarpgateIDs.hossin.value)
+		self.indarStatus = ContinentStatus(PS2ZoneIDs.IndarID, PS2WarpgateIDs.indar.value)
 
 		super().__init__()
 		BUPrint.Info("COG: ContinentTracker loaded.")
 
 
-	@command(name="oldest", description="Posts the oldest locked continent lock.")
+	@command(name="details", description="Posts a message of all continent statuses.")
 	async def GetOldestContinentLock(self, p_interaction:Interaction):
 		# HARDCODED ROLE USEAGE:
 		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.continentTracker), p_interaction):
 			return
 
-		await self.PostMessage_Oldest(p_interaction)
+		await self.PostMessage_Long(p_interaction)
 
-
-	@command(name="locks", description="Posts all continent lock timestamps.")
-	async def GetAllContinentLocks(self, p_interaction:Interaction):
-		# HARDCODED ROLE USEAGE:
-		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.continentTracker), p_interaction):
-			return
-
-		await self.PostMessage_Sorted(p_interaction)
-
-
-
-	def GetContLocksAsArray(self) -> list[ContinentStatus]:
-		"""# Get Continent Locks as Array
-		Returns all the continent locks as an array.  
-		Does not include the cont lock if it's not yet set.
-		"""
-		allConts = [
-			self.amerishStatus,
-			self.indarStatus,
-			self.oshurStatus,
-			self.esamirStatus,
-			self.hossinStatus
-		]
-
-		newArray = [status for status in allConts if status.lastLocked != None]
-		
-		return newArray
-
-
+	
 
 	async def CreateTriggers(self):
-		"""# Create Triggers
-		Sets up the triggers to monitor """
-		worldToMonitor = await self.auraxClient.get_by_id(World, ContinentTrack.worldID)
 
-		if worldToMonitor == None:
-			BUPrint.LogError("Nop", "NO WORLD")
+		# worldToMonitor = await self.auraxClient.get(World, ContinentTrack.worldID)
+		# Currently unused.  Uncommenting will cause the bot to not run.
 
-		self.auraxClient.add_trigger( 
+		self.auraxClient.add_trigger(
 			Trigger(
 				event="ContinentLock",
 				# worlds=[worldToMonitor],
-				action=self.NewContinentLock
+				action=self.ContinentLockCallback
 			)
-		)
+		) # END: Add trigger- Continent Lock
 
 
 		self.auraxClient.add_trigger(
 			Trigger(
 				event="FacilityControl",
 				# worlds=[worldToMonitor],
-				action=self.FacilityControlChange
+				action=self.FacilityControlCallback
 			)
-		)
+		) # END: Add Trigger: Facility Control
 
 
-	async def NewContinentLock(self, p_event:ContinentLock):
-		"""# New Continent Lock
-		Called when a continent has been locked.
-		"""
-		continent:Zone = await self.auraxClient.get_by_id(Zone, p_event.zone_id)
-		# chanToPostTo = self.botRef.get_channel(Channels.ps2ContinentNotifID)
-		# For working out what continent ID is which.  Looking at you, Oshur.
-		# await chanToPostTo.send(f"Continent: {continent.code} | ID: {continent.id}")
-		# BUPrint.Debug(f"Debug: ContName: {continent.code}")
-		
+
+	async def ContinentLockCallback(self, p_event:ContinentLock):
+		"""# Continent Lock Callback
+		The function called when a Continent Lock event is sent."""
 		if p_event.world_id != ContinentTrack.worldID:
-			BUPrint.Debug("World doesn't match tracked setting. Ignoring.")
-			return
-		
-		if continent == None:
-			BUPrint.Debug("Dynamic zone. Ignoring.")
-			return
-		
-		if p_event.zone_id in PS2ZoneIDs.allIDs.value:
-			self.ReplaceOldLock(p_event)
-
-			await self.PostMessage_Sorted()
-		else:
-			BUPrint.Debug(f"Ignoring continent lock. ({p_event.zone_id})")
-
-
-	def ReplaceOldLock(self, p_event:ContinentLock):
-		"""# Replace Old Lock
-		Where present, replaces the event data.
-		"""
-		continentID = p_event.zone_id
-
-		if continentID == PS2ZoneIDs.amerishID.value:
-			self.lastAmerishLock = p_event
-		
-		elif continentID == PS2ZoneIDs.esamirID.value:
-			self.lastEsamirLock = p_event
-
-		elif continentID == PS2ZoneIDs.hossinID.value:
-			self.lastHossinLock = p_event
-		
-		elif continentID == PS2ZoneIDs.indarID.value:
-			self.lastIndarLock = p_event
-
-		elif continentID == PS2ZoneIDs.oshurID.value:
-			self.lastOshurLock = p_event
-
-		else:
-			BUPrint.Debug(f"Continent ID: {continentID} did not match existing settings.")
-		
-
-
-	def GetOldestLock(self) -> ContinentStatus:
-		"""# Get Oldest Lock:
-		Returns the continent status data of the oldest locked continent.
-		
-		Returns NONE if continent data is invalid.
-		"""
-		continents = self.GetContLocksAsArray()
-
-		if continents.__len__() == 0:
-			return None
-
-		continents.sort(key=lambda continent: continent.lastLocked)
-
-		for continentStatus in continents:
-			if continentStatus.bIsLocked:
-				return continentStatus
-			
-		return None
-
-
-	async def PostMessage_Oldest(self, p_interaction:Interaction = None):
-		"""Post Message: Basic
-		Sends a simple message Containing the oldest continent.
-
-		If p_interaction is None, message is sent to the settings specified channel.
-		"""
-		oldestLock = self.GetOldestLock()
-
-		if oldestLock == None:
-			if p_interaction != None:
-				await p_interaction.response.send_message(content="Currently unable to fulfil this request. Sorry!", ephemeral=True)
-				return
-			else:
-				BUPrint.Debug("No oldest lock available.")
-				return
-
-		
-		vMessage = f"**Oldest continent lock:**\n{oldestLock.name}, locked {GetDiscordTime(oldestLock.lastLocked)}"
-
-		if p_interaction != None:
-			await p_interaction.response.send_message(content=vMessage, ephemeral=True)
 			return
 
+		continent = self.GetContinentFromID(p_event.zone_id)
+		continent.bIsLocked = True
+		continent.lastLocked = p_event.timestamp
+
+		if ContinentTrack.bPostFullMsgOnLock:
+			await self.PostMessage_Long()
 		else:
-			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(vMessage)
-
-
-
-	async def PostMessage_Sorted(self, p_interaction:Interaction = None):
-		"""# Post Message: Sorted
-		Sends a message with all continents, ordered from oldest to newest lock.
-
-		if p_interaction is None, message is sent to the settings specified channel.
-		"""
-		continents = self.GetContLocksAsArray()
-
-		if continents.__len__() == 0:
-			if p_interaction != None:
-				await p_interaction.response.send_message(content="Currently unable to fulfil this request. Sorry!", ephemeral=True)
-				return
-			else:
-				BUPrint.Debug("Unable to post sorted message.")
-				return
-			
-
-		continents.sort(key=lambda continent: continent.lastLocked)
-
-
-		vMessage = "***Continents Locked:***"
-		for continent in continents:
-
-			if continent.bIsLocked:
-				vMessage += f"\n\n**{continent.name}** last locked {GetDiscordTime(continent.name)}"
-			else:
-				vMessage += f"\n\n**{continent.name}** is currently **OPEN**!"
-
-
-		if p_interaction != None:
-			await p_interaction.response.send_message(content=vMessage, ephemeral=True)
-			return
-
-		else:
-			# Prefix message with mentions of people managing live events that are in pre-start phase.
-			if ContinentTrack.bAlertCommanders:
-				commanders = OperationManager().vLiveCommanders
-
-				if commanders.__len__() != 0:
-					userMentions = ""
-					for commander in commanders:
-						if commander.vCommanderStatus.value < CommanderStatus.Started.value and commander.vOpData.managedBy != "":
-							userMentions += self.botRef.get_user(int(commander.vOpData.managedBy)).mention
-					
-					vMessage = f"{userMentions}\n{vMessage}"
-
-
-			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(vMessage)
+			await self.PostMessage_Short( self.GetContinentFromID(p_event.zone_id) )
 
 
 
 
-	async def FacilityControlChange(self, p_event:FacilityControl):
-		"""# Facility Control Change
-		Function called by the auraxium client for facility control event.
-		Current usage is just for determining if a continent has opened.
-		"""
+	async def FacilityControlCallback(self, p_event:FacilityControl):
+		"""# Facility Control Callback
+		Function called when a facility control event is sent."""
 		if p_event.world_id != ContinentTrack.worldID:
 			return
 		
 		if p_event.facility_id in PS2WarpgateIDs.allIDs.value:
-			BUPrint.Info(f"Facility ID: {p_event.facility_id} matched warpgate!")
-			await self.WarpgateFacilityCapture(p_event)
-		else:
-			# BUPrint.Debug(f"Facility ID: {p_event.facility_id} not in list of warpgates.")
-			pass
+			self.warpgateCaptures.append(
+				WarpgateCapture(
+					warpgateID=p_event.facility_id,
+					zoneID=p_event.zone_id,
+					factionID=p_event.new_faction_id
+				) # END - Warpgate Capture
+			) # END - Append wg capture.
+
+			await self.CheckWarpgates(p_event.zone_id, p_event.timestamp)
+
+
 		
-			
+
 
 	
-	async def WarpgateFacilityCapture(self, p_event:FacilityControl):
-		"""# Warpgate Facility Capture
+	def GetContinentsAsArray(self, p_validOnly:bool = True) -> list[ContinentStatus]:
+		"""# Get Continents as Array
+		Returns an array containing all the continent status objects.
+		
+		## PARAMETER:
+		- `p_validOnly`: When `True` (default), the resulting aray will only contain status objects that have been set.
+			
+			When `False`, returns all array items.  This is primarily for setter functions."""
+		
+		allContenents = [
+			self.amerishStatus,
+			self.esamirStatus,
+			self.hossinStatus,
+			self.indarStatus,
+			self.oshurStatus
+		]
 
-		The facility provided MUST be a warpgate facility.
+		if p_validOnly:
+			validList = [contStatus for contStatus in allContenents if contStatus.lastLocked != None]
+			return validList
+		else:
+			return allContenents
 
-		Sets the continentStatus object for the continent and sends a message if the event is a continent opening.
+
+
+	def GetContinentFromWG(self, p_warpgateID:int) -> ContinentStatus:
+		"""# Get Continent From Warpgate
+		Returns the continent status object from a warpgate `Facility ID`
+		
+		Returns NONE if invalid ID given."""
+
+		for continent in self.GetContinentsAsArray(False):
+			if p_warpgateID in continent.warpgateIDs:
+				return continent
+		
+		BUPrint.LogError(p_titleStr="Invalid warpgate ID", p_string=str(p_warpgateID))
+		return None # Invalid ID
+	
+
+
+	def GetContinentFromID(self, p_contID:int) -> ContinentStatus:
+		"""# Get Continent from ID
+		Returns the continent status object from a continent ID.
+		
+		Returns NONE if invalid ID given."""
+		
+		for continent in self.GetContinentsAsArray(False):
+			if continent.ps2Zone.value == p_contID:
+				return continent
+			
+		BUPrint.LogError(p_titleStr="Invalid warpgate ID", p_string=str(p_contID))
+		return None # Invalid ID
+	
+
+
+	async def PostMessage_Short(self, p_continent:ContinentStatus = None):
+		"""# Post Message: Short
+		Sends a message to the settings specified channel.
+
+		Message only includes the updated continent status of the passed event. 
 		"""
-		self.warpgateCaptures.append(
-			WarpgateCapture(p_event.facility_id, p_event.zone_id, p_event.new_faction_id)
-		)
+		notifChannel = self.botRef.get_channel(Channels.ps2ContinentNotifID)
+		message = f"**UPDATED CONTINENT**\n**{p_continent.ps2Zone.name}** "
+		if p_continent.bIsLocked:
+			message += "has **LOCKED**!"
+		else:
+			message += "has **OPENED**!"
 
-		if self.warpgateCaptures.__len__() < 2:
-			# Less than 2 warpgate changes thus far, skip.
+		await notifChannel.send(message)
+
+		if ContinentTrack.bAlertCommanders:
+			await self.PostMessage_Commanders(message)
+	
+
+
+	async def PostMessage_Long(self, p_interaction:Interaction = None):
+		"""# Post Message: Long
+
+		Message includes all continent statuses.
+
+ 
+		## PARAMETRS:
+		- `p_interaction`: An interaction reference.
+		
+		If interaction is included, the output is directed to the interaction.  
+		Else it sends a message to the settings specified channel.
+		"""
+
+		allContenents = self.GetContinentsAsArray()
+
+		if allContenents.__len__() == 0:
+			if p_interaction != None:
+				await p_interaction.response.send_message(content=Messages.noContinentData, ephemeral=True)
+			BUPrint.Debug("No continent data.  Can't send message.")
 			return
 		
-		if not self.GetIsLocked(p_event):
-			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(
-				f"{self.GetContinentNameFromWarpgate(p_event.facility_id)} is now **OPEN**!"
-			)
+		openConts = [continent for continent in allContenents if not continent.bIsLocked]
+		lockedConts = [continent for continent in allContenents if continent.bIsLocked]
+
+		# Sort locked
+		lockedConts.sort(key=lambda continent: continent.lastLocked)
+
+		message = "Continent Status..."
+		newEmbed = Embed(title="CONTINENT STATUS")
+		# Compose message
+		if openConts.__len__() != 0:
+			# message += "\n\n**OPEN**"
+			for contenent in openConts:
+				newEmbed.add_field(
+					name=contenent.ps2Zone.name,
+					value="**OPEN**"
+				)
+				# message += f"\n- {contenent.ps2Zone.name}"
+
+		if lockedConts.__len__() != 0:
+			# message += "\n\n**LOCKED**"
+			for contenent in lockedConts:
+				# message += f"\n- {contenent.ps2Zone.name} | Locked: {GetDiscordTime(contenent.lastLocked)}"
+				newEmbed.add_field(
+					name=contenent.ps2Zone.name,
+					value=f"**LOCKED** | {GetDiscordTime(contenent.lastLocked)}"
+				)
+
+		if p_interaction != None:
+			await p_interaction.response.send_message(content=message, embed=newEmbed, ephemeral=True)
+		else:
+			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(message)
+
+		if ContinentTrack.bAlertCommanders:
+			await self.PostMessage_Commanders(message, newEmbed)
 
 
 
-	def GetIsLocked(self, p_event:FacilityControl) -> bool:
-		"""# GET IS LOCKED
-		## Returns 
-		- True if the event passed is a lock event (or insufficient array length).
-		- False if the event passed is part of a continent opening.
-
-		Running the function also removes the associated entries from the warpgateCaptures array.
+	async def PostMessage_Commanders(self, p_message:str = None, p_embed:Embed = None):
+		"""# Post Message: Commander
+		Sends a copy of a message to the commander channel.
 		"""
+		for commander in OperationManager.vLiveCommanders:
+			if commander.vCommanderStatus.value < CommanderStatus.Started.value:
+				if commander.continentAlert == None:
+					commander.continentAlert = await commander.notifChn.send(content=p_message, embed=p_embed)
 
-
-		bIsLocked = False
-		firstFaction = -1 # 
-		"""Used to check the faction in next iteration.  
-		If it matches (more than one warpgate under a single faction), the continent is locked
-		Uses -1 as unset, just incase there's some fuckery with factions.  Looking at you, NSO."""
-
-		sanitisedList = [warpgate for warpgate in self.warpgateCaptures if warpgate.zoneID == p_event.zone_id]
-
-		if sanitisedList.__len__() < 2:
-			return True
-
-		
-		for warpgate in sanitisedList:
-			if firstFaction == -1:
-				firstFaction = warpgate.factionID
-
-			else:
-				if warpgate.factionID == firstFaction:
-				# Matching faction IDs, continent is locked.
-					bIsLocked = True
 				else:
-					# No matching faction ID, continent is open.
-					bIsLocked = False
-					
-				self.SetContinentOpen( self.GetContinentNameFromWarpgate(warpgate.warpgateID), bIsLocked )
+					await commander.continentAlert.edit(content=p_message, embed=p_embed)
+
+
+
+	async def CheckWarpgates(self, p_zoneID:int, p_timeStamp:datetime):
+		"""# Check Warpgates
+		Checks the warpgate captures array, based on the passed Zone(continent) ID.
+		
+		When a continent is considered locked or opened, the associated entries are removed from the array, and a message is posted."""
+		matchingGates = [gateCapture for gateCapture in self.warpgateCaptures if gateCapture.zoneID == p_zoneID]
+
+		if matchingGates.__len__() < 2:
+			return
+
+		firstFaction = -1
+		continent:ContinentStatus = None
+		for gate in matchingGates:
+			if firstFaction == -1:
+				firstFaction = gate.factionID
 			
-			# Cleanup warpgate capture list array.
-			self.warpgateCaptures.remove(warpgate)
+			else:
+				continent = self.GetContinentFromWG(gate.warpgateID)
 
+				if gate.factionID == firstFaction:
+					# Matching factions, continent has locked
+					# Commented out, since the actual continent lock event works as intended.
 
-		return bIsLocked
-	
+					# continent.bIsLocked = True
+					# continent.lastLocked = p_timeStamp
+					pass
 
-	def SetContinentOpen(self, p_continentName:str, p_isOpen = True) -> None:
-		"""# Set Continent Open
-		Convenience function to set the appropriate continent bool values to true by default.
-		Can be used to set open value to false."""
-		if p_continentName.lower().__contains__("indar"):
-			self.bIndarOpen = p_isOpen
+				else:
+					# Mismatching factions, continent has opened:
+					continent.bIsLocked = False
 
-		elif p_continentName.lower().__contains__("amerish"):
-			self.bAmerishOpen = p_isOpen
+					if ContinentTrack.bPostFullMsgOnOpen:
+						await self.PostMessage_Long()
 
-		elif p_continentName.lower().__contains__("hossin"):
-			self.bHossinOpen = p_isOpen
+					else:
+						await self.PostMessage_Short(continent)
 
-		elif p_continentName.lower().__contains__("esamir"):
-			self.bEsamirOpen = p_isOpen
-
-		elif p_continentName.lower().__contains__("oshur"):
-			self.bOshurOpen	= p_isOpen
-
-
-
-	def IsContinentLocked(self, p_continentName:str) -> bool:
-		"""# Is Continent Locked
-		Returns the value of the continent lock boolean based on the passed continent name."""
-
-		if p_continentName.lower().__contains__("indar"):
-			return self.bIndarOpen
-
-		elif p_continentName.lower().__contains__("amerish"):
-			return self.bAmerishOpen
-
-		elif p_continentName.lower().__contains__("hossin"):
-			return self.bHossinOpen
-
-		elif p_continentName.lower().__contains__("esamir"):
-			return self.bEsamirOpen
-
-		elif p_continentName.lower().__contains__("oshur"):
-			return self.bOshurOpen
-		
-		return False
-
-
-
-	def GetContinentNameFromWarpgate(self, p_facilityID:int) -> str:
-		"""# Get Continent Name from Warpgate (facility ID) 
-		NOTE: WARPGATE IDs ONLY
-
-		Returns a string of the continent name based on the facility ID.
-		
-		Name does not include whitespaces before or after.
-		"""
-
-		if p_facilityID in PS2WarpgateIDs.amerish.value:
-			return str("Amerish")
-		
-		if p_facilityID in PS2WarpgateIDs.esamir.value:
-			return str("Esamir")
-		
-		if p_facilityID in PS2WarpgateIDs.hossin.value:
-			return str("Hossin")
-		
-		if p_facilityID in PS2WarpgateIDs.indar.value:
-			return str("Indar")
-		
-		if p_facilityID in PS2WarpgateIDs.oshur.value:
-			return str("Oshur")
-		
-		BUPrint.LogError(p_titleStr="Invalid warpgate ID", p_string=str(p_facilityID))
-		return "" # Invalid ID
+		# Rerun loop & remove entries.
+		for gate in matchingGates:
+			self.warpgateCaptures.remove(gate)

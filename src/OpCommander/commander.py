@@ -125,6 +125,7 @@ class Commander():
 		self.lastStartAlert: discord.Message = None # Last Start alert sent, used to store + remove a previous alert to not flood the channel.
 		self.participants:list[Participant] = [] # List of Participant objects.
 		self.notifFeedbackMsg: discord.Message = None # Message for non-soberdogs Feedback.
+		self.continentAlert: discord.Message = None # Message for contintent alerts, if enabled.
 		
 		# Soberdogs Discord Elements, saved here to avoid repeated fetching.
 		self.soberdogFeedbackForum: discord.ForumChannel = None # Forum for soberdogs Debriefs.

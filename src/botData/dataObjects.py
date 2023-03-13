@@ -10,6 +10,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import botData.settings as Settings
 import botUtils
+from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs
 from auraxium.ps2 import Character as PS2Character
 from auraxium.ps2 import MapRegion as PS2Facility
 from auraxium.ps2 import OutfitMember as PS2OutfitMember
@@ -577,7 +578,7 @@ class WarpgateCapture:
 	"""# Warpgate Capture
 	Holds the warpgate facility ID, Zone(Continent) ID and the ID of the 'capturing' faction.
 	Used to compare other warpgate captures to determine if the continent has opened.
-	Not needed for contiennt closure as that event is working.
+	Not needed for contient closure as that event is working on Daybreak's side.
 	"""
 	warpgateID:int
 	zoneID:int
@@ -589,11 +590,14 @@ class ContinentStatus:
 	"""# Continent Status
 	Simple dataclass holding minimal data about the status of each continent.
 	"""
-	name: str
-	"""The continents name.  Used for message printing."""
+	ps2Zone:PS2ZoneIDs
+	"""The continent ID (PS2Zone enum.  Doubles as name.)"""
+
+	warpgateIDs:list[int]
+	"""The warpgate IDs associated with this continent."""
 
 	bIsLocked: bool = True
-	"""Is Locked?  Boolean for whether the continent is open or locked."""
+	"""Continent is Locked (Closed) when `True`."""
 
 	lastLocked:datetime = None
 	"""Timestamp of when the continent was last locked.

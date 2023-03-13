@@ -575,7 +575,8 @@ def PrintSettings(bGetOnly = False):
 	if BotSettings.botFeatures.continentTracker:
 		vString += f"	> [{ContinentTrack.bAlertCommanders}] Alert Commanders\n"
 		vString += f"	> World ID: {ContinentTrack.worldID}\n"
-
+		vString += f"	> [{ContinentTrack.bPostFullMsgOnLock}] Full Message on LOCK events\n"
+		vString += f"	> [{ContinentTrack.bPostFullMsgOnOpen}] Full Message on OPEN events\n"
 
 
 	vString += "\nSIGN UP SETTINGS\n"

@@ -89,18 +89,18 @@ class PS2ZoneIDs(Enum):
 	""" PS2 Zone IDS
 	Convenience Enum to hold zone (continent) IDs
 	"""
-	indarID: int = 2
-	hossinID: int = 4
-	amerishID: int = 6
-	esamirID: int = 8
-	oshurID: int = 344
+	IndarID: int = 2
+	HossinID: int = 4
+	AmerishID: int = 6
+	EsamirID: int = 8
+	OshurID: int = 344
 
 	allIDs = [
-		indarID,
-		hossinID,
-		amerishID,
-		esamirID,
-		oshurID
+		IndarID,
+		HossinID,
+		AmerishID,
+		EsamirID,
+		OshurID
 		]
 	
 
