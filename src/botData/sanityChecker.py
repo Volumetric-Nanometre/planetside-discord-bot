@@ -6,7 +6,7 @@ If critical settings are invalid, prevents the bot from running.
 """
 from __future__ import annotations
 
-from discord import Role, SelectOption
+from discord import Role, SelectOption, Guild
 from discord.ext.commands import Bot
 from botData.settings import BotSettings, NewUsers, Commander, UserLib, Roles, Channels
 from botUtils import BotPrinter as BUPrint
@@ -203,6 +203,15 @@ class SanityCheck():
 		return False
 
 
+	def ChannelExists(p_guild:Guild, p_channel:int, p_errorMessage:str):
+		checkChannel = p_guild.get_channel(p_channel)
+		if checkChannel == None:
+			BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string=p_errorMessage)
+			return False
+		
+		return True
+
+
 	async def CheckChannels(p_botRef:Bot):
 		""" # CHECK CHANNELS:
 		Checks if required channels are present.
@@ -219,63 +228,49 @@ class SanityCheck():
 
 		if botFeatures.NewUser or botFeatures.UserLibrary:
 			# ADMIN CHANNEL
-			checkChannel = vGuild.get_channel( Channels.botAdminID )
-			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Admin Channel")
+			if not SanityCheck.ChannelExists(vGuild, Channels.botAdminID, "Admin"):
 				bFailedCheck = True
 
 			# GENERAL CHANNEL
-			checkChannel = vGuild.get_channel( Channels.generalID )
-			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="General Text")
+			if not SanityCheck.ChannelExists(vGuild, Channels.generalID, "General"):
 				bFailedCheck = True
 
 		if botFeatures.Operations:
 			# SCHEDULE CHANNEL
-			checkChannel = vGuild.get_channel( Channels.scheduleID )
-			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Schedule")
+			if not SanityCheck.ChannelExists(vGuild, Channels.scheduleID, "Schedule"):
 				bFailedCheck = True
 
 
 			# FALLBACK VOICE CHAT
-			checkChannel = vGuild.get_channel( Channels.voiceFallback )
-			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Voice Fallback")
+			if not SanityCheck.ChannelExists(vGuild, Channels.voiceFallback, "Voice Fallback"):
 				bFailedCheck = True
 
 			# COMMANDER MOVEBACK CHANNEL
 			if Commander.bAutoMoveVCEnabled:
-				checkChannel = vGuild.get_channel( Channels.eventMovebackID )
-				if checkChannel == None:
-					BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Event AutoMoveback")
+				if not SanityCheck.ChannelExists(vGuild, Channels.eventMovebackID, "Event Moveback"):
 					bFailedCheck = True
 
 			# SOBER FEEDBACK
-			checkChannel = vGuild.get_channel( Channels.soberFeedbackID )
-			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Sober Feedback")
+			if not SanityCheck.ChannelExists(vGuild, Channels.soberFeedbackID, "Sober Forum"):
 				bFailedCheck = True
 
 
 		if botFeatures.NewUser:
 			# GATE CHANNEL
-			checkChannel = vGuild.get_channel( Channels.gateID )
-			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Gate")
+			if not SanityCheck.ChannelExists(vGuild, Channels.gateID, "Gate"):
 				bFailedCheck = True
 
 
 		if botFeatures.ForFunCog:
-			checkChannel = vGuild.get_channel( Channels.ps2TextID )
-			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Planetside 2 Text")
+			if not SanityCheck.ChannelExists(vGuild, Channels.ps2TextID, "PS2 Text"):
 				bFailedCheck = True
 
+
 		if botFeatures.continentTracker:
-			checkChannel = vGuild.get_channel( Channels.ps2ContinentNotifID )
-			if checkChannel == None:
-				BUPrint.LogError(p_titleStr="INVALID CHANNEL ID | ", p_string="Planetside 2 Continent Notif ID")
+			if not SanityCheck.ChannelExists(vGuild, Channels.ps2ContinentNotifID, "PS2 Continent Notifications"):
+				bFailedCheck = True
+
+			if not SanityCheck.ChannelExists(vGuild, Channels.ps2FacilityControlID, "PS2 Facility Control"):
 				bFailedCheck = True
 
 

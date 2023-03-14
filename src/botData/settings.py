@@ -408,6 +408,13 @@ class Channels:
 	ID of the schedule text channel"""
 
 
+	ps2FacilityControlID = ps2TextID
+	"""# PS2 Facility Control ID (Continent Tracker)
+	ID of the channel where outfit facility control notifications are sent to."""
+
+
+
+
 
 @dataclass(frozen=True)
 class NewUsers:
@@ -782,11 +789,31 @@ class ContinentTrack:
 	When true, continent changes will also be put into non-started event notification channels, and event managers pinged.
 	"""
 
-	bCheckOnStartup: bool = True
-	"""# Check on Startup
-	When true, the tracker will check all continents on startup.
-	If this is false, not all information may be available until all continents have been updated."""
+	bPostFullMsgOnLock: bool = False
+	"""# Post Full Message on Lock
+	A 'full message' lists all the continents in the same message with their locked status.
 
+	Disabling this will just post the updated continents status.
+	"""
+
+
+	bPostFullMsgOnOpen: bool = False
+	"""# Post Full Message on Open
+	A 'full message' lists all the continents in the same message with their locked status.
+
+	Disabling this will just post the updated continents status.
+	"""
+
+
+	bMonitorFacilities: bool = True
+	"""# Monitor Facilities
+	When true, the facility control capture monitors for facilities who are captured by the specified outfit."""
+
+
+	facilityMonitorOutfitID: int = 37569919291875540
+	"""# Facility Monitor Outfit ID
+	The ID of the outfit who's facility captures should be monitored.
+	"""
 
 
 
@@ -990,3 +1017,10 @@ class Messages:
 
 	# Feature Disabled: Shown when a command that depends on another feature is disabled.
 	featureDisabled = "That feature has been disabled."
+
+	# No Continent Data: When a user uses a continent command and there's no collected data yet.
+	noContinentData = "No continent data!  The bot has been restarted and needs to wait for continents to un/lock.  Try again later!"
+
+	
+	facilityOutfitCapture = "TDKD secured _DATA !"
+	"""Facility Outfit Capture:  Message for when the continent tracker sends a message for a facility capture.  `_DATA` is replaced with the facility info."""
