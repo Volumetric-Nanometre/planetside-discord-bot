@@ -205,11 +205,14 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		Message only includes the updated continent status of the passed event. 
 		"""
 		notifChannel = self.botRef.get_channel(Channels.ps2ContinentNotifID)
-		message = f"**UPDATED CONTINENT**\n**{p_continent.ps2Zone.name}** "
+		message = f"**{p_continent.ps2Zone.name}** "
 		if p_continent.bIsLocked:
-			message += "has **LOCKED**!"
+			message += f"has **LOCKED**!"
 		else:
-			message += "has **OPENED**!"
+			message += f"has **OPENED**!"
+
+		message += f" | {GetDiscordTime(p_continent.lastEventTimestamp)}"
+
 
 		await notifChannel.send(message)
 
@@ -271,14 +274,15 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			for contenent in openConts:
 				newEmbed.add_field(
 					name=contenent.ps2Zone.name,
-					value="**OPEN**"
+					value=f"**OPEN** | {GetDiscordTime(contenent.lastEventTimestamp)}"
 				)
 
 		if lockedConts.__len__() != 0:
 			for contenent in lockedConts:
 				newEmbed.add_field(
 					name=contenent.ps2Zone.name,
-					value=f"**LOCKED** | {GetDiscordTime(contenent.lastEventTimestamp)}"
+					value=f"**LOCKED** | {GetDiscordTime(contenent.lastEventTimestamp)}",
+					inline=False
 				)
 
 
