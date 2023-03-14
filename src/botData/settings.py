@@ -447,7 +447,7 @@ class NewUsers:
 	Warn when a joining users account is less than this many months old."""
 
 	
-	ruleMsgID = 1077391503074267156
+	ruleMsgID = 913206262248923146
 	"""# Rule Message ID:
 	The id of a message which contains the server rules (if not in an embed, falls back to message content)  Make sure `Channels.ruleID` is also set."""
 
