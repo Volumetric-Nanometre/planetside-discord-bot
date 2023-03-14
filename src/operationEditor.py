@@ -79,6 +79,8 @@ class OpEditor():
 			self.newOpData.options.bUseSoberdogsFeedback = False
 		newView.add_item(EditorToggleBtn(self, self.newOpData.options.bUseReserve, "Reserves", self.newOpData.options.SetReserves))
 
+		newView.add_item(EditorBtn_Help())
+
 		return newView
 
 
@@ -236,6 +238,13 @@ class EditorBtn_Channels(EditorBtn):
 		await p_interaction.response.send_modal(modal)
 
 
+class EditorBtn_Help(Button):
+	def __init__(self):
+		super().__init__(
+			label="Help",
+			emoji="❓",
+			url="https://github.com/LCWilliams/planetside-discord-bot/wiki/Ops-Editor-2"
+		)
 
 
 # ACTIONBAR	|	ACTIONBAR	|	ACTIONBAR	|	ACTIONBAR	|	ACTIONBAR	|

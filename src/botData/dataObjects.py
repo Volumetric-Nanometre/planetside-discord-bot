@@ -6,10 +6,11 @@ from __future__ import annotations
 from enum import Enum
 from discord import Member, Message, Guild
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 import botData.settings as Settings
 import botUtils
+from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs
 from auraxium.ps2 import Character as PS2Character
 from auraxium.ps2 import MapRegion as PS2Facility
 from auraxium.ps2 import OutfitMember as PS2OutfitMember
@@ -568,6 +569,53 @@ class ForFunVehicleDeath:
 	bHasSetSchedTask = False
 
 
+
+#############################################################
+# CONTINENT TRACKER
+
+@dataclass
+class WarpgateCapture:
+	"""# Warpgate Capture
+	Holds the warpgate facility ID, Zone(Continent) ID and the ID of the 'capturing' faction.
+	Used to compare other warpgate captures to determine if the continent has opened.
+	Not needed for contient closure as that event is working on Daybreak's side.
+	"""
+	warpgateID:int
+	zoneID:int
+	factionID:int
+
+
+@dataclass
+class ContinentStatus:
+	"""# Continent Status
+	Simple dataclass holding minimal data about the status of each continent.
+	"""
+	ps2Zone:PS2ZoneIDs
+	"""The continent ID (PS2Zone enum.  Doubles as name.)"""
+
+	warpgateIDs:list[int]
+	"""The warpgate IDs associated with this continent."""
+
+	bIsLocked: bool = True
+	"""Continent is Locked (Closed) when `True`."""
+
+	lastEventTimestamp:datetime = None
+	"""Timestamp of when the continent was last updated.
+	
+	Will be NONE on first run."""
+
+
+	def SetLocked(self, p_isLocked:bool):
+		"""# Set Locked
+		Sets the instances value of bIsLocked.
+		
+		If lock is true, the lastLocked time is also set."""
+		self.bIsLocked = p_isLocked
+		self.lastEventTimestamp = datetime.now(timezone.utc)
+
+
+
+
 	#############################################################
 # OPERATIONS SIGNUP
 
@@ -1043,6 +1091,8 @@ class ForFunData:
 		"https://media.tenor.com/lzNPKl40wigAAAAM/figaro-pinocchio.gif",
 		"https://media.tenor.com/bT5Ha1rqXpkAAAAM/no-u-michael-scott-no-u.gif",
 		"http://giphygifs.s3.amazonaws.com/media/ANbD1CCdA3iI8/200.gif",
+		"https://tenor.com/view/hello-there-baby-yoda-mandolorian-hello-gif-20136589",
+		"https://giphy.com/gifs/waking-up-d0THNFbZHEV4k",
 	]
 
 

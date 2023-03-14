@@ -40,6 +40,7 @@ class EmojiLibrary(Enum):
 		return "-" # Return the default "blank" so nothing breaks!
 
 
+
 class DateFormat(Enum):
 	"""
 	DATE FORMAT
@@ -53,6 +54,7 @@ class DateFormat(Enum):
 	DateTimeShort = ":f" # Full date, no day.
 	DateTimeLong = ":F" # Full date, includes Day
 	Raw = "" # Raw POSIX.
+
 
 
 class Colours(Enum):
@@ -89,16 +91,29 @@ class PS2ZoneIDs(Enum):
 	""" PS2 Zone IDS
 	Convenience Enum to hold zone (continent) IDs
 	"""
-	indarID: int = 2
-	hossinID: int = 4
-	amerishID: int = 6
-	esamirID: int = 8
-	oshurID: int = 344
+	Amerish: int = 6
+	Esamir: int = 8
+	Indar: int = 2
+	Hossin: int = 4
+	Oshur: int = 344
 
 	allIDs = [
-		indarID,
-		hossinID,
-		amerishID,
-		esamirID,
-		oshurID
+		Indar,
+		Hossin,
+		Amerish,
+		Esamir,
+		Oshur
 		]
+	
+
+
+class PS2WarpgateIDs(Enum):
+	""" # PS2 Warpgate IDs
+	Convenience class to hold the `FACILITY ID`s of each continents warpgates. """
+
+	indar = [7801, 120000, 4801]
+	hossin = [308000, 309000, 310000]
+	amerish = [200000, 201000, 203000]
+	esamir = [258000, 259000, 260000]
+	oshur = [400369, 400370, 400371]
+	allIDs = indar + hossin + amerish + esamir + oshur
