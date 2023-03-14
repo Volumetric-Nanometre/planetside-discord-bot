@@ -217,7 +217,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		await notifChannel.send(message)
 
 		if ContinentTrack.bAlertCommanders:
-			await self.PostMessage_Commanders(message)
+			await self.PostMessage_Commanders()
 	
 
 
