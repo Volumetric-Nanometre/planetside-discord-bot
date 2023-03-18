@@ -165,6 +165,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		- p_id - Either a WARPGATE ID, or a Continent ID.
 		"""
 
+		BUPrint.Debug(f"Setting continent(zone/WG ID {p_id}) locked status({p_isLocked})")
+
 		if p_id in PS2WarpgateIDs.amerish.value or p_id == PS2ZoneIDs.Amerish.value:
 			self.amerishStatus.SetLocked(p_isLocked)
 

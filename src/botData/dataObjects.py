@@ -610,6 +610,7 @@ class ContinentStatus:
 		Sets the instances value of bIsLocked.
 		
 		If lock is true, the lastLocked time is also set."""
+		botUtils.BotPrinter.Info(f"Setting continent {self.ps2Zone.name} isLocked to {p_isLocked}")
 		self.bIsLocked = p_isLocked
 		self.lastEventTimestamp = datetime.now(timezone.utc)
 
