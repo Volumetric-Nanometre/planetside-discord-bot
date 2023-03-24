@@ -58,7 +58,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		This will also start the scheduler.
 		"""
 		BUPrint.Info("Setting up Continent Tracker scheduler")
-		self.scheduler.add_job( self.CreateTriggers, "interval", hours=ContinentTrack.refreshTriggersAfter)
+		self.scheduler.add_job( ContinentTrackerCog.CreateTriggers, "interval", hours=ContinentTrack.refreshTriggersAfter, args=[self])
 		self.scheduler.start()
 
 		# Run create triggers here once so they're set up on initial run.
