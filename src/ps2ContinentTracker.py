@@ -333,8 +333,13 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		"""
 		for commander in OperationManager.vLiveCommanders:
 			if commander.vCommanderStatus.value < CommanderStatus.Started.value:
-				pingables = self.botRef.get_user(commander.vOpData.managedBy).mention
-				newMessage = f"{pingables}\n"
+				managingUser = self.botRef.get_user(commander.vOpData.managedBy)
+
+				newMessage = "Continents updated\n"
+
+				if managingUser != None:
+					newMessage += f"{managingUser.mention}\n"
+				
 
 				if commander.continentAlert == None:
 					commander.continentAlert = await commander.notifChn.send(content=newMessage, embed=self.CreateEmbed_Detailed())
