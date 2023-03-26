@@ -387,7 +387,19 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 					else:
 						await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
 
+
 		# Rerun loop & remove entries.
 		BUPrint.Debug(f"Removing: {len(matchingGates)}")
+		if matchingGates.__len__() > 2:
+			BUPrint.Info("Acquired too many matching gates. Clearing WG captures to avoid future duplicates.")
+			self.warpgateCaptures.clear()
+			return
+		
+		
 		for gate in matchingGates:
-			self.warpgateCaptures.remove(gate)
+			try:
+				self.warpgateCaptures.remove(gate)
+			except ValueError:
+				BUPrint.Info("Warpgate not in array. Clearing WGCaptures to avoid future duplicates. May miss a continent opening.")
+				self.warpgateCaptures.clear()
+				return
