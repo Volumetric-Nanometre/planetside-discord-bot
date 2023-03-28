@@ -225,45 +225,45 @@ class Operations(commands.GroupCog):
 
 
 
-	@app_commands.command(name="test", description="Recursively adds members to an event")
-	@app_commands.rename(pOpsToEdit="file", p_usersToAdd="ammount")
-	async def TestCommand(self, p_interaction:discord.Interaction, pOpsToEdit: str, p_usersToAdd:int):
-		await p_interaction.response.defer(thinking=True, ephemeral=True)
+	# @app_commands.command(name="test", description="Recursively adds members to an event")
+	# @app_commands.rename(pOpsToEdit="file", p_usersToAdd="ammount")
+	# async def TestCommand(self, p_interaction:discord.Interaction, pOpsToEdit: str, p_usersToAdd:int):
+	# 	await p_interaction.response.defer(thinking=True, ephemeral=True)
 
-		vLiveOpData:OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
+	# 	vLiveOpData:OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
 
-		if vLiveOpData == None:
-			return
+	# 	if vLiveOpData == None:
+	# 		return
 			
-		numberAdded = 0
-		while numberAdded < p_usersToAdd:
-			randRole = random.choice(vLiveOpData.roles)
-			randRole.players.append( random.choice(p_interaction.guild.members).id )
-			numberAdded += 1
+	# 	numberAdded = 0
+	# 	while numberAdded < p_usersToAdd:
+	# 		randRole = random.choice(vLiveOpData.roles)
+	# 		randRole.players.append( random.choice(p_interaction.guild.members).id )
+	# 		numberAdded += 1
 			
-		OperationManager.SaveToFile(vLiveOpData)
+	# 	OperationManager.SaveToFile(vLiveOpData)
 		
-		opMan = OperationManager()
-		await opMan.UpdateMessage(vLiveOpData)
+	# 	opMan = OperationManager()
+	# 	await opMan.UpdateMessage(vLiveOpData)
 
 
-		await p_interaction.edit_original_response(content=f"Randomly Added {p_usersToAdd} users to {vLiveOpData.name}!")
+	# 	await p_interaction.edit_original_response(content=f"Randomly Added {p_usersToAdd} users to {vLiveOpData.name}!")
 
 
 
 
-	@TestCommand.autocomplete("pOpsToEdit")
-	async def autocompleteFileList(self, pInteraction: discord.Interaction, pTypedStr: str):
-		choices: list = []
-		vDataFiles: list = OperationManager.GetOps()
+	# @TestCommand.autocomplete("pOpsToEdit")
+	# async def autocompleteFileList(self, pInteraction: discord.Interaction, pTypedStr: str):
+	# 	choices: list = []
+	# 	vDataFiles: list = OperationManager.GetOps()
 
-		option: str
-		for option in vDataFiles:
-			if(pTypedStr.lower() in option.lower()):
-				# Add options matching current typed response to a list.
-				# Allows bypassing discords max 25 item limit on dropdown lists.
-				choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option.replace(".bin", "")))
-		return choices
+	# 	option: str
+	# 	for option in vDataFiles:
+	# 		if(pTypedStr.lower() in option.lower()):
+	# 			# Add options matching current typed response to a list.
+	# 			# Allows bypassing discords max 25 item limit on dropdown lists.
+	# 			choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option.replace(".bin", "")))
+	# 	return choices
 
 
 
