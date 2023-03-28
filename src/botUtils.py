@@ -459,6 +459,50 @@ class ChannelPermOverwrites():
 		BotPrinter.Info("ChannelPermOverwrites have been configured!")
 
 
+
+def SplitStrToSegments(p_string:str, p_limit:int = 1024, p_maxSegments: int = 0) -> list[str]:
+	"""# Split String to Segments
+	Takes a string (typically created from a list, with newline seperators) and splits it into segments.
+
+	Typically used in cases where a text body is too large.
+
+	NOTE: 	Embed value max limit is 1,024.
+	NOTE:	Message max limit is 2,000
+
+	## PARAMS
+	- `p_string` -  The string to split up.
+	- `p_limit` - The maximum length of each segment.
+	- `p_maxSegments` - The maximum number of segments to split into.
+	"""
+
+	strAsArray = p_string.split("\n")
+
+	segments:list[str] = []
+
+	currentSegment = ""
+	for currentLine in strAsArray:
+
+		if len(currentSegment) + len(currentLine) > p_limit:
+			segments.append(f"{currentSegment}")
+
+			if len(segments) == p_maxSegments:
+				break
+
+			currentSegment = f"{currentLine}\n"
+
+		else:
+			currentSegment += f"{currentLine}\n"
+			
+	
+
+	if len(segments) == 0 and len(currentSegment) != 0:
+		return currentSegment
+	else:
+		return segments
+		
+
+
+
 def PrintSettings(bGetOnly = False):
 	"""
 	# PRINT SETTINGS

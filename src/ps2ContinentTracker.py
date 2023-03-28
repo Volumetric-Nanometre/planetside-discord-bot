@@ -213,12 +213,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 					self.facilityCaptures.remove(entry)
 
 
-		if bEntryFound:
-			return True
-
 		# No existing entry is found.
-		self.facilityCaptures.append(FacilityCapture(p_facilityID, p_timestamp))
-		return False
+		if p_facilityID != None:
+			self.facilityCaptures.append(FacilityCapture(p_facilityID, p_timestamp))
+	
+		return bEntryFound
 
 
 
