@@ -49,7 +49,7 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 
 		await p_interaction.response.defer()
 		
-		vMessage = f"{p_interaction.user.display_name} removed the Category: {p_category.name}\n\n"
+		vMessage = f"{p_interaction.user.display_name} removed the Category: **{p_category.name}**\n\n"
 		vAdminChannel = p_interaction.guild.get_channel( Settings.Channels.botAdminID )
 
 		if p_category.id in Settings.Channels.protectedCategoriesID:
@@ -63,7 +63,7 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 		# Remove voice channels, moving any connected users to fallback (if found).
 		# This is done first, since movin connected members should remove all the chat-linked text channels.
 		fallbackVC = p_interaction.guild.get_channel( Settings.Channels.voiceFallback )
-		vMessage += f"**Voice Channels: {len(p_category.voice_channels)}"
+		vMessage += f"**Voice Channels:** {len(p_category.voice_channels)}\n"
 		for voiceChan in p_category.voice_channels:
 			if fallbackVC != None:
 				for member in voiceChan.members:
@@ -83,7 +83,7 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 
 
 		# Remove text channels second
-		vMessage += f"**Text Channels: {len(p_category.text_channels)}"
+		vMessage += f"\n**Text Channels:** {len(p_category.text_channels)}\n"
 		for textChan in p_category.text_channels:
 			try:
 				await textChan.delete(reason=vReasonMsg)
@@ -104,11 +104,11 @@ class ChatUtilityCog(commands.GroupCog, name="chatutils", description="Handles v
 			BUPrint.Info("Response not found.  Command likely used in channel that was removed (or the operation took longer than discords time-out.)")
 
 
-		# Send administrative message if possible, else print to console
+		# Send administrative message if possible.
 		if vAdminChannel != None:
 			await vAdminChannel.send( vMessage )
-		else:
-			BUPrint.Info(vMessage)
+		
+		BUPrint.Info(vMessage)
 
 
 
