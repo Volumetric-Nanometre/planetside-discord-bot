@@ -20,7 +20,7 @@ from dateutil.relativedelta import relativedelta
 from OpCommander.events import OpsEventTracker
 from botData.dataObjects import CommanderStatus, OpsStatus, Participant, Session, OpFeedback
 
-from botUtils import GetGuild, GetGuildNF, GetDiscordTime
+from botUtils import GetGuild, GetGuildNF, GetDiscordTime, SplitStrToSegments, EllipsiseStringArrayToSize
 from botUtils import BotPrinter as BUPrint
 from botUtils import ChannelPermOverwrites as ChanPermOverWrite
 from botData.utilityData import DateFormat, Colours
@@ -799,7 +799,7 @@ class Commander():
 					vUsersInRole += f"{self.vBotRef.get_user(int(user)).mention}\n"
 
 				if vUsersInRole.__len__() > 1024:
-					vUsersInRole = vUsersInRole[1024:]
+					vUsersInRole = EllipsiseStringArrayToSize(vUsersInRole, 1024)
 				
 			vEmbed.add_field( 
 				name=f"{role.GetRoleName()}", 
@@ -899,7 +899,7 @@ class Commander():
 			for feedEntry in self.vOpsEventTracker.sessionStats.facilityFeed:
 				vTempStr += f"{feedEntry}\n"
 			if vTempStr.__len__() > 1024:
-				vTempStr = vTempStr[1024:]
+				vTempStr = EllipsiseStringArrayToSize(vTempStr, 1024)
 		
 			vEmbed.add_field(
 				name="Facility Feed",

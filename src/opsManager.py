@@ -23,13 +23,15 @@ import OpCommander.commander
 import OpCommander.autoCommander
 
 import botUtils
-from botUtils import GetPOSIXTime, GetDiscordTime
+from botUtils import GetPOSIXTime, GetDiscordTime, EllipseStringToSize, EllipsiseStringArrayToSize
 from botUtils import BotPrinter as BUPrint
 
 import operationEditor
 
 from botModals.opsManagerModals import *
 import re
+
+import random
 
 
 class Operations(commands.GroupCog):
@@ -220,6 +222,51 @@ class Operations(commands.GroupCog):
 				# Allows bypassing discords max 25 item limit on dropdown lists.
 				choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option.replace(".bin", "")))
 		return choices
+
+
+
+	@app_commands.command(name="test", description="Recursively adds members to an event")
+	@app_commands.rename(pOpsToEdit="file", p_usersToAdd="ammount")
+	async def TestCommand(self, p_interaction:discord.Interaction, pOpsToEdit: str, p_usersToAdd:int):
+		await p_interaction.response.defer(thinking=True, ephemeral=True)
+
+		vLiveOpData:OperationData = OperationManager.LoadFromFile( botUtils.FilesAndFolders.GetOpFullPath(pOpsToEdit))
+
+		if vLiveOpData == None:
+			return
+			
+		numberAdded = 0
+		while numberAdded < p_usersToAdd:
+			randRole = random.choice(vLiveOpData.roles)
+			randRole.players.append( random.choice(p_interaction.guild.members).id )
+			numberAdded += 1
+			
+		OperationManager.SaveToFile(vLiveOpData)
+		
+		opMan = OperationManager()
+		await opMan.UpdateMessage(vLiveOpData)
+
+
+		await p_interaction.edit_original_response(content=f"Randomly Added {p_usersToAdd} users to {vLiveOpData.name}!")
+
+
+
+
+	@TestCommand.autocomplete("pOpsToEdit")
+	async def autocompleteFileList(self, pInteraction: discord.Interaction, pTypedStr: str):
+		choices: list = []
+		vDataFiles: list = OperationManager.GetOps()
+
+		option: str
+		for option in vDataFiles:
+			if(pTypedStr.lower() in option.lower()):
+				# Add options matching current typed response to a list.
+				# Allows bypassing discords max 25 item limit on dropdown lists.
+				choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option.replace(".bin", "")))
+		return choices
+
+
+
 
 
 	async def CheckSchedule(self, p_message:discord.Message):
@@ -945,7 +992,7 @@ class OperationManager():
 								role.players.remove(user)
 
 					if vSignedUpUsers.__len__() > 1024:
-						vSignedUpUsers = vSignedUpUsers[1024:]
+						vSignedUpUsers = EllipsiseStringArrayToSize(vSignedUpUsers, 1024)
 
 				vEmbed.add_field(inline=True,
 				name=role.GetRoleName(),
@@ -959,6 +1006,9 @@ class OperationManager():
 			for reserve in p_opsData.reserves:
 				vUser = self.vBotRef.get_user(int(reserve))
 				vReserves += f"{vUser.mention}\n"
+
+			if vReserves.__len__ > 1024:
+				vReserves = EllipsiseStringArrayToSize(vReserves, 1024)
 			vEmbed.add_field(name=f"{botData.settings.SignUps.reserveIcon} Reserves ({len(p_opsData.reserves)})", value=vReserves, inline=True )
 
 

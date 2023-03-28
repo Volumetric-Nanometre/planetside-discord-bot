@@ -113,6 +113,12 @@ class BotSettings:
 	Helpful to keep the channel clear of non-functional views after a bot restart."""
 
 
+	bEllipseArrayShowsCount = True
+	"""# Ellipsise Array Shows Count
+	When botUtils.EllipsiseStrArray is used and the result is shrunk, show the number of omitted entries: "...(3)"
+	"""
+
+
 	
 
 @dataclass(frozen=True)
