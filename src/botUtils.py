@@ -493,13 +493,15 @@ def SplitStrToSegments(p_string:str, p_limit:int = 1024, p_maxSegments: int = 0)
 		else:
 			currentSegment += f"{currentLine}\n"
 			
-	
+	# Make sure to append the currently active segment, otherwise its omitted
+	segments.append(currentSegment)
 
 	if len(segments) == 0 and len(currentSegment) != 0:
 		return currentSegment
 	else:
 		return segments
 	
+
 
 def EllipsiseStringArrayToSize(p_string:str, p_size:int, p_ellipsiseStart:bool = True) -> str:
 	"""# Ellipsise String Array to Size
