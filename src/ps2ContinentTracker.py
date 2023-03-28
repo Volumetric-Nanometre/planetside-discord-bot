@@ -19,11 +19,13 @@ from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
 from auraxium.ps2 import Zone, MapRegion, World, Outfit
 from opsManager import OperationManager
 from datetime import datetime
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 class ContinentTrackerCog(GroupCog, name="continents"):
 	def __init__(self, p_bot:Bot):
 		self.botRef = p_bot
 		self.auraxClient = EventClient(service_id=BotSettings.ps2ServiceID)
+		self.scheduler = AsyncIOScheduler()
 
 
 		self.warpgateCaptures: list[WarpgateCapture] = []
@@ -48,14 +50,47 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		await self.PostMessage_Long(p_interaction)
 
 	
+	async def SetupTriggerScheduler(self):
+		"""# Setup Scheduler
+		Convenience function to setup the scheduler.
+		Needed to re-set the triggers after a few days otherwise the connection is closed.
+
+		This will also start the scheduler.
+		"""
+		BUPrint.Info("Setting up Continent Tracker scheduler")
+		self.scheduler.add_job( ContinentTrackerCog.CreateTriggers, "interval", hours=ContinentTrack.refreshTriggersAfter, args=[self])
+		self.scheduler.start()
+
+		# Run create triggers here once so they're set up on initial run.
+		await self.CreateTriggers()
+
+
 
 	async def CreateTriggers(self):
+		"""# Create Triggers
+		Adds the continent lock and facility control triggers used for continent tracking.
+		Because Continent Unlock is not working on Daybreak's side, FacilityControl is also used for this purpose.
+		"""
+		BUPrint.Info("	>> Creating triggers for continent tracker.")
+
+		try:
+			self.auraxClient.remove_trigger(keep_websocket_alive=True, trigger="CONTTRACK_Lock")
+		except (KeyError, ValueError):
+			BUPrint.Debug("No trigger for Continent Lock setup/found.")
+
+		try:
+			self.auraxClient.remove_trigger(keep_websocket_alive=True, trigger="CONTTRACK_Facility")
+		except (KeyError, ValueError):
+			BUPrint.Debug("No trigger for facility control setup/found.")
+
+		
 
 		# worldToMonitor = await self.auraxClient.get(World, ContinentTrack.worldID)
 		# Currently unused.  Uncommenting will cause the bot to not run.
 
 		self.auraxClient.add_trigger(
 			Trigger(
+				name="CONTTRACK_Lock",
 				event="ContinentLock",
 				# worlds=[worldToMonitor],
 				action=self.ContinentLockCallback
@@ -65,6 +100,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		self.auraxClient.add_trigger(
 			Trigger(
+				name="CONTTRACK_Facility",
 				event="FacilityControl",
 				# worlds=[worldToMonitor],
 				action=self.FacilityControlCallback
@@ -165,6 +201,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		- p_id - Either a WARPGATE ID, or a Continent ID.
 		"""
 
+		BUPrint.Debug(f"Setting continent(zone/WG ID {p_id}) locked status({p_isLocked})")
+
 		if p_id in PS2WarpgateIDs.amerish.value or p_id == PS2ZoneIDs.Amerish.value:
 			self.amerishStatus.SetLocked(p_isLocked)
 
@@ -217,7 +255,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		await notifChannel.send(message)
 
 		if ContinentTrack.bAlertCommanders:
-			await self.PostMessage_Commanders(message)
+			await self.PostMessage_Commanders()
 	
 
 
@@ -295,8 +333,13 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		"""
 		for commander in OperationManager.vLiveCommanders:
 			if commander.vCommanderStatus.value < CommanderStatus.Started.value:
-				pingables = self.botRef.get_user(commander.vOpData.managedBy).mention
-				newMessage = f"{pingables}\n"
+				managingUser = self.botRef.get_user(commander.vOpData.managedBy)
+
+				newMessage = "Continents updated\n"
+
+				if managingUser != None:
+					newMessage += f"{managingUser.mention}\n"
+				
 
 				if commander.continentAlert == None:
 					commander.continentAlert = await commander.notifChn.send(content=newMessage, embed=self.CreateEmbed_Detailed())
@@ -344,7 +387,19 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 					else:
 						await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
 
+
 		# Rerun loop & remove entries.
 		BUPrint.Debug(f"Removing: {len(matchingGates)}")
+		if matchingGates.__len__() > 2:
+			BUPrint.Info("Acquired too many matching gates. Clearing WG captures to avoid future duplicates.")
+			self.warpgateCaptures.clear()
+			return
+		
+		
 		for gate in matchingGates:
-			self.warpgateCaptures.remove(gate)
+			try:
+				self.warpgateCaptures.remove(gate)
+			except ValueError:
+				BUPrint.Info("Warpgate not in array. Clearing WGCaptures to avoid future duplicates. May miss a continent opening.")
+				self.warpgateCaptures.clear()
+				return

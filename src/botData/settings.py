@@ -418,7 +418,7 @@ class NewUsers:
 	Warn when a joining users account is less than this many months old."""
 
 	
-	ruleMsgID = 977888774530932767
+	ruleMsgID = 1077391503074267156
 	"""# Rule Message ID:
 	The id of a message which contains the server rules (if not in an embed, falls back to message content)  Make sure `Channels.ruleID` is also set."""
 
@@ -755,10 +755,22 @@ class ContinentTrack:
 	Obtained from: https://github.com/leonhard-s/auraxium/blob/master/tests/data/rest/datatype_payloads/world.json
 	"""
 
+
+	refreshTriggersAfter = 48
+	"""# Refresh Triggers After (Hours)
+	Number of hours after which to recreate the triggers.
+	This is needed as after a certain period the client drops the triggers.
+	From watching & testing in development, this seems to occur around after around 2-3 days.
+	Setting this longer than 3 days risks the continent tracker being unavailable for a day+.
+	"""
+
+
+
 	bAlertCommanders: bool = True
 	""" # Alert Commanders
 	When true, continent changes will also be put into non-started event notification channels, and event managers pinged.
 	"""
+
 
 	bPostFullMsgOnLock: bool = False
 	"""# Post Full Message on Lock

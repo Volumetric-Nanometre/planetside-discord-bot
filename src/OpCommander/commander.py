@@ -90,7 +90,7 @@ class Commander():
 	"""
 	vBotRef: commands.Bot
 	def __init__(self, p_opData: OperationData) -> None:
-		BUPrint.Info("Ops Commander created")
+		BUPrint.Info(f"Ops Commander created: {p_opData.fileName}")
 		self.vOpData : OperationData = p_opData
 		self.vCommanderStatus = CommanderStatus.Init
 		self.vFeedback = OpFeedback()
@@ -170,7 +170,7 @@ class Commander():
 			BUPrint.Info("Commander has started already, skipping!")
 			return
 
-		self.trueStartTime = datetime.utcnow()
+		self.trueStartTime = datetime.now(tz=timezone.utc)
 
 		BUPrint.Info(f"Event: {self.vOpData.name} started!")
 		self.scheduler.remove_all_jobs()
@@ -181,9 +181,10 @@ class Commander():
 
 		await self.MoveUsers(True)
 
-		self.scheduler.add_job(Commander.CheckAttendance, 'date', run_date=(datetime.utcnow() + timedelta(minutes=commanderSettings.gracePeriod)), args=[self])
+		self.scheduler.add_job(Commander.CheckAttendance, 'date', run_date=(self.trueStartTime + timedelta(minutes=commanderSettings.gracePeriod)), args=[self])
 
 		if self.vOpData.options.bIsPS2Event:
+			BUPrint.Debug("Configuring PS2 event schedule tasks")
 			self.scheduler.add_job(Commander.UpdateCommanderLive, 'interval', seconds=(commanderSettings.dataPointInterval + 5), args=[self])
 			self.scheduler.add_job(OpsEventTracker.NewEventPoint, 'interval', seconds=commanderSettings.dataPointInterval, args=[self.vOpsEventTracker])
 			self.vOpsEventTracker.CreateTriggers()
@@ -432,7 +433,7 @@ class Commander():
 		If no message is present, this function creates one.
 		"""
 		if self.commanderInfoMsg == None:
-			self.commanderInfoMsg = await self.commanderChannel.send(content=f"{self.vOpData.managedBy}", embed=self.CreateEmbed_Info())
+			self.commanderInfoMsg = await self.commanderChannel.send(content=f"{self.vOpData.GetManagingUser(GetGuildNF(self.vBotRef))}", embed=self.CreateEmbed_Info())
 		else:
 			await self.commanderInfoMsg.edit(embed=self.CreateEmbed_Info())
 
@@ -481,8 +482,11 @@ class Commander():
 		vParticipantIDs = self.vOpData.GetParticipantIDs()
 		vGuild = await GetGuild(self.vBotRef)
 
+
 		if p_isMovingToStandby:
-			for voiceChannel in vGuild.voice_channels:
+			voiceChannelsToScan = [voiceChan for voiceChan in vGuild.voice_channels if voiceChan not in self.vCategory.voice_channels]
+			# BUPrint.Debug(f"Scanning {voiceChannelsToScan} for event users.")
+			for voiceChannel in voiceChannelsToScan:
 				for member in voiceChannel.members:
 					if member.id in vParticipantIDs:
 						vUsersToMove.append(member)

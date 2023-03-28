@@ -72,7 +72,7 @@ class Operations(commands.GroupCog):
 		pMinute:app_commands.Range[int, 0, 59],
 		pYear: int = datetime.now().year,
 		pArguments: str = "",
-		pManagedBy: str = "",
+		pManagedBy: discord.Member = None,
 		pAdditionalInfo: str = ""
 	):
 		# HARDCODED ROLE USEAGE:
@@ -100,13 +100,6 @@ class Operations(commands.GroupCog):
 			# USER IS USING A NON-DEFAULT/CUSTOM
 			newOpsData.status = OpsStatus.editing
 
-			# vEditor: OpsEditor = OpsEditor(pBot=self.bot, pOpsData=newOpsData)
-
-			# botUtils.BotPrinter.Debug(f"Editor: {vEditor}, Type: {type(vEditor)}")
-
-			# await pInteraction.edit_original_response(content="**OPS EDITOR**", view=vEditor)
-			# vEditor.vEditorMsg = await pInteraction.original_response()
-
 			opsEditor = operationEditor.OpEditor(pInteraction, await pInteraction.original_response(), newOpsData)
 			await opsEditor.UpdateEditor()
 			return
@@ -122,8 +115,8 @@ class Operations(commands.GroupCog):
 			if pArguments != "":
 				newOpsData.arguments = newOpsData.ArgStringToList(pArguments)
 
-			if pManagedBy != "":
-				newOpsData.managedBy = pManagedBy
+			if pManagedBy != None:
+				newOpsData.managedBy = str(pManagedBy.id)
 
 			if pAdditionalInfo != "":
 				newOpsData.customMessage = pAdditionalInfo
@@ -914,7 +907,7 @@ class OperationManager():
 		if p_opsData.managedBy != "":
 			vEmbed.add_field(inline=False,
 				name="Managed By:",
-				value=self.GetManagedBy(p_opsData))
+				value=p_opsData.GetManagingUser( botUtils.GetGuildNF(self.vBotRef) ))
 
 		if(p_opsData.customMessage != ""):
 			vEmbed.add_field(inline=False,
@@ -1066,27 +1059,6 @@ class OperationManager():
 			await commander.UpdateParticipants() 
 			await commander.UpdateCommander()
 
-
-
-	def GetManagedBy(self, p_opData: OperationData):
-		"""
-		# GET MANAGED BY
-		Returns a mentionable of a user specified to be the person running the Op.
-		"""
-		vGuild = self.vBotRef.get_guild(botSettings.BotSettings.discordGuild)
-		if p_opData.managedBy.isnumeric():
-			vMember = vGuild.get_member(int(p_opData.managedBy))
-			if vMember != None:
-				return vMember.mention
-
-		vMember: discord.Member = discord.utils.find(lambda member: member.name == p_opData.managedBy, vGuild.members)
-		if vMember == None:
-			vMember: discord.Member = discord.utils.find(lambda member: member.display_name == p_opData.managedBy, vGuild.members)
-
-		if vMember != None:
-			return vMember.mention
-		
-		return p_opData.managedBy
 
 
 	def RemoveUser(p_opData:OperationData, p_userToRemove:str):

@@ -136,16 +136,16 @@ class UserInboxItem:
 	"""# USER INBOX ITEM
 	Data for an inbox item, sent by administrators and some bot features.
 	"""
-	# Date/Time the inbox item was sent.
 	date: datetime
-	# Title of the item.
+	"""Date/Time the inbox item was sent."""
 	title: str
-	# Message of the item.
+	"""Title of the item."""
 	message:str
-	# If sent by an admin command, this is true.
+	"""Message of the item."""
 	bIsWarning:bool
-	# If sent by an admin for a message, this is a snip of the message for context.
+	"""If sent by an admin command, this is true."""
 	adminContext:str
+	"""If sent by an admin for a message, this is a snip of the message for context."""
 
 
 
@@ -610,6 +610,7 @@ class ContinentStatus:
 		Sets the instances value of bIsLocked.
 		
 		If lock is true, the lastLocked time is also set."""
+		botUtils.BotPrinter.Info(f"Setting continent {self.ps2Zone.name} isLocked to {p_isLocked}")
 		self.bIsLocked = p_isLocked
 		self.lastEventTimestamp = datetime.now(timezone.utc)
 
@@ -645,6 +646,7 @@ class OpsStatus(Enum):
 	debriefing = 30 # Probably redundant. 
 
 
+
 @dataclass
 class OperationOptions:
 	"""
@@ -672,6 +674,8 @@ class OperationOptions:
 
 	def SetIsPs2(self, p_value:bool):
 		self.bIsPS2Event = p_value
+
+
 
 @dataclass
 class OpRoleData:
@@ -725,6 +729,11 @@ class OperationData:
 	description : str = ""
 	customMessage : str = ""
 	managedBy:str = ""
+	"""# Managed By
+	The user who is managing the event.
+	Can be either an Int value or the users name.
+	
+	Must always be set as a String, even if using an int value."""
 	pingables : list[str] = field(default_factory=list) # roles to mention/ping in relation to this ops.
 
 	# Backend variables
@@ -753,12 +762,14 @@ class OperationData:
 		botUtils.BotPrinter.Debug(f"Filename for Op {self.name} generated: {self.fileName}")
 
 
+
 	def GetFullFilePath(self):
 		"""
 		# GET FULL FILE PATH (LIVE ONLY)
 		Convenience function to get the filepath of the live event.
 		"""
 		return f"{Settings.Directories.liveOpsDir}{self.fileName}.bin"
+
 
 
 	def PlayerInOps(self, p_playerID:int):
@@ -799,6 +810,7 @@ class OperationData:
 
 		else:
 			botUtils.BotPrinter.Debug("No arguments.")
+
 
 
 	def ParseArguments(self):
@@ -872,6 +884,7 @@ class OperationData:
 				continue
 
 
+
 	def GetOptionsAsStr(self):
 		"""
 		# GET OPTIONS AS STRING
@@ -911,6 +924,7 @@ class OperationData:
 		return vOptsStr
 
 
+
 	def GetParticipantIDs(self) -> list[int]:
 		"""
 		# GET PARTICIPANT IDS
@@ -937,6 +951,37 @@ class OperationData:
 
 		return outputString
 
+
+
+	def GetManagingUser(self, p_guild:Guild) -> str:
+		"""# Get Managing User:
+		Returns the mention for the user managing the event, if set.
+
+		Will return "" if the user is not set, else if not found, the original string is returned.
+		"""
+
+		# See if there's a user set first.
+		if self.managedBy == None:
+			botUtils.BotPrinter.Debug("Managing user not set")
+			return ""
+		
+	
+		managingUser:Member = None
+
+		if self.managedBy.isnumeric():
+			managingUser = p_guild.get_member(int(self.managedBy))
+
+		else:
+			# Managed by is users name
+			managingUser = p_guild.get_member_named(self.managedBy)
+			
+		
+		if managingUser != None:
+			return managingUser.mention
+		
+		else:
+			botUtils.BotPrinter.Debug(f"Managing user for {self.fileName} not found: {self.managedBy}\nReturning original string.")
+			return self.managedBy
 
 
 	def __repr__(self) -> str:
