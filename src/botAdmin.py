@@ -7,7 +7,7 @@ from discord.ext.commands import GroupCog, Bot
 from discord import app_commands, Interaction
 from botData.settings import BotSettings, Channels, Roles
 from botUtils import BotPrinter as BUPrint
-from botUtils import PrintSettings
+from botUtils import PrintSettings, SplitStrToSegments
 
 
 class BotAdminCog(GroupCog, name="admin", description="Administrative commands and functionality relating to the bot itself"):
@@ -68,10 +68,13 @@ class BotAdminCog(GroupCog, name="admin", description="Administrative commands a
 
 		if vAdminChn != None:
 			await p_interaction.response.send_message("Posting settings...", ephemeral=True)
-			vSettingStr = PrintSettings(True)
-			splitString = [(vSettingStr[index:index+1990]) for index in range(0, len(vSettingStr), 1990)]
-			for segment in splitString:
-				segment = f"```{segment}```"
-				await vAdminChn.send( f"{segment}\n" )
+			
+			
+			settingSegments = SplitStrToSegments( p_string=PrintSettings(True), p_limit=1990 )
+
+			for segment in settingSegments:
+				await vAdminChn.send( f"```{segment}```")
+
+
 		else:
 			await p_interaction.response.send_message("Invalid ADMIN channel.", ephemeral=True)

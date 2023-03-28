@@ -459,6 +459,138 @@ class ChannelPermOverwrites():
 		BotPrinter.Info("ChannelPermOverwrites have been configured!")
 
 
+
+def SplitStrToSegments(p_string:str, p_limit:int = 1024, p_maxSegments: int = 0) -> list[str]:
+	"""# Split String to Segments
+	Takes a string (typically created from a list, with newline seperators) and splits it into segments.
+
+	Typically used in cases where a text body is too large.
+
+	NOTE: 	Embed value max limit is 1,024.
+	NOTE:	Message max limit is 2,000
+
+	## PARAMS
+	- `p_string` -  The string to split up.
+	- `p_limit` - The maximum length of each segment.
+	- `p_maxSegments` - The maximum number of segments to split into.
+	"""
+
+	strAsArray = p_string.split("\n")
+
+	segments:list[str] = []
+
+	currentSegment = ""
+	for currentLine in strAsArray:
+
+		if len(currentSegment) + len(currentLine) > p_limit:
+			segments.append(f"{currentSegment}")
+
+			if len(segments) == p_maxSegments:
+				break
+
+			currentSegment = f"{currentLine}\n"
+
+		else:
+			currentSegment += f"{currentLine}\n"
+			
+	
+
+	if len(segments) == 0 and len(currentSegment) != 0:
+		return currentSegment
+	else:
+		return segments
+	
+
+def EllipsiseStringArrayToSize(p_string:str, p_size:int, p_ellipsiseStart:bool = True) -> str:
+	"""# Ellipsise String Array to Size
+	Takes a string (typically created from an array, and contains newlines) and returns an ellipsised string when it exceeds the specified size.
+
+	## PARAMETRS
+	- `p_string` : the string to modify
+	- `p_size`: The maximum size of the output string. The resulting string will always be 10 characters less than this for the ellipses + \n and possible number count.
+	- `p_ellipsiseStart`: True to put ellipses at the start, false for at the end.
+	"""
+	maxSize = p_size - 15
+	newString = ""
+	stringArray = p_string.split("\n")
+	linesAdded = 0
+
+	if p_ellipsiseStart:
+		# Start from the end.
+		for line in reversed(stringArray):
+			if len(line) + len(newString) < maxSize:
+				newString = f"{line}\n{newString}"
+				linesAdded += 1
+			else:
+				newString = f"...\n{newString}"
+				break
+
+	else:
+		for line in stringArray:
+			if len(line) + len(newString) < maxSize:
+				newString = f"{line}\n{newString}"
+				linesAdded += 1
+			else:
+				newString = f"{newString}\n..."
+				break
+			
+	if BotSettings.bEllipseArrayShowsCount:
+		newString = newString.replace("...", f"...({len(stringArray) - linesAdded })")
+
+	return newString
+
+
+
+	
+
+def EllipseStringToSize(p_string:str, p_size:int, p_ellipiseStart:bool = True) -> str:
+	"""# Elispe String to Size:
+	Takes a string and reduces it down to the size specified, placing a ellipses at the start or end to indicate missing text.
+
+	## PARAMETRS
+	- `p_string` : the string to modify
+	- `p_size`: The maximum size of the output string. The resulting string will always be 3 characters less than this for the ellipses & possible number count.
+	- `p_ellipsiseStart`: True to put ellipses at the start, false for at the end.
+	"""
+	maxSize = p_size - 15
+	newString = ""
+
+	if p_ellipiseStart:
+		# Start from end
+		for character in ReverseString(p_string):
+			if len(newString) < maxSize:
+				newString += character
+			else:
+				newString = f"...\n{ReverseString(newString)}"
+				break
+
+	else:
+		# Start from beginning
+		for character in p_string:
+			if len(newString) < max:
+				newString += character
+			else:
+				newString = f"{newString}\n..."
+				break
+			
+	if BotSettings.bEllipseArrayShowsCount:
+		newString = newString.replace("...", f"...({ len(p_string) - len(newString)})")
+
+	return newString
+
+
+
+def ReverseString(p_string:str) -> str:
+	"""# Reverse String
+	As stated, reverses the order of a string.
+	"""
+	reversedStr = p_string[::-1]
+	return reversedStr
+
+		
+
+
+
 def PrintSettings(bGetOnly = False):
 	"""
 	# PRINT SETTINGS
@@ -502,6 +634,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> PS2ServiceID:	{token}...\n"
 	vString += f"	> BotDirectory:	{BotSettings.botDir}\n"
 	vString += f"	> [{BotSettings.bBotAdminCanPurge}] Can Purge BotAdmin\n"
+	vString += f"	> [{BotSettings.bEllipseArrayShowsCount}] Ellipses Shows Count\n"
 	if BotSettings.errorOutput == stderr:
 		vString += f"	> Error Output:	stderr\n"
 	else:
