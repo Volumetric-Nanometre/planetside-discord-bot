@@ -8,10 +8,10 @@ FALSE - Open 	| TRUE - Closed
 """
 
 from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit, Messages
-from botData.dataObjects import CommanderStatus, WarpgateCapture, ContinentStatus
+from botData.dataObjects import CommanderStatus, WarpgateCapture, ContinentStatus, FacilityCapture
 from botUtils import BotPrinter as BUPrint
 from botUtils import GetDiscordTime, UserHasCommandPerms
-from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs
+from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs, PS2ContMessageType
 from discord.ext.commands import GroupCog, Bot
 from discord.app_commands import command
 from discord import Interaction, Embed
@@ -19,6 +19,7 @@ from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
 from auraxium.ps2 import Zone, MapRegion, World, Outfit
 from opsManager import OperationManager
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 class ContinentTrackerCog(GroupCog, name="continents"):
@@ -30,6 +31,9 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		self.warpgateCaptures: list[WarpgateCapture] = []
 		"""List of `Warpgate Capture` objects."""
+
+		self.facilityCaptures: list[FacilityCapture] = []
+		"""List of `FacilityCapture` objects."""
 
 		self.oshurStatus = ContinentStatus(PS2ZoneIDs.Oshur, PS2WarpgateIDs.oshur.value)
 		self.amerishStatus = ContinentStatus(PS2ZoneIDs.Amerish, PS2WarpgateIDs.amerish.value)
@@ -87,15 +91,15 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		# worldToMonitor = await self.auraxClient.get(World, ContinentTrack.worldID)
 		# Currently unused.  Uncommenting will cause the bot to not run.
-
-		self.auraxClient.add_trigger(
-			Trigger(
-				name="CONTTRACK_Lock",
-				event="ContinentLock",
-				# worlds=[worldToMonitor],
-				action=self.ContinentLockCallback
-			)
-		) # END: Add trigger- Continent Lock
+		if ContinentTrack.contLockMessageType != PS2ContMessageType.NoMessage:
+			self.auraxClient.add_trigger(
+				Trigger(
+					name="CONTTRACK_Lock",
+					event="ContinentLock",
+					# worlds=[worldToMonitor],
+					action=self.ContinentLockCallback
+				)
+			) # END: Add trigger- Continent Lock
 
 
 		self.auraxClient.add_trigger(
@@ -120,10 +124,15 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		self.SetContinentIsLocked(True, p_event.zone_id)
 
-		if ContinentTrack.bPostFullMsgOnLock:
-			await self.PostMessage_Long()
-		else:
+		if ContinentTrack.contLockMessageType == PS2ContMessageType.Simple:
 			await self.PostMessage_Short( self.GetContinentFromID(p_event.zone_id) )
+		elif ContinentTrack.contLockMessageType == PS2ContMessageType.Detailed:
+			await self.PostMessage_Long()
+
+		# Remove facilities of the locked continent.
+		for facility in self.facilityCaptures:
+			if facility.continentID == p_event.zone_id:
+				self.facilityCaptures.remove(facility)
 
 
 
@@ -156,14 +165,61 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				if takenFacility == None:
 					BUPrint.Debug("Invalid facility ID.")
 					return
+				
+				if not self.IsRecentCapture(takenFacility.facility_id, p_event.timestamp):
+					message = Messages.facilityOutfitCapture.replace("_DATA", f"{takenFacility.facility_name} | {takenFacility.facility_type} | {GetDiscordTime(p_event.timestamp)}")
+					BUPrint.Info(message)
+					await self.botRef.get_channel(Channels.ps2FacilityControlID).send(message)
+			
+			else:
+				# Ensures IsRecentCapture is ran regardless of whether the facility was captured by TDKD, thus allowing existing facility times to be checked.
+				self.IsRecentCapture(p_event.timestamp)
 
-				message = Messages.facilityOutfitCapture.replace("_DATA", f"{takenFacility.facility_name} | {takenFacility.facility_type} | {GetDiscordTime(p_event.timestamp)}")
-				BUPrint.Info(message)
-				await self.botRef.get_channel(Channels.ps2FacilityControlID).send(message)
 
 
 
+	def IsRecentCapture(self,  p_timestamp:datetime, p_facilityID:int = None) -> bool:
+		"""# Is Recent Capture
+		Check the facilityControl array for an existing entry.
+
+		Both parameters must be present when checking for an existing capture.
 		
+
+		## RETURNS
+		- FALSE: No recent facility capture entry exists.
+			New one is created.
+		- TRUE: A recent facility capture entry exists.
+			Existing entry timestamp is updated to new time.
+
+		All entries times are checked. Those older than the speciifed time are removed.
+		
+		If `p_facilityID` is excluded, only this part of the function occurs.
+		"""
+		bEntryFound = False
+
+		for entry in self.facilityCaptures:
+			if p_facilityID != None:
+				if entry.facilityID == p_facilityID:
+					BUPrint.Debug("Existing facility capture entry found, updating time")
+					entry.timestamp = p_timestamp
+					bEntryFound = True
+			
+			else:
+				# Entry is not the current facility, perform time-check and remove if needed.
+				removeAt = entry.timestamp + relativedelta(minutes=ContinentTrack.ignoreRepeatFacilityInLast)
+				BUPrint.Debug(f"Facility with ID {entry.facilityID} due for removal at or after: {removeAt}")
+				if removeAt < p_timestamp:
+					BUPrint.Debug("	>> Removed facilityCapture entry")
+					self.facilityCaptures.remove(entry)
+
+
+		if bEntryFound:
+			return True
+
+		# No existing entry is found.
+		self.facilityCaptures.append(FacilityCapture(p_facilityID, p_timestamp))
+		return False
+
 
 
 	
@@ -381,10 +437,13 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 					# Mismatching factions, continent has opened:
 					self.SetContinentIsLocked(False, gate.warpgateID)
 
-					if ContinentTrack.bPostFullMsgOnOpen:
+					if ContinentTrack.contUnlockMessageType == PS2ContMessageType.NoMessage:
+						return
+
+					elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Detailed:
 						await self.PostMessage_Long()
 
-					else:
+					elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Simple:
 						await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
 
 

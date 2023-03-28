@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from discord import SelectOption
 import botData.dataObjects
+import botData.utilityData
 from dateutil.relativedelta import relativedelta
 from datetime import time, timezone
 import botData.envVars as Env
@@ -800,21 +801,15 @@ class ContinentTrack:
 	When true, continent changes will also be put into non-started event notification channels, and event managers pinged.
 	"""
 
-
-	bPostFullMsgOnLock: bool = False
-	"""# Post Full Message on Lock
-	A 'full message' lists all the continents in the same message with their locked status.
-
-	Disabling this will just post the updated continents status.
+	contLockMessageType = botData.utilityData.PS2ContMessageType.Simple
+	"""# Continent LOCK message type.
+	Enum denoting the message type for lock events.
 	"""
 
 
-	bPostFullMsgOnOpen: bool = False
-	"""# Post Full Message on Open
-	A 'full message' lists all the continents in the same message with their locked status.
-
-	Disabling this will just post the updated continents status.
-	"""
+	contUnlockMessageType = botData.utilityData.PS2ContMessageType.Simple
+	"""# Continent UNLOCK message type
+	Enum denoting the message type for unlock events."""
 
 
 	bMonitorFacilities: bool = True
@@ -825,6 +820,15 @@ class ContinentTrack:
 	facilityMonitorOutfitID: int = 37569919291875540
 	"""# Facility Monitor Outfit ID
 	The ID of the outfit who's facility captures should be monitored.
+	"""
+
+
+	ignoreRepeatFacilityInLast = 15
+	"""# Ignore Repeat Facility in last x (minutes).
+	- Set to 0 to disable.
+
+	Checks if the facility capture was recently captured.
+	If a facility with the same ID was captured within this time, it's ignored.
 	"""
 
 

@@ -117,3 +117,18 @@ class PS2WarpgateIDs(Enum):
 	esamir = [258000, 259000, 260000]
 	oshur = [400369, 400370, 400371]
 	allIDs = indar + hossin + amerish + esamir + oshur
+
+
+
+class PS2ContMessageType(Enum):
+	"""# PS2 Continent Message Type
+	An enum class denoting the type of message to send for continent un/lock events.
+	"""
+	NoMessage = 0
+	"""No Message: Don't send a message for this event."""
+
+	Simple = 10
+	"""Post a Simple message; containing just the continent and its new status."""
+
+	Detailed = 20
+	"""Post a detailed message; contains all current continent statuses."""
