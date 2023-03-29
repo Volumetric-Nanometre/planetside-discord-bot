@@ -209,7 +209,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			
 			else:
 				# Entry is not the current facility, perform time-check and remove if needed.
-				removeAt = entry.timestamp + relativedelta(minutes=ContinentTrack.ignoreRepeatFacilityInLast)
+				removeAt = datetime.fromtimestamp(entry.timestamp, timezone.utc) + relativedelta(minutes=ContinentTrack.ignoreRepeatFacilityInLast)
 				BUPrint.Debug(f"Facility with ID {entry.facilityID} due for removal at or after: {removeAt}")
 				if removeAt < p_timestamp:
 					BUPrint.Debug("	>> Removed facilityCapture entry")
