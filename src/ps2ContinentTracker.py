@@ -209,7 +209,10 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			
 			else:
 				# Entry is not the current facility, perform time-check and remove if needed.
-				removeAt = entry.timestamp + relativedelta(minutes=ContinentTrack.ignoreRepeatFacilityInLast)
+				removeAt = datetime.fromtimestamp(entry.timestamp, timezone.utc) + relativedelta(minutes=ContinentTrack.ignoreRepeatFacilityInLast)
+				removeAt.tzinfo = timezone.utc
+				p_timestamp.tzinfo = timezone.utc
+
 				BUPrint.Debug(f"Facility with ID {entry.facilityID} due for removal at or after: {removeAt}")
 				if removeAt < p_timestamp:
 					BUPrint.Debug("	>> Removed facilityCapture entry")
@@ -489,6 +492,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		return contArray[0].lastEventTimestamp
 	
 
+
 	def AntiSpamCanPost(self) -> bool:
 		"""# Anti Spam: Can Post
 		Function to protect against spam events, checks the given timestamp against the most recent.
@@ -498,25 +502,22 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		- `TRUE`: when a continent event may be posted.
 		- `FALSE`: When too many continent event updates have been posted.
 		"""
+		BUPrint.Info("Continent Update Antispam check...")
 
 		mostRecentTime = self.GetMostRecentTimestamp()
 		
-		if mostRecentTime == None:
-			BUPrint.Debug("AntiSpam check: no continents in array/Most recent returned empty.")
-			return True
-		
-		BUPrint.Debug(f"Checking: {mostRecentTime + ContinentTrack.antiSpamMinimalTime} > {datetime.now(tz=timezone.utc)}")
+		BUPrint.Debug(f"	>> Checking: {mostRecentTime + ContinentTrack.antiSpamMinimalTime} > {datetime.now(tz=timezone.utc)}")
 
 		if mostRecentTime + ContinentTrack.antiSpamMinimalTime > datetime.now(tz=timezone.utc):
 			BUPrint.Debug("	>> Event is occuring within spam minimal timeframe.")
 			self.antiSpamUpdateCount += 1
 
 			if self.antiSpamUpdateCount >= ContinentTrack.antiSpamAllowedPosts:
-				BUPrint.Info(f"Continent Tracker AntiSpam prevented a message from being sent. {self.antiSpamUpdateCount} Messages blocked.")
+				BUPrint.Info(f"	>> Continent Tracker AntiSpam prevented a message from being sent. {self.antiSpamUpdateCount} Messages blocked.")
 				return False
 		
 		else:
-			BUPrint.Debug("Event occured past minimal timeframe.")
+			BUPrint.Debug("	>> Event occured past minimal timeframe.")
 			self.antiSpamUpdateCount = 0
 		
 		return True
