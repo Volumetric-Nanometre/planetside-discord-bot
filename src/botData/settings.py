@@ -809,6 +809,16 @@ class ContinentTrack:
 	"""
 
 
+	antiSpamMinimalTime:relativedelta = relativedelta(minutes=5)
+	""" Anti Spam minimal time
+	When a continent update occurs within this time period, the anti-spam counter is raised."""
+
+	antiSpamAllowedPosts = 3
+	"""# Anti Spam: Allowed Posts
+	The number of update messages allowed within the relative time period before anti-spam is enabled.
+	"""
+
+
 
 dataclass(frozen=True)
 class ForFun:
