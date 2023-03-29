@@ -166,6 +166,7 @@ class Roles:
 
 	autoAssignOnAccept = [
 		818218528372424744, # Tags
+		977592906183475250, # Rules: accepting a user through the bot means they agreed to the rules.
 		]
 	"""# Auto Assign on Accept:
 	List of role IDs that are always assigned to users when their join request is accepted."""
