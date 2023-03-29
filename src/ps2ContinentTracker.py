@@ -18,7 +18,7 @@ from discord import Interaction, Embed
 from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
 from auraxium.ps2 import Zone, MapRegion, World, Outfit
 from opsManager import OperationManager
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -28,6 +28,9 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		self.auraxClient = EventClient(service_id=BotSettings.ps2ServiceID)
 		self.scheduler = AsyncIOScheduler()
 
+
+		self.antiSpamUpdateCount = 0
+		"""Anti Spam update count:  When this count reaches a specified value, no new messages will be sent."""
 
 		self.warpgateCaptures: list[WarpgateCapture] = []
 		"""List of `Warpgate Capture` objects."""
@@ -87,7 +90,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		except (KeyError, ValueError):
 			BUPrint.Debug("No trigger for facility control setup/found.")
 
-		
+
 
 		# worldToMonitor = await self.auraxClient.get(World, ContinentTrack.worldID)
 		# Currently unused.  Uncommenting will cause the bot to not run.
@@ -124,16 +127,16 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		self.SetContinentIsLocked(True, p_event.zone_id)
 
+		# Spam guard	
+		if not self.AntiSpamCanPost():
+			return		
+
+
 		if ContinentTrack.contLockMessageType == PS2ContMessageType.Simple:
 			await self.PostMessage_Short( self.GetContinentFromID(p_event.zone_id) )
+	
 		elif ContinentTrack.contLockMessageType == PS2ContMessageType.Detailed:
 			await self.PostMessage_Long()
-
-		# Remove facilities of the locked continent.
-		for facility in self.facilityCaptures:
-			if facility.continentID == p_event.zone_id:
-				self.facilityCaptures.remove(facility)
-
 
 
 
@@ -436,8 +439,12 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 					# Mismatching factions, continent has opened:
 					self.SetContinentIsLocked(False, gate.warpgateID)
 
-					if ContinentTrack.contUnlockMessageType == PS2ContMessageType.NoMessage:
+					if not self.AntiSpamCanPost():
 						return
+
+					if ContinentTrack.contUnlockMessageType == PS2ContMessageType.NoMessage:
+						BUPrint.Debug("Unlock event occured, set to ignore.")
+						pass
 
 					elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Detailed:
 						await self.PostMessage_Long()
@@ -446,18 +453,72 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 						await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
 
 
-		# Rerun loop & remove entries.
-		BUPrint.Debug(f"Removing: {len(matchingGates)}")
+		# Check if more than 2 warpgate entries are saved.  In this event, clear the warpgate list.
 		if matchingGates.__len__() > 2:
 			BUPrint.Info("Acquired too many matching gates. Clearing WG captures to avoid future duplicates.")
 			self.warpgateCaptures.clear()
 			return
 		
+		# Rerun loop & remove entries.
+		BUPrint.Debug(f"Removing: {len(matchingGates)}")
 		
 		for gate in matchingGates:
 			try:
 				self.warpgateCaptures.remove(gate)
+				BUPrint.Debug("Warpgate entry removed")
 			except ValueError:
 				BUPrint.Info("Warpgate not in array. Clearing WGCaptures to avoid future duplicates. May miss a continent opening.")
 				self.warpgateCaptures.clear()
 				return
+			
+
+	
+	def GetMostRecentTimestamp(self) -> datetime:
+		"""# Get most recent timestamp:
+		Returns the timestamp of the most recent continent update.
+		
+		Return NONE if array is empty.
+		"""
+		contArray = self.GetContinentsAsArray()
+
+		if contArray.__len__() == 0:
+			return None
+
+		contArray.sort(key=lambda continent: continent.lastEventTimestamp)
+
+		return contArray[0].lastEventTimestamp
+	
+
+	def AntiSpamCanPost(self) -> bool:
+		"""# Anti Spam: Can Post
+		Function to protect against spam events, checks the given timestamp against the most recent.
+		
+
+		## RETURNS
+		- `TRUE`: when a continent event may be posted.
+		- `FALSE`: When too many continent event updates have been posted.
+		"""
+
+		mostRecentTime = self.GetMostRecentTimestamp()
+		
+		if mostRecentTime == None:
+			BUPrint.Debug("AntiSpam check: no continents in array/Most recent returned empty.")
+			return True
+		
+		BUPrint.Debug(f"Checking: {mostRecentTime + ContinentTrack.antiSpamMinimalTime} > {datetime.now(tz=timezone.utc)}")
+
+		if mostRecentTime + ContinentTrack.antiSpamMinimalTime > datetime.now(tz=timezone.utc):
+			BUPrint.Debug("	>> Event is occuring within spam minimal timeframe.")
+			self.antiSpamUpdateCount += 1
+
+			if self.antiSpamUpdateCount >= ContinentTrack.antiSpamAllowedPosts:
+				BUPrint.Info(f"Continent Tracker AntiSpam prevented a message from being sent. {self.antiSpamUpdateCount} Messages blocked.")
+				return False
+		
+		else:
+			BUPrint.Debug("Event occured past minimal timeframe.")
+			self.antiSpamUpdateCount = 0
+		
+		return True
+
+
