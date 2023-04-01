@@ -9,6 +9,8 @@ from planetsidebot import Bot
 import asyncio
 import asyncio_atexit
 
+from signal import SIGTERM, signal
+
 from botUtils import FilesAndFolders
 from botUtils import BotPrinter as BUPrint
 from botData.settings import BotSettings
@@ -17,6 +19,20 @@ FilesAndFolders.SetupFolders()
 
 ps2Bot = Bot()
 mainLoop = asyncio.new_event_loop()
+
+
+def HandleTerminateSignal(p_signal: signal, p_frame):
+	"""# Handle Terminate Signal
+	Mini function for the signal, as it requires a specific signature.
+
+	frame is a stack frame object.
+	"""
+	BUPrint.Info("Terminate Signal detected!  Raising KeyboardInterrupt to cleanly terminate.")
+	raise(KeyboardInterrupt)
+
+# Set up signal for SIGTERM, so the bot may be shutdown cleanly if ran via service, or for other
+signal(SIGTERM, HandleTerminateSignal)
+
 
 asyncio.set_event_loop(mainLoop)
 asyncio_atexit.register(callback=ps2Bot.ExitCalled, loop=mainLoop)
@@ -33,7 +49,9 @@ except KeyboardInterrupt:
 
 finally:
 	mainLoop.close()
-	BUPrint.Info("Bot shutdown complete.\n\nThe below error is a known, and unfixed discordpy issue.\nIt does not prevent the bot from shutting down cleanly and is safe to ignore.\n\n")
+	BUPrint.Info("Bot shutdown complete.\n\nThe below error (task was destroyed but is pending) is a known, and unfixed discordpy issue.\nIt does not prevent the bot from shutting down cleanly and is safe to ignore.\n\n")
+
+
 
 
 # asyncio.run( ps2Bot.run(BotSettings.discordToken), debug=BotSettings.bDebugEnabled)
