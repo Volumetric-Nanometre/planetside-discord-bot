@@ -710,7 +710,6 @@ def PrintSettings(bGetOnly = False):
 	vString += "\nCONTINENT TRACKER SETTINGS\n"
 	vString += f"	> [{BotSettings.botFeatures.continentTracker}] Enabled\n"
 	if BotSettings.botFeatures.continentTracker:
-		vString += f"	> Refresh Triggers in: {ContinentTrack.refreshTriggersAfter} hours ({ContinentTrack.refreshTriggersAfter / 24} days)\n"
 		vString += f"	> [{ContinentTrack.bAlertCommanders}] Alert Commanders\n"
 		vString += f"	> World ID: {ContinentTrack.worldID}\n"
 		vString += f"	> Message type on LOCK events: {ContinentTrack.contLockMessageType.name}\n"

@@ -20,14 +20,11 @@ from auraxium.ps2 import Zone, MapRegion, World, Outfit
 from opsManager import OperationManager
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 class ContinentTrackerCog(GroupCog, name="continents"):
 	def __init__(self, p_bot:Bot):
 		self.botRef = p_bot
 		self.auraxClient = EventClient(service_id=BotSettings.ps2ServiceID)
-		self.scheduler = AsyncIOScheduler()
-
 
 		self.antiSpamUpdateCount = 0
 		"""Anti Spam update count:  When this count reaches a specified value, no new messages will be sent."""
@@ -57,25 +54,26 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		await self.PostMessage_Long(p_interaction)
 
 	
-	async def SetupTriggerScheduler(self):
-		"""# Setup Scheduler
-		Convenience function to setup the scheduler.
-		Needed to re-set the triggers after a few days otherwise the connection is closed.
+	# async def SetupTriggerScheduler(self):
+	# 	"""# Setup Scheduler
+	# 	Convenience function to setup the scheduler.
+	# 	Needed to re-set the triggers after a few days otherwise the connection is closed.
 
-		This will also start the scheduler.
-		"""
-		BUPrint.Info("Setting up Continent Tracker scheduler")
-		self.scheduler.add_job( ContinentTrackerCog.CreateTriggers, "interval", hours=ContinentTrack.refreshTriggersAfter, args=[self])
-		self.scheduler.start()
+	# 	This will also start the scheduler.
+	# 	"""
+	# 	BUPrint.Info("Setting up Continent Tracker scheduler")
+	# 	self.scheduler.add_job( ContinentTrackerCog.CreateTriggers, "interval", hours=ContinentTrack.refreshTriggersAfter, args=[self])
+	# 	self.scheduler.start()
 
-		# Run create triggers here once so they're set up on initial run.
-		await self.CreateTriggers()
+	# 	# Run create triggers here once so they're set up on initial run.
+	# 	await self.CreateTriggers()
 
 
 
 	async def CreateTriggers(self):
 		"""# Create Triggers
 		Adds the continent lock and facility control triggers used for continent tracking.
+
 		Because Continent Unlock is not working on Daybreak's side, FacilityControl is also used for this purpose.
 		"""
 		BUPrint.Info("	>> Creating triggers for continent tracker.")

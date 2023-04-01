@@ -4,6 +4,7 @@
 
 import discord
 from discord.ext import commands
+import asyncio
 
 import botUtils
 from botUtils import BotPrinter as BUPrint
@@ -73,13 +74,29 @@ class Bot(commands.Bot):
         if settings.BotSettings.botFeatures.continentTracker:
             contTrackerCog = ContinentTrackerCog(self)
             self.vcontTrackerClient = contTrackerCog.auraxClient
-            await contTrackerCog.SetupTriggerScheduler()
-            # await contTrackerCog.CreateTriggers() # Handled by above function.
+            await contTrackerCog.CreateTriggers()
             await self.add_cog(contTrackerCog)
-            
+
 
         self.tree.copy_global_to(guild=self.vGuildObj)
         await self.tree.sync(guild=self.vGuildObj)
+        
+
+
+    async def setupContTracker(self):
+        """# Setup ContTracker
+        To be called from main as a task.
+        Function checks if continent Tracker is enabled.
+        """
+        if settings.BotSettings.botFeatures.continentTracker:
+            contTrackerCog:ContinentTrackerCog = self.get_cog("continents")
+
+            if contTrackerCog == None:
+                BUPrint.LogError(p_titleStr="Cog not found", p_string="Unable to find Continent Tracker cog!")
+                return
+
+            await contTrackerCog.auraxClient.connect()            
+
 
 
     async def on_ready(self):
@@ -122,6 +139,7 @@ class Bot(commands.Bot):
 		"""
         if self._closed:
             return
+
         vAdminChan = self.get_channel(settings.Channels.botAdminID)
         if vAdminChan != None:
             await vAdminChan.send("**Bot shutting down.**")
@@ -153,7 +171,10 @@ class Bot(commands.Bot):
             await self.vcontTrackerClient.close()
 
 
-
-
-        BUPrint.Info("Closing bot connections")
+        BUPrint.Info("	> Closing bot connections")
         await self.close()
+
+        BUPrint.Info("	> Stopping event loop")
+        mainLoop = asyncio.get_event_loop()
+        
+        mainLoop.stop()

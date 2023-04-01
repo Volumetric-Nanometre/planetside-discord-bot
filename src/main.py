@@ -17,17 +17,23 @@ FilesAndFolders.SetupFolders()
 
 ps2Bot = Bot()
 mainLoop = asyncio.new_event_loop()
+
 asyncio.set_event_loop(mainLoop)
 asyncio_atexit.register(callback=ps2Bot.ExitCalled, loop=mainLoop)
 
+
 try:
-	mainLoop.run_until_complete(ps2Bot.start(BotSettings.discordToken))
+	mainLoop.create_task(ps2Bot.start(BotSettings.discordToken))
+	mainLoop.create_task(ps2Bot.setupContTracker())
+	mainLoop.run_forever()
+
 except KeyboardInterrupt:
 	BUPrint.Info("Keyboard interrupt detected.")
 	pass
+
 finally:
 	mainLoop.close()
-	BUPrint.Info("Bot shutdown complete.")
+	BUPrint.Info("Bot shutdown complete.\n\nThe below error is a known, and unfixed discordpy issue.\nIt does not prevent the bot from shutting down cleanly and is safe to ignore.\n\n")
 
 
 # asyncio.run( ps2Bot.run(BotSettings.discordToken), debug=BotSettings.bDebugEnabled)
