@@ -793,15 +793,6 @@ class ContinentTrack:
 	"""
 
 
-	refreshTriggersAfter = 48
-	"""# Refresh Triggers After (Hours)
-	Number of hours after which to recreate the triggers.
-	This is needed as after a certain period the client drops the triggers.
-	From watching & testing in development, this seems to occur around after around 2-3 days.
-	Setting this longer than 3 days risks the continent tracker being unavailable for a day+.
-	"""
-
-
 
 	bAlertCommanders: bool = True
 	""" # Alert Commanders
