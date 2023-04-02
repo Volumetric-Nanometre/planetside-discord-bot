@@ -687,10 +687,10 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Rule Message:		{NewUsers.ruleMsgID}\n"
 	vString += f"	> [{NewUsers.bShowAddRolesBtn}] Show AddRoles Button\n"
 	vString += f"	> [{NewUsers.bCreateLibEntryOnAccept}] Create Library Entry on Accept\n"
-	vString += f"\n	> Warnings: Discord Account age: {NewUsers.newAccntWarn} months\n"
-	vString += f"	> Warnings: Outfit Rank (Ord): {NewUsers.outfitRankWarn}\n"
 	vString += f"	> [{NewUsers.bLockPS2CharOnAccept}] AutoLock PS2 Character on Accept\n"
 	vString += f"	> [{NewUsers.bPurgeGate}] Purge Gate\n"
+	vString += f"\n	> Warnings: Discord Account age: {NewUsers.newAccntWarn} months\n"
+	vString += f"	> Warnings: Outfit Rank (Ord): {NewUsers.outfitRankWarn}\n"
 
 
 
@@ -719,8 +719,6 @@ def PrintSettings(bGetOnly = False):
 		vString += f"	> [{ContinentTrack.bMonitorFacilities}] Monitor Facility Captures\n"
 		if ContinentTrack.bMonitorFacilities:
 			vString += f"	> Outfit to monitor: {ContinentTrack.facilityMonitorOutfitID}\n"
-			vString += f"	> Ignore repeat facilities in {ContinentTrack.ignoreRepeatFacilityInLast} minutes\n"
-
 
 
 	vString += "\nSIGN UP SETTINGS\n"

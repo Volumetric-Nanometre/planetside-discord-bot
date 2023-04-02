@@ -573,20 +573,6 @@ class ForFunVehicleDeath:
 #############################################################
 # CONTINENT TRACKER
 
-
-@dataclass
-class FacilityCapture:
-	"""# Facility Capture
-	Holds a facility ID and timestamp, used to check if a facility was recently captured to avoid spam in the event a facility is constantly under siege.
-	"""
-	facilityID: int
-	"""ID of the facility whos capture was changed."""
-
-	timestamp: datetime
-	"""Timestamp of the change."""
-
-
-
 @dataclass
 class WarpgateCapture:
 	"""# Warpgate Capture
@@ -613,8 +599,8 @@ class ContinentStatus:
 	bIsLocked: bool = True
 	"""Continent is Locked (Closed) when `True`."""
 
-	lastEventTimestamp:datetime = None
-	"""Timestamp of when the continent was last updated.
+	lastEventTime:datetime = None
+	"""dateTime of when the continent was last updated.
 	
 	Will be NONE on first run."""
 
@@ -626,7 +612,7 @@ class ContinentStatus:
 		If lock is true, the lastLocked time is also set."""
 		botUtils.BotPrinter.Info(f"Setting continent {self.ps2Zone.name} isLocked to {p_isLocked}")
 		self.bIsLocked = p_isLocked
-		self.lastEventTimestamp = datetime.now(timezone.utc)
+		self.lastEventTime = datetime.now(timezone.utc)
 
 
 
