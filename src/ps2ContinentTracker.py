@@ -163,18 +163,20 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				# takenFacility:MapRegion = await self.auraxClient.get(MapRegion, p_event.facility_id)
 				takenFacility:MapRegion = await MapRegion.get_by_facility_id(p_event.facility_id, self.auraxClient)
 
+				eventDatetime = datetime.fromtimestamp(p_event.timestamp)
+
 				if takenFacility == None:
 					BUPrint.Debug("Invalid facility ID.")
 					return
 				
-				if not self.IsRecentCapture(takenFacility.facility_id, p_event.timestamp):
+				if not self.IsRecentCapture(eventDatetime, takenFacility.facility_id):
 					message = Messages.facilityOutfitCapture.replace("_DATA", f"{takenFacility.facility_name} | {takenFacility.facility_type} | {GetDiscordTime(p_event.timestamp)}")
 					BUPrint.Info(message)
 					await self.botRef.get_channel(Channels.ps2FacilityControlID).send(message)
 			
 			else:
 				# Ensures IsRecentCapture is ran regardless of whether the facility was captured by TDKD, thus allowing existing facility times to be checked.
-				self.IsRecentCapture(p_event.timestamp)
+				self.IsRecentCapture(eventDatetime)
 
 
 
@@ -207,7 +209,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			
 			else:
 				# Entry is not the current facility, perform time-check and remove if needed.
-				removeAt = datetime.fromtimestamp(entry.timestamp, timezone.utc) + relativedelta(minutes=ContinentTrack.ignoreRepeatFacilityInLast)
+				removeAt = entry.timestamp + relativedelta(minutes=ContinentTrack.ignoreRepeatFacilityInLast)
 
 
 				BUPrint.Debug(f"Facility with ID {entry.facilityID} due for removal at or after: {removeAt}")
