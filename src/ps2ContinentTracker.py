@@ -8,7 +8,7 @@ FALSE - Open 	| TRUE - Closed
 """
 
 from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit, Messages
-from botData.dataObjects import CommanderStatus, WarpgateCapture, ContinentStatus, FacilityCapture
+from botData.dataObjects import CommanderStatus, WarpgateCapture, ContinentStatus
 from botUtils import BotPrinter as BUPrint
 from botUtils import GetDiscordTime, UserHasCommandPerms
 from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs, PS2ContMessageType
