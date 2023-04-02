@@ -159,6 +159,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		
 
 		if ContinentTrack.bMonitorFacilities:
+			eventDatetime:datetime = None
+
 			if p_event.outfit_id == ContinentTrack.facilityMonitorOutfitID:
 				# takenFacility:MapRegion = await self.auraxClient.get(MapRegion, p_event.facility_id)
 				takenFacility:MapRegion = await MapRegion.get_by_facility_id(p_event.facility_id, self.auraxClient)
