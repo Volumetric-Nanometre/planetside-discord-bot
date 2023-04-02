@@ -791,15 +791,6 @@ class ContinentTrack:
 	"""
 
 
-	ignoreRepeatFacilityInLast = 15
-	"""# Ignore Repeat Facility in last x (minutes).
-	- Set to 0 to disable.
-
-	Checks if the facility capture was recently captured.
-	If a facility with the same ID was captured within this time, it's ignored.
-	"""
-
-
 	antiSpamMinimalTime:relativedelta = relativedelta(minutes=5)
 	""" Anti Spam minimal time
 	When a continent update occurs within this time period, the anti-spam counter is raised."""

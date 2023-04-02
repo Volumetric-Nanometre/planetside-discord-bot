@@ -32,8 +32,6 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		self.warpgateCaptures: list[WarpgateCapture] = []
 		"""List of `Warpgate Capture` objects."""
 
-		self.facilityCaptures: list[FacilityCapture] = []
-		"""List of `FacilityCapture` objects."""
 
 		self.oshurStatus = ContinentStatus(PS2ZoneIDs.Oshur, PS2WarpgateIDs.oshur.value)
 		self.amerishStatus = ContinentStatus(PS2ZoneIDs.Amerish, PS2WarpgateIDs.amerish.value)
@@ -140,7 +138,13 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 	async def FacilityControlCallback(self, p_event:FacilityControl):
 		"""# Facility Control Callback
-		Function called when a facility control event is sent."""
+		Function called when a facility control event is sent.
+		
+		Is currently used for two purposes.
+		- Warpgate Captures; for checking if a continent is open/closed.  
+			Because the open event isn't working on Daybreak's side this is used instead.
+		- Outfit Facility Monitor; for alerting when the specified outfit captures a facility.
+		"""
 		if p_event.world_id != ContinentTrack.worldID:
 			return
 
@@ -159,72 +163,19 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		
 
 		if ContinentTrack.bMonitorFacilities:
-			eventDatetime:datetime = None
-
 			if p_event.outfit_id == ContinentTrack.facilityMonitorOutfitID:
-				# takenFacility:MapRegion = await self.auraxClient.get(MapRegion, p_event.facility_id)
 				takenFacility:MapRegion = await MapRegion.get_by_facility_id(p_event.facility_id, self.auraxClient)
-
-				eventDatetime = datetime.fromtimestamp(p_event.timestamp)
 
 				if takenFacility == None:
 					BUPrint.Debug("Invalid facility ID.")
 					return
 				
-				if not self.IsRecentCapture(eventDatetime, takenFacility.facility_id):
+				if p_event.old_faction_id != p_event.new_faction_id:
 					message = Messages.facilityOutfitCapture.replace("_DATA", f"{takenFacility.facility_name} | {takenFacility.facility_type} | {GetDiscordTime(p_event.timestamp)}")
 					BUPrint.Info(message)
 					await self.botRef.get_channel(Channels.ps2FacilityControlID).send(message)
 			
-			else:
-				# Ensures IsRecentCapture is ran regardless of whether the facility was captured by TDKD, thus allowing existing facility times to be checked.
-				self.IsRecentCapture(eventDatetime)
 
-
-
-
-	def IsRecentCapture(self,  p_timestamp:datetime, p_facilityID:int = None) -> bool:
-		"""# Is Recent Capture
-		Check the facilityControl array for an existing entry.
-
-		Both parameters must be present when checking for an existing capture.
-		
-
-		## RETURNS
-		- FALSE: No recent facility capture entry exists.
-			New one is created.
-		- TRUE: A recent facility capture entry exists.
-			Existing entry timestamp is updated to new time.
-
-		All entries times are checked. Those older than the speciifed time are removed.
-		
-		If `p_facilityID` is excluded, only this part of the function occurs.
-		"""
-		bEntryFound = False
-
-		for entry in self.facilityCaptures:
-			if p_facilityID != None:
-				if entry.facilityID == p_facilityID:
-					BUPrint.Debug("Existing facility capture entry found, updating time")
-					entry.timestamp = p_timestamp
-					bEntryFound = True
-			
-			else:
-				# Entry is not the current facility, perform time-check and remove if needed.
-				removeAt = entry.timestamp + relativedelta(minutes=ContinentTrack.ignoreRepeatFacilityInLast)
-
-
-				BUPrint.Debug(f"Facility with ID {entry.facilityID} due for removal at or after: {removeAt}")
-				if removeAt < p_timestamp:
-					BUPrint.Debug("	>> Removed facilityCapture entry")
-					self.facilityCaptures.remove(entry)
-
-
-		# No existing entry is found.
-		if p_facilityID != None:
-			self.facilityCaptures.append(FacilityCapture(p_facilityID, p_timestamp))
-	
-		return bEntryFound
 
 
 
@@ -247,7 +198,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		]
 
 		if p_validOnly:
-			validList = [contStatus for contStatus in allContenents if contStatus.lastEventTimestamp != None]
+			validList = [contStatus for contStatus in allContenents if contStatus.lastEventTime != None]
 			return validList
 		else:
 			return allContenents
@@ -311,7 +262,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		else:
 			message += f"has **OPENED**!"
 
-		message += f" | {GetDiscordTime(p_continent.lastEventTimestamp)}"
+		message += f" | {GetDiscordTime(p_continent.lastEventTime)}"
 
 
 		await notifChannel.send(message)
@@ -366,7 +317,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		BUPrint.Debug(f"Open Conts Length: {openConts.__len__()} | Locked Conts Length: {lockedConts.__len__()}")
 
 		# Sort locked
-		lockedConts.sort(key=lambda continent: continent.lastEventTimestamp)
+		lockedConts.sort(key=lambda continent: continent.lastEventTime)
 
 		newEmbed = Embed(title="CONTINENT STATUS")
 		# Compose message
@@ -374,14 +325,14 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			for contenent in openConts:
 				newEmbed.add_field(
 					name=contenent.ps2Zone.name,
-					value=f"**OPEN** | {GetDiscordTime(contenent.lastEventTimestamp)}"
+					value=f"**OPEN** | {GetDiscordTime(contenent.lastEventTime)}"
 				)
 
 		if lockedConts.__len__() != 0:
 			for contenent in lockedConts:
 				newEmbed.add_field(
 					name=contenent.ps2Zone.name,
-					value=f"**LOCKED** | {GetDiscordTime(contenent.lastEventTimestamp)}",
+					value=f"**LOCKED** | {GetDiscordTime(contenent.lastEventTime)}",
 					inline=False
 				)
 
@@ -488,9 +439,9 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		if contArray.__len__() == 0:
 			return None
 
-		contArray.sort(key=lambda continent: continent.lastEventTimestamp)
+		contArray.sort(key=lambda continent: continent.lastEventTime)
 
-		return contArray[0].lastEventTimestamp
+		return contArray[0].lastEventTime
 	
 
 
