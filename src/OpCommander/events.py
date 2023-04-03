@@ -568,7 +568,7 @@ class OpsEventTracker():
 			elif vFacility == None:
 				self.lastFacilityCaptured.facilityID = -999
 				self.lastFacilityCaptured.facilityObj = None
-				self.lastFacilityCaptured.timestamp = datetime.utcnow()
+				self.lastFacilityCaptured.timestamp = datetime.now(timezone.utc)
 				return
 
 
@@ -613,7 +613,7 @@ class OpsEventTracker():
 			# Make fake data:
 			vNewFacilityData = FacilityData(
 				facilityID=-999,
-				timestamp=datetime.utcnow(),
+				timestamp=datetime.now(timezone.utc),
 				participants=1
 			)
 		else:
@@ -682,7 +682,7 @@ class OpsEventTracker():
 			# Make fake data:
 			vNewFacilityData = FacilityData(
 				facilityID=-999,
-				timestamp=datetime.utcnow(),
+				timestamp=datetime.now(timezone.utc),
 				participants=1
 			)
 		else:

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os, copy
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from dateutil.relativedelta import relativedelta
 import pickle
 
@@ -53,7 +55,8 @@ class Operations(commands.GroupCog):
 							pYear = "(Optional) The Year the ops should run.",
 							pArguments = "(Optional) Additional arguments to control the op behaviour.",
 							pManagedBy = "(Optional) The user responsible for running this event",
-							pAdditionalInfo = "(Optional) Any additional information about this event: NOTE: Overwrites the default!"
+							pAdditionalInfo = "(Optional) Any additional information about this event. NOTE: Overwrites the default!",
+							pTimeZone = "(Optional) Timezone Identifier, defaults to UTC."
 	)
 	@app_commands.rename(pDay="day", 
 						pMonth="month", 
@@ -63,6 +66,7 @@ class Operations(commands.GroupCog):
 						pArguments="arguments",
 						pManagedBy="managing_user",
 						pAdditionalInfo="info",
+						pTimeZone = "timezone"
 	)
 
 	async def addopsevent (self, pInteraction: discord.Interaction, 
@@ -75,7 +79,8 @@ class Operations(commands.GroupCog):
 		pYear: int = datetime.now().year,
 		pArguments: str = "",
 		pManagedBy: discord.Member = None,
-		pAdditionalInfo: str = ""
+		pAdditionalInfo: str = "",
+		pTimeZone: str = "UTC"
 	):
 		# HARDCODED ROLE USEAGE:
 		if not await botUtils.UserHasCommandPerms(pInteraction.user, (botSettings.CommandLimit.opManager), pInteraction):
@@ -84,12 +89,30 @@ class Operations(commands.GroupCog):
 		await pInteraction.response.defer(thinking=True, ephemeral=True)
 
 		botUtils.BotPrinter.Debug(f"Adding new event ({optype}).  Edit after posting: {edit}")
+
+
+		try:
+			userInputZone:ZoneInfo = ZoneInfo(key=pTimeZone)
+
+		except ZoneInfoNotFoundError:
+			BUPrint.LogError(p_titleStr="Invalid Timezone", p_string=f"User provided invalid timezone: {pTimeZone}")
+			userInputZone = timezone.utc
+
+
 		vDate = datetime(
 			year=pYear,
 			month=pMonth,
 			day=pDay,
 			hour=pHour, minute=pMinute,
-			tzinfo=timezone.utc)
+			tzinfo=userInputZone )
+		
+
+		# Configure date; if timezone is specified, convert end result to UTC.
+		if userInputZone != "UTC":
+			BUPrint.Debug(f"Converting passed date ({vDate}) to UTC timezone")
+			vDate = vDate.astimezone(timezone.utc)
+			BUPrint.Debug(f"	>> Output date: {vDate}")
+
 
 		vOpTypeStr = str(optype).replace("OpsType.", "")
 
@@ -167,6 +190,7 @@ class Operations(commands.GroupCog):
 				# Allows bypassing discords max 25 item limit on dropdown lists.
 				choices.append(discord.app_commands.Choice(name=option.replace(".bin", ""), value=option))
 		return choices
+
 
 
 # EDIT OPS (/editop)
