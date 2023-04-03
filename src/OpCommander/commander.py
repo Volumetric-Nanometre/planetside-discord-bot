@@ -778,6 +778,8 @@ class Commander():
 				usersInReserve = ""
 				for user in self.vOpData.reserves:
 					usersInReserve += f"{self.vBotRef.get_user(int(user)).mention}\n"
+					if usersInReserve.__len__() > 1024:
+						usersInReserve = EllipsiseStringArrayToSize(usersInReserve, 1024)
 			else: usersInReserve = "*None*"
 
 
