@@ -1007,7 +1007,7 @@ class OperationManager():
 				vUser = self.vBotRef.get_user(int(reserve))
 				vReserves += f"{vUser.mention}\n"
 
-			if vReserves.__len__ > 1024:
+			if vReserves.__len__() > 1024:
 				vReserves = EllipsiseStringArrayToSize(vReserves, 1024)
 			vEmbed.add_field(name=f"{botData.settings.SignUps.reserveIcon} Reserves ({len(p_opsData.reserves)})", value=vReserves, inline=True )
 
