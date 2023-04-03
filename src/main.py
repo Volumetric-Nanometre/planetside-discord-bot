@@ -9,6 +9,8 @@ from planetsidebot import Bot
 import asyncio
 import asyncio_atexit
 
+from time import sleep
+
 from signal import SIGTERM, signal
 
 from botUtils import FilesAndFolders
@@ -40,6 +42,8 @@ asyncio_atexit.register(callback=ps2Bot.ExitCalled, loop=mainLoop)
 
 try:
 	mainLoop.create_task(ps2Bot.start(BotSettings.discordToken))
+
+	sleep(0.5) # Ensures the bot finishes initialising, otherwise the setup function may not find the cog.
 	mainLoop.create_task(ps2Bot.setupContTracker())
 	mainLoop.run_forever()
 
