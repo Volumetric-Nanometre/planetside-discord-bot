@@ -112,7 +112,7 @@ class Commander():
 			self.vOpsEventTracker.parentSendForFunVehicleDeath:callable = self.SendForFunVehicleDeath
 
 		# Alert & Autostart Scheduler
-		self.scheduler = AsyncIOScheduler()
+		self.scheduler = AsyncIOScheduler(timezone=timezone.utc)
 		self.alertTimes:list[datetime] = [] # Saved to be displayed in Info embed
 
 		#DiscordElements:
