@@ -8,6 +8,8 @@ Classes related to the starting of an Operation Commander, whether via commands 
 from discord import app_commands, Interaction, File, Member, VoiceState
 from discord.ext import tasks, commands
 
+from datetime import timezone
+
 from botUtils import UserHasCommandPerms, FilesAndFolders
 from botUtils import BotPrinter as BUPrint
 
@@ -30,7 +32,7 @@ class AutoCommander(commands.Cog):
 	def __init__(self, p_bot) -> None:
 		super().__init__()
 		self.botRef = p_bot
-		self.scheduler = AsyncIOScheduler()
+		self.scheduler = AsyncIOScheduler(timezone=timezone.utc)
 		self.scheduler.start()
 		BUPrint.Info("COG: AutoCommander loaded!")
 
