@@ -680,6 +680,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> User Library Admin: {CommandLimit.userLibraryAdmin.name}\n"
 	vString += f"	> Chat Utilities: {CommandLimit.chatUtilities.name}\n"
 	vString += f"	> Continent Tracker: {CommandLimit.continentTracker.name}\n"
+	vString += f"	> Continent Tracker Admin: {CommandLimit.continentTrackerAdmin.name}\n"
 
 
 
