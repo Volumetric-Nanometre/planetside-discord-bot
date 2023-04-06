@@ -20,6 +20,7 @@ from auraxium.ps2 import Zone, MapRegion, World, Outfit
 from opsManager import OperationManager
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
+import asyncio
 
 class ContinentTrackerCog(GroupCog, name="continents"):
 	def __init__(self, p_bot:Bot):
@@ -51,20 +52,32 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		await self.PostMessage_Long(p_interaction)
 
-	
-	# async def SetupTriggerScheduler(self):
-	# 	"""# Setup Scheduler
-	# 	Convenience function to setup the scheduler.
-	# 	Needed to re-set the triggers after a few days otherwise the connection is closed.
 
-	# 	This will also start the scheduler.
-	# 	"""
-	# 	BUPrint.Info("Setting up Continent Tracker scheduler")
-	# 	self.scheduler.add_job( ContinentTrackerCog.CreateTriggers, "interval", hours=ContinentTrack.refreshTriggersAfter, args=[self])
-	# 	self.scheduler.start()
 
-	# 	# Run create triggers here once so they're set up on initial run.
-	# 	await self.CreateTriggers()
+	@command(name="reconnect", description="Reconnect the continent tracker if it's stopped.")
+	async def ReconnectTracker(self, p_interaction:Interaction):
+		"""# Reconnect Tracker
+		Command to reconnect the continent tracker.
+		"""
+		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.continentTrackerAdmin), p_interaction):
+			return
+
+		await p_interaction.response.defer(thinking=True, ephemeral=True)
+
+		BUPrint.Info("Closing current continent tracker.")
+
+		await self.auraxClient.close()
+
+		mainLoop = asyncio.get_event_loop()
+
+		BUPrint.Info("Recreating triggers.")
+		await self.CreateTriggers()
+
+		BUPrint.Info("Recreating task loop.")
+		await mainLoop.create_task(self.auraxClient.connect)
+
+		await p_interaction.edit_original_response(content="Continent Tracker reconnected")
+
 
 
 

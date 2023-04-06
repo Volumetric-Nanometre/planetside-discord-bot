@@ -80,7 +80,7 @@ class Bot(commands.Bot):
 
         self.tree.copy_global_to(guild=self.vGuildObj)
         await self.tree.sync(guild=self.vGuildObj)
-        
+
 
 
     async def setupContTracker(self):
@@ -94,6 +94,9 @@ class Bot(commands.Bot):
             if contTrackerCog == None:
                 BUPrint.LogError(p_titleStr="Cog not found", p_string="Unable to find Continent Tracker cog!")
                 return
+            
+
+            BUPrint.Debug("Connecting continent tracker")
 
             await contTrackerCog.auraxClient.connect()            
 

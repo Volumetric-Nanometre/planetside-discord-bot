@@ -306,6 +306,9 @@ class CommandLimit:
 	continentTracker = CommandRestrictionLevels.level3
 	"""Command limit for continent tracker commands."""
 
+	continentTrackerAdmin = CommandRestrictionLevels.level2
+	"""Command limit for bot administrative tasks on the continent tracker."""
+
 
 
 @dataclass(frozen=True)
