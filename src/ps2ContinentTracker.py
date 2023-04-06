@@ -74,7 +74,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		await self.CreateTriggers()
 
 		BUPrint.Info("Recreating task loop.")
-		await mainLoop.create_task(self.auraxClient.connect)
+		await mainLoop.create_task(self.auraxClient.connect())
 
 		await p_interaction.edit_original_response(content="Continent Tracker reconnected")
 
