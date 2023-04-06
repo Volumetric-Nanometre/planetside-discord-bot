@@ -107,7 +107,7 @@ class BotSettings:
 	Int value denoting the pickle protocol to use."""
 
 
-	bBotAdminCanPurge = True
+	bBotAdminCanPurge = False
 	"""# Bot Admin Can Purge:
 	When true, the bot admin channel can be purged on startup/shutdown.
 	Helpful to keep the channel clear of non-functional views after a bot restart."""
@@ -135,23 +135,23 @@ class Roles:
 	# ROLE RESTRICTION LEVELS:
 	roleRestrict_level_0 = ["CO"]
 
-	roleRestrict_level_1 = ["Captain"]
+	roleRestrict_level_1 = ["Captain", "Lieutenant"]
 
-	roleRestrict_level_2 = ["Sergeant"]
+	roleRestrict_level_2 = ["Sergeant", "Corporal", "Lance-Corporal"]
 
-	roleRestrict_level_3 = ["Drunken Dogs", "Recruits", "The Unwashed Masses"]
+	roleRestrict_level_3 = ["DrunkenDogs", "Recruits", "The-Washed-Masses", "The-Unwashed-Masses"]
 	
-	roleRestrict_ADMIN = [182664228107321344, 182933627242283008] # LIVE VALUE: Cactus
+	roleRestrict_ADMIN = [182933627242283008] # LIVE VALUE: Cactus
 	"""	# ROLE RESTRICT: ADMIN
 	A special role restrict reserved specifically for those entrusted with BotAdmin. While named roleRestrict, only User IDs should be used."""
 	
 	
-	recruit = 1077377565620174848
+	recruit = 780253442605842472
 	"""# Recruit
 	ID of the recruit role."""
 
 	
-	recruitPromotion = 1077377704124497961 # DrunkenDog
+	recruitPromotion = 710472193045299260 # DrunkenDog
 	"""# recruit Promotion
 	The ID of the role recruits are promoted to.
 	
@@ -159,13 +159,14 @@ class Roles:
 	this is the role used to check if the user is part of the outfit."""
 
 
-	sleeperRoleID = 1077387571543416834
+	sleeperRoleID = 0
 	"""# Sleeper Role ID
 	ID of a role assigned to users who meet the sleeper requirements."""
 
 
 	autoAssignOnAccept = [
-		1077377634083807232, # Rules
+		818218528372424744, # Tags
+		977592906183475250, # Rules: accepting a user through the bot means they agreed to the rules.
 		]
 	"""# Auto Assign on Accept:
 	List of role IDs that are always assigned to users when their join request is accepted."""
@@ -173,31 +174,59 @@ class Roles:
 
 	newUser_roles = [ 
 		SelectOption(label="Recruit", value=f"{recruit}"),
-		SelectOption(label="Drunken Dog", value="1077377704124497961"),
-		SelectOption(label="The Unwashed Masses", value="1077377835926294630")
+		SelectOption(label="Drunken Dog", value="710472193045299260"),
+		SelectOption(label="The Washed Masses", value="710502581893595166"),
+		SelectOption(label="The Unwashed Masses", value="719219680434192405")
 	]
 	"""New User Roles:  Roles listed in a new user join request that an admin may assign."""
 
 
 	addRoles_TDKD = [
-		SelectOption(label="Sober Dogs", value="1077387927019061339", description="More serious, coordinated infantry events"),
-		SelectOption(label="Armour Dogs", value="1077388088780787783", description="Ground vehicle related events"),
+		SelectOption(label="Planetside Pings", value="977873609815105596", description="Non-major PS2 events/fellow\n drunken doggos looking for company"),
+		SelectOption(label="Sober Dogs", value="745004244171620533", description="More serious, coordinated infantry events"),
+		SelectOption(label="Base Busters", value="811363100787736627", description="Base building and busting events"),
+		SelectOption(label="Armour Dogs", value="781309511532544001", description="Ground vehicle related events"),
+		SelectOption(label="Dog Fighters", value="788390750982766612", description="Small aerial vehicle related events"),
+		SelectOption(label="Royal Air Woofs", value="848612413943054376", description="Heavy aerial vehicle related events"),
+		SelectOption(label="PS2 Twitter", value="832241383326744586", description="Planetside 2 Twitter posts"),
+		SelectOption(label="Jaeger", value="1024713062776844318", description="Jeager events")
 	]
 	"""Add Roles: TDKD:  Roles listed in the "TDKD" selector for the /roles commands."""
 
 
 	addRoles_games1 = [
-		SelectOption(label="Game 1", value="1077388098947793007"),
-		SelectOption(label="Game 2", value="1077388102055772180"),
-		SelectOption(label="Game 3", value="1077388104782073926"),
-		SelectOption(label="Game 4", value="1077388107726454825"),
+		SelectOption(label="Apex Legends", value="825106272856571985"),
+		SelectOption(label="Back 4 Blood", value="916804112337756160"),
+		SelectOption(label="Battlefield 2042", value="894232796619472987"),
+		SelectOption(label="Conqueror's Blade", value="896008973906509885"),
+		SelectOption(label="Deep Rock Galactic", value="803340218756366423"),
+		SelectOption(label="Dungeon and Dragons", value="864175083152343070"),
+		SelectOption(label="Eve Online", value="900009823867916310"),
+		SelectOption(label="Factorio", value="939894580688605274"),
+		SelectOption(label="Garrys' Mod", value="916803968674439300"),
+		SelectOption(label="Gates of Hell", value="1000366778133774528"),
+		SelectOption(label="Killing Floor 2", value="916804287370240131"),
+		SelectOption(label="Minecraft", value="824708493076201473"),
+		SelectOption(label="Post Scriptum", value="791308463241691146"),
+		SelectOption(label="Sea of Thieves", value="916802105719783454"),
+		SelectOption(label="Stellaris", value="911972761948266547"),
+		SelectOption(label="Supreme Commander", value="887338095802982441"),
+		SelectOption(label="Space Engineers", value="805234496026050601"),
+		SelectOption(label="Squad", value="808413252685529108"),
+		SelectOption(label="Team Fortress 2", value="826943611303100496"),
+		SelectOption(label="Terraria", value="825106136378245180"),
+		SelectOption(label="Total War: Warhammer", value="931201327869079553"),
+		SelectOption(label="Valheim", value="818490876631711794"),
+		SelectOption(label="Vermintide", value="929376317944791040"),
+		SelectOption(label="Warframe", value="872593227734208512"),
+		SelectOption(label="Warthunder", value="976598559266857030"),
 	]
 	"""Add Roles: Games 1:  Roles listed in the "Games 1" selector for the /roles commands."""
 
 	addRoles_games2 = [
-		#SelectOption(label="Overwatch", value="1029138196518420531"),
-		#SelectOption(label="Star Citizen", value="1037797784566370318"),
-		#SelectOption(label="World of Tanks", value="1038125253806788768"),
+		SelectOption(label="Overwatch", value="1029138196518420531"),
+		SelectOption(label="Star Citizen", value="1037797784566370318"),
+		SelectOption(label="World of Tanks", value="1038125253806788768"),
 		# SelectOption(label="", value=""),
 		# SelectOption(label="", value=""),
 		# SelectOption(label="", value=""),
@@ -320,78 +349,79 @@ class Channels:
 	Since multiple features may use these, they're stored here to avoid duplicates and messy name inclusions.
 	"""
 
-	botAdminID = 1077391224870277200
+	botAdminID = 0
 	"""# Bot Admin: 
 	The channel administrative tasks and notifications are sent to."""
 
 	
-	gateID = 1077379002244800583
+	gateID = 0
 	"""# Gate Channel: 
 	The channel considered to be the servers gate: should be viewable to new users.  It does not require chatting privilages."""
 
 
-	ruleID = 1077391335625072700
+	ruleID = 913086821263626360
 	"""# Rule Channel: 
 	ID of the rule channel used to fetch the rules Message. """
 
 
-	generalID = 1077369453739778123 # (general)
+	generalID = 710469797439078400 # (general)
 	"""	# General Chat: 
 	ID of the general text channel."""
 
 	
-	voiceFallback = 1077369453739778124 # (general)
+	voiceFallback = 710854499782361140 # (general)
 	"""# Voice Fallback: 
 	A channel that users are moved to when their current one is removed (by the bot)"""
 
 	
-	eventMovebackID = 1077389320618524803 # (planetside2)
+	eventMovebackID = 1023703124839518338 # (planetside2)
 	"""# Event MoveBack: 
 	ID of voice chat users are moved into after an event is over."""
 
 	
 	protectedCategoriesID = [
-		1077391179638915132, # Admin
-		1077413788468391936, # Signup
-		1077389123259736095, # Planetside
-		1077369453739778121, # Gen 1
-		1077381869592662157, # Gen 2
-		1077382157154136155, # Sober stuff
-		1080170944791855124, # Other Games
-	]
+		744907524418961438, # Welcome
+		710470871214587955, # Important Channels
+		818212652601966628, # Sign-up
+		710471344411770881, # The Drunken Dogs
+		734791662798241854, # Games
+		1026549992829222952, # Jaeger
+		710470038968205393, # Planetside
+		1042450013827117087, # Soberdogs Stuff
+		796885440916488252, # Guides
+		]
 	"""# Protected Categories: 
 	ID of categories that cannot be deleted by chatMonitor.remove_category"""
 
 
-	quoteID = 1077388451642613850
+	quoteID = 1036349723059159040
 	"""# Quote Channel ID: 
 	If this is not found, the event listener is not added."""
 
 	
-	soberFeedbackID = 1077382220236456017
+	soberFeedbackID = 1042463290472800317
 	"""# Sober Feedback: 
 	ID of the soberDogs feedback/debrief FORUM."""
 
 
-	ps2TextID = 1077389180616843314
+	ps2TextID = 715337156255809568
 	"""# PS" Text ID:
 	ID of the planetside 2 TEXT channel."""
 
 
-	ps2ContinentNotifID = 1080562023483572315
+	ps2ContinentNotifID = ps2TextID
 	"""# PS2 Continent Notification ID
 	Channel ID used for PS2 continent lock notifications."""
+
+
+	scheduleID = 818186731202936843
+	"""# Schedule ID:
+	ID of the schedule text channel"""
 
 
 	ps2FacilityControlID = ps2TextID
 	"""# PS2 Facility Control ID (Continent Tracker)
 	ID of the channel where outfit facility control notifications are sent to."""
-
-
-	scheduleID = 1077389246274482278
-	"""# Schedule ID:
-	ID of the schedule text channel"""
-
 
 
 
@@ -404,7 +434,7 @@ class NewUsers:
 	Settings pertaining to the bot behaviour for `NewUser` cog.
 	"""
 
-	bPurgeGate = True
+	bPurgeGate = False
 	"""# Purge Gate:
 	When true, the gate channel is purged on shutdown/startup"""
 
@@ -428,7 +458,7 @@ class NewUsers:
 	Warn when a joining users account is less than this many months old."""
 
 	
-	ruleMsgID = 1077391503074267156
+	ruleMsgID = 913206262248923146
 	"""# Rule Message ID:
 	The id of a message which contains the server rules (if not in an embed, falls back to message content)  Make sure `Channels.ruleID` is also set."""
 
@@ -575,7 +605,7 @@ class SignUps:
 	signupCategory = "SIGN UP"
 	"""# Signup Category
 	The category name (results are searched in lower, so this is generally case insensitive.)
-	If not found, this category is created."""
+	"""
 
 	
 	bResignAsButton = True
@@ -923,7 +953,7 @@ class Messages:
 	"""
 	
 	# Displayed in the GATE channel on bot startup (after purging).
-	gateChannelDefaultMsg = "Welcome! This is an isolated test server for TDKD\nThis message is also entirely customisable :D\n\nTo get started, use the button below."
+	gateChannelDefaultMsg = "Welcome to TDKD.\nUse the button below to get started!"
 
 	# Displayed in the embed for new users in their gate message.
 	newUserInfo = "Use the buttons below to provide your Planetside 2 character name (if you have one) and accept the rules.\nThen you can request access, and wait for one of our admins to get you set up!"
