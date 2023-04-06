@@ -32,7 +32,7 @@ def HandleTerminateSignal(p_signal: signal, p_frame):
 	BUPrint.Info("Terminate Signal detected!  Raising KeyboardInterrupt to cleanly terminate.")
 	raise(KeyboardInterrupt)
 
-# Set up signal for SIGTERM, so the bot may be shutdown cleanly if ran via service, or for other
+# Set up signal for SIGTERM, so the bot may be shutdown cleanly if ran via service, or for other termination calls.
 signal(SIGTERM, HandleTerminateSignal)
 
 
