@@ -452,7 +452,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		if contArray.__len__() == 0:
 			return None
 
-		contArray.sort(key=lambda continent: continent.lastEventTime)
+		contArray.sort(key=lambda continent: continent.lastEventTime, reverse=True)
 
 		return contArray[0].lastEventTime
 	
@@ -474,8 +474,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		BUPrint.Debug(f"	>> Checking: {mostRecentTime + ContinentTrack.antiSpamMinimalTime} > {datetime.now(tz=timezone.utc)}")
 
 		if mostRecentTime + ContinentTrack.antiSpamMinimalTime > datetime.now(tz=timezone.utc):
-			BUPrint.Debug("	>> Event is occuring within spam minimal timeframe.")
 			self.antiSpamUpdateCount += 1
+			BUPrint.Debug(f"	>> Event is occuring within spam minimal timeframe. (Antispam count: {self.antiSpamUpdateCount})")
 
 			if self.antiSpamUpdateCount >= ContinentTrack.antiSpamAllowedPosts:
 				BUPrint.Info(f"	>> Continent Tracker AntiSpam prevented a message from being sent. {self.antiSpamUpdateCount} Messages blocked.")
