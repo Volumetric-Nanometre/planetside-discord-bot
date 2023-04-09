@@ -14,7 +14,7 @@ from botUtils import GetDiscordTime, UserHasCommandPerms
 from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs, PS2ContMessageType
 from discord.ext.commands import GroupCog, Bot
 from discord.app_commands import command
-from discord import Interaction, Embed
+from discord import Interaction, Embed, errors
 from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
 from auraxium.ps2 import Zone, MapRegion, World, Outfit
 from opsManager import OperationManager
@@ -64,20 +64,35 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		await p_interaction.response.defer(thinking=True, ephemeral=True)
 
-		BUPrint.Info("Closing current continent tracker.")
+		await self.ReconnectClient()
 
+		await p_interaction.edit_original_response(content="Continent Tracker reconnected")
+
+
+	
+	async def ReconnectClient(self):
+		"""# Reconnect Client
+		
+		Convenience function to reconnect the auraxium client.
+		
+		This may be called by a command, or from other functions in the event a `RuntimeError` is raised.
+
+		It should NOT be confused for `ReconnectTracker`:  which is a command function that calls THIS function.
+		"""
+		BUPrint.Info("Reconnecting Auraxium Client...")
+
+		BUPrint.Info("	>> Closing current continent tracker.")
 		await self.auraxClient.close()
 
 		mainLoop = asyncio.get_event_loop()
 
-		BUPrint.Info("Recreating triggers.")
+		BUPrint.Info("	>> Recreating triggers.")
 		await self.CreateTriggers()
 
-		BUPrint.Info("Recreating task loop.")
+		BUPrint.Info("	>> Recreating task loop.")
 		await mainLoop.create_task(self.auraxClient.connect())
 
-		await p_interaction.edit_original_response(content="Continent Tracker reconnected")
-
+		BUPrint.Info("	>> Reconnect complete.")
 
 
 
@@ -177,7 +192,19 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		if ContinentTrack.bMonitorFacilities:
 			if p_event.outfit_id == ContinentTrack.facilityMonitorOutfitID:
-				takenFacility:MapRegion = await MapRegion.get_by_facility_id(p_event.facility_id, self.auraxClient)
+				try:
+					takenFacility:MapRegion = await MapRegion.get_by_facility_id(p_event.facility_id, self.auraxClient)
+
+				except RuntimeError:
+					BUPrint.LogError(p_titleStr="Session closed.", p_string="Reconnecting client...")
+					await self.ReconnectClient()
+					
+					# Retry obtaining map region
+					try:
+						takenFacility:MapRegion = await MapRegion.get_by_facility_id(p_event.facility_id, self.auraxClient)
+					except RuntimeError:
+						BUPrint.Info("Failed to obtain map region after reconnecting client, aborting.")
+						return
 
 				if takenFacility == None:
 					BUPrint.Debug("Invalid facility ID.")
@@ -186,7 +213,12 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				if p_event.old_faction_id != p_event.new_faction_id:
 					message = Messages.facilityOutfitCapture.replace("_DATA", f"{takenFacility.facility_name} | {takenFacility.facility_type} | {GetDiscordTime(p_event.timestamp)}")
 					BUPrint.Info(message)
-					await self.botRef.get_channel(Channels.ps2FacilityControlID).send(message)
+					try:
+						await self.botRef.get_channel(Channels.ps2FacilityControlID).send(message)
+
+					except: # Intentional catch all; too many possible causes.
+						BUPrint.LogError("Unable to post continent status message.", "EXCEPTION OCCURED")
+						
 			
 
 
@@ -277,8 +309,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		message += f" | {GetDiscordTime(p_continent.lastEventTime)}"
 
+		try:
+			await notifChannel.send(message)
+		except: # Intentional catch all; too many possible causes.
+			BUPrint.LogError("Unable to post continent status message.", "EXCEPTION OCCURED")
 
-		await notifChannel.send(message)
 
 		if ContinentTrack.bAlertCommanders:
 			await self.PostMessage_Commanders()
@@ -309,10 +344,16 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 
 		if p_interaction != None:
-			await p_interaction.response.send_message(embed=self.CreateEmbed_Detailed(), ephemeral=True)
+			try:
+				await p_interaction.response.send_message(embed=self.CreateEmbed_Detailed(), ephemeral=True)
+			except: # Intentional catch all; too many possible causes.
+				BUPrint.LogError("Unable to post continent status message.", "EXCEPTION OCCURED")
 
 		else:
-			await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(embed=self.CreateEmbed_Detailed())
+			try:
+				await self.botRef.get_channel(Channels.ps2ContinentNotifID).send(embed=self.CreateEmbed_Detailed())
+			except: # Intentional catch all; too many possible causes.
+				BUPrint.LogError("Unable to post continent status message.", "EXCEPTION OCCURED")
 
 		if ContinentTrack.bAlertCommanders:
 			await self.PostMessage_Commanders()
@@ -368,7 +409,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				
 
 				if commander.continentAlert == None:
-					commander.continentAlert = await commander.notifChn.send(content=newMessage, embed=self.CreateEmbed_Detailed())
+					try:
+						commander.continentAlert = await commander.notifChn.send(content=newMessage, embed=self.CreateEmbed_Detailed())
+
+					except: # Intentional catch all; too many possible causes.
+						BUPrint.LogError("Unable to post continent status message.", "EXCEPTION OCCURED")
 
 				else:
 					await commander.continentAlert.edit(embed=self.CreateEmbed_Detailed())
@@ -452,7 +497,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		if contArray.__len__() == 0:
 			return None
 
-		contArray.sort(key=lambda continent: continent.lastEventTime)
+		contArray.sort(key=lambda continent: continent.lastEventTime, reverse=True)
 
 		return contArray[0].lastEventTime
 	
@@ -474,8 +519,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		BUPrint.Debug(f"	>> Checking: {mostRecentTime + ContinentTrack.antiSpamMinimalTime} > {datetime.now(tz=timezone.utc)}")
 
 		if mostRecentTime + ContinentTrack.antiSpamMinimalTime > datetime.now(tz=timezone.utc):
-			BUPrint.Debug("	>> Event is occuring within spam minimal timeframe.")
 			self.antiSpamUpdateCount += 1
+			BUPrint.Debug(f"	>> Event is occuring within spam minimal timeframe. (Antispam count: {self.antiSpamUpdateCount})")
 
 			if self.antiSpamUpdateCount >= ContinentTrack.antiSpamAllowedPosts:
 				BUPrint.Info(f"	>> Continent Tracker AntiSpam prevented a message from being sent. {self.antiSpamUpdateCount} Messages blocked.")
