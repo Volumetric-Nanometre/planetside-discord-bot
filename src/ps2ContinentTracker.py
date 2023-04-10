@@ -148,11 +148,14 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		
 		if p_event.zone_id not in PS2ZoneIDs.allIDs.value:
 			return
+		
+		# Must be set before the below function; as the function updates the timestamps used by antiSpamCanPost resulting in a loop.
+		bCanPost = self.AntiSpamCanPost()
 
 		self.SetContinentIsLocked(True, p_event.zone_id)
 
 		# Spam guard	
-		if not self.AntiSpamCanPost():
+		if not bCanPost:
 			return		
 
 
@@ -449,10 +452,13 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 				else:
 					BUPrint.Debug("Mismatched factions. Continent open!")
-					# Mismatching factions, continent has opened:
+					
+					# Must be set before SetContinents as that updates the timestamps (to current), resulting in a loop.
+					bCanPost = self.AntiSpamCanPost()
+
 					self.SetContinentIsLocked(False, gate.warpgateID)
 
-					if not self.AntiSpamCanPost():
+					if not bCanPost:
 						return
 
 					if ContinentTrack.contUnlockMessageType == PS2ContMessageType.NoMessage:
