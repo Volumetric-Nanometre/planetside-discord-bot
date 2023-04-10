@@ -512,6 +512,8 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 	def AntiSpamCanPost(self) -> bool:
 		"""# Anti Spam: Can Post
 		Function to protect against spam events, checks the given timestamp against the most recent.
+
+		Will always return true if no recent time exists.
 		
 
 		## RETURNS
@@ -521,6 +523,9 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		BUPrint.Info("Continent Update Antispam check...")
 
 		mostRecentTime = self.GetMostRecentTimestamp()
+
+		if mostRecentTime == None:
+			return True
 		
 		BUPrint.Debug(f"	>> Checking: {mostRecentTime + ContinentTrack.antiSpamMinimalTime} > {datetime.now(tz=timezone.utc)}")
 
