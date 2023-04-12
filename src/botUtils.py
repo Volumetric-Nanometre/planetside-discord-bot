@@ -612,7 +612,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> LockFile Affix:	{Directories.lockFileAffix} | Retries: {Directories.lockFileRetry}\n"
 	vString += f"	> Feedback Prefix:	{Directories.feedbackPrefix}\n"
 	vString += f"	> Clean Temp Every:	{Directories.cleanTempEvery} hours ({Directories.cleanTempEvery/24} days)\n"
-	vString += f"	> Clean Temp On Shutdown: {Directories.bCleanTempOnShutdown}\n"
+	vString += f"	> [{Directories.bCleanTempOnShutdown}] Clean Temp On Shutdown:\n"
 
 
 	vString += "\nFEATURES\n"
@@ -711,12 +711,13 @@ def PrintSettings(bGetOnly = False):
 	vString += "\nCONTINENT TRACKER SETTINGS\n"
 	vString += f"	> [{BotSettings.botFeatures.continentTracker}] Enabled\n"
 	if BotSettings.botFeatures.continentTracker:
-		vString += f"	> [{ContinentTrack.bAlertCommanders}] Alert Commanders\n"
 		vString += f"	> World ID: {ContinentTrack.worldID}\n"
+		vString += f"	> ContinentTracker Reconnection time: {ContinentTrack.reconnectionTime}\n"
 		vString += f"	> Message type on LOCK events: {ContinentTrack.contLockMessageType.name}\n"
 		vString += f"	> Message type on OPEN events: {ContinentTrack.contUnlockMessageType.name}\n"
 		vString += f"	> Anti-Spam: Allowed posts: {ContinentTrack.antiSpamAllowedPosts}\n"
 		vString += f"	> Anti-Spam: Minimal interval time: {ContinentTrack.antiSpamMinimalTime}\n"
+		vString += f"	> [{ContinentTrack.bAlertCommanders}] Alert Commanders\n"
 		vString += f"	> [{ContinentTrack.bMonitorFacilities}] Monitor Facility Captures\n"
 		if ContinentTrack.bMonitorFacilities:
 			vString += f"	> Outfit to monitor: {ContinentTrack.facilityMonitorOutfitID}\n"
@@ -753,9 +754,9 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Library Data Memory Retention: {UserLib.entryRetention.name}\n"
 	if UserLib.entryRetention == EntryRetention.unloadAfter:
 		vString += f"		> Unload After: {UserLib.entryRetention_unloadAfter} | Check Interval {UserLib.entryRetention_checkInterval}\n"
-	vString += f"	> [{UserLib.sleeperRules.bIsEnabled}] Inactivity Check"
+	vString += f"	> [{UserLib.sleeperRules.bIsEnabled}] Inactivity Check\n"
 	if UserLib.sleeperRules.bIsEnabled:
-		vString += f"	> User Auto Sleeper: {UserLib.sleeperRules}\n"
+		vString += f"	> {UserLib.sleeperRules}" # __repr__ return has a new line at the end.
 		vString += f"	> Sleeper Check Time: {UserLib.sleeperCheckTime}\n"
 
 

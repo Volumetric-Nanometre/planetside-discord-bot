@@ -834,6 +834,14 @@ class ContinentTrack:
 	"""
 
 
+	reconnectionTime:time = time(hour=6, minute=00, tzinfo=timezone.utc)
+	"""# Reconnection Time
+	To avoid issues of the tracker ceasing to function until its reconnected, it's 'reconnected' every day.
+	
+	Reconnection involves closing the old client, recreation of triggers, then the recreation of the loop task.
+	"""
+
+
 
 dataclass(frozen=True)
 class ForFun:
