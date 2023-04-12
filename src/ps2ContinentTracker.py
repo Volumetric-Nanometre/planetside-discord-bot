@@ -13,6 +13,7 @@ from botUtils import BotPrinter as BUPrint
 from botUtils import GetDiscordTime, UserHasCommandPerms
 from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs, PS2ContMessageType
 from discord.ext.commands import GroupCog, Bot
+from discord.ext import tasks
 from discord.app_commands import command
 from discord import Interaction, Embed, errors
 from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
@@ -69,13 +70,20 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		await p_interaction.edit_original_response(content="Continent Tracker reconnected")
 
 
-	
+
+	@tasks.loop(time=ContinentTrack.reconnectionTime)
 	async def ReconnectClient(self):
 		"""# Reconnect Client
 		
-		Convenience function to reconnect the auraxium client.
+		Convenience function to reconnect the auraxium client;
+		 - Closes the current client.
+		 - Recreate client triggers (removes old ones if they exist).
+		 - Create new main loop task for aurax client.
+
 		
 		This may be called by a command, or from other functions in the event a `RuntimeError` is raised.
+
+		It is also a looped task, such that it gets called on a recurring basis and thus eliminate the disconnection issue.
 
 		It should NOT be confused for `ReconnectTracker`:  which is a command function that calls THIS function.
 		"""
