@@ -711,6 +711,7 @@ def PrintSettings(bGetOnly = False):
 	vString += "\nCONTINENT TRACKER SETTINGS\n"
 	vString += f"	> [{BotSettings.botFeatures.continentTracker}] Enabled\n"
 	if BotSettings.botFeatures.continentTracker:
+		vString += f"	> [{ContinentTrack.bSaveOnShutdown}] Save on Shutdown\n"
 		vString += f"	> World ID: {ContinentTrack.worldID}\n"
 		vString += f"	> ContinentTracker Reconnection time: {ContinentTrack.reconnectionTime}\n"
 		vString += f"	> Message type on LOCK events: {ContinentTrack.contLockMessageType.name}\n"

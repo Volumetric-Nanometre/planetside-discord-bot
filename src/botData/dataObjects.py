@@ -605,14 +605,24 @@ class ContinentStatus:
 	Will be NONE on first run."""
 
 
-	def SetLocked(self, p_isLocked:bool):
+	def SetLocked(self, p_isLocked:bool, p_datetime:datetime = None):
 		"""# Set Locked
 		Sets the instances value of bIsLocked.
 		
-		If lock is true, the lastLocked time is also set."""
+		If lock is true, the lastLocked time is also set.
+		
+		p_time: Optional parameter.  
+		- Used to manually set the timestamp.
+		"""
 		botUtils.BotPrinter.Info(f"Setting continent {self.ps2Zone.name} isLocked to {p_isLocked}")
 		self.bIsLocked = p_isLocked
-		self.lastEventTime = datetime.now(timezone.utc)
+
+		if p_datetime == None:
+			self.lastEventTime = datetime.now(timezone.utc)
+
+		else:
+			botUtils.BotPrinter.Info("	> Datetime specified, using provided info.")
+			self.lastEventTime = p_datetime
 
 
 

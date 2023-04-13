@@ -812,6 +812,13 @@ class ContinentTrack:
 	"""
 
 
+	bSaveOnShutdown:bool = True
+	"""# Save On Shutdown
+	When true:
+	-the continent objects are saved on bot shutdown
+	-Saved objects are restored on bot startup.
+	"""
+
 
 dataclass(frozen=True)
 class ForFun:

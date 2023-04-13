@@ -7,21 +7,20 @@ Booleans relating to a continent being open or closed should follow:
 FALSE - Open 	| TRUE - Closed
 """
 
-from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit, Messages
+from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit, Messages, Directories
 from botData.dataObjects import CommanderStatus, WarpgateCapture, ContinentStatus
-from botUtils import BotPrinter as BUPrint
-from botUtils import GetDiscordTime, UserHasCommandPerms
+from botUtils import BotPrinter as BUPrint, GetDiscordTime, UserHasCommandPerms, FilesAndFolders
 from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs, PS2ContMessageType
 from discord.ext.commands import GroupCog, Bot
 from discord.ext import tasks
 from discord.app_commands import command
-from discord import Interaction, Embed, errors
+from discord import Interaction, Embed
 from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
 from auraxium.ps2 import Zone, MapRegion, World, Outfit
 from opsManager import OperationManager
 from datetime import datetime, timezone
-from dateutil.relativedelta import relativedelta
 import asyncio
+import pickle
 
 class ContinentTrackerCog(GroupCog, name="continents"):
 	def __init__(self, p_bot:Bot):
@@ -552,3 +551,68 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		return True
 
 
+	def LoadContinentData(self):
+		"""# Load Continent Data
+		Sets the continent objects with saved data from file.
+		"""
+		BUPrint.Info("Loading continent data from file...")
+		
+		contFiles = FilesAndFolders.GetFiles(Directories.tempDir, ".cont")
+
+		for continentDataFile in contFiles:
+			try:
+				BUPrint.Debug(f"	> Unpickling: {continentDataFile}")
+				continentData:ContinentStatus = pickle.load(continentDataFile)
+			
+
+			except pickle.PicklingError as vError:
+				BUPrint.LogErrorExc("Invalid object passed to dump.", vError)
+				break
+
+			except pickle.PickleError:
+				BUPrint.LogError("Unable to save continent data", "PICKLE ERROR")
+				break
+			
+
+			if continentData.ps2Zone == PS2ZoneIDs.Amerish:
+				BUPrint.Info("	> Setting AMERISH status")
+				self.amerishStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+
+			if continentData.ps2Zone == PS2ZoneIDs.Esamir:
+				BUPrint.Info("	> Setting ESAMIR status")
+				self.esamirStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+
+			if continentData.ps2Zone == PS2ZoneIDs.Hossin:
+				BUPrint.Info("	> Setting HOSSIN status")
+				self.hossinStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+
+			if continentData.ps2Zone == PS2ZoneIDs.Indar:
+				BUPrint.Info("	> Setting INDAR status")
+				self.indarStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+
+			if continentData.ps2Zone == PS2ZoneIDs.Oshur:
+				BUPrint.Info("	> Setting OSHUR status")
+				self.indarStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+
+
+
+	def SaveContinentData(self):
+		"""# Save Continent Data
+		Saves the continent objects data to file.
+		"""
+		BUPrint.Info("Saving continent data to file...")
+		
+		continents = self.GetContinentsAsArray()
+
+		for continent in continents:
+			try:
+				BUPrint.Debug(f"	> Pickling: {continent.ps2Zone.name}")
+				pickle.dump(continent, f"{Directories.tempDir}{continent.ps2Zone.name}.cont", BotSettings.pickleProtocol)
+
+			except pickle.PicklingError as vError:
+				BUPrint.LogErrorExc("Invalid object passed to dump.", vError)
+				break
+
+			except pickle.PickleError:
+				BUPrint.LogError("Unable to save continent data", "PICKLE ERROR")
+				break
