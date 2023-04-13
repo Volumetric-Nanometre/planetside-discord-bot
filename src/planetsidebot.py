@@ -37,6 +37,7 @@ class Bot(commands.Bot):
         self.vGuildObj: discord.Guild
         self.vOpsManager = opsManager.OperationManager()
         self.vcontTrackerClient = None
+        self.contTrackerCog: ContinentTrackerCog = None
 
     async def setup_hook(self):
 
@@ -70,12 +71,6 @@ class Bot(commands.Bot):
             adminCog = BotAdminCog(self)
             await self.add_cog(adminCog)
             adminCog.shutdownFunction = self.ExitCalled
-            
-        if settings.BotSettings.botFeatures.continentTracker:
-            contTrackerCog = ContinentTrackerCog(self)
-            self.vcontTrackerClient = contTrackerCog.auraxClient
-            await contTrackerCog.CreateTriggers()
-            await self.add_cog(contTrackerCog)
 
 
         self.tree.copy_global_to(guild=self.vGuildObj)
@@ -89,16 +84,13 @@ class Bot(commands.Bot):
         Function checks if continent Tracker is enabled.
         """
         if settings.BotSettings.botFeatures.continentTracker:
-            contTrackerCog:ContinentTrackerCog = self.get_cog("continents")
+            self.contTrackerCog = ContinentTrackerCog(self)
+            self.vcontTrackerClient = self.contTrackerCog.auraxClient
+            await self.contTrackerCog.CreateTriggers()
+            await self.add_cog(self.contTrackerCog)
 
-            if contTrackerCog == None:
-                BUPrint.LogError(p_titleStr="Cog not found", p_string="Unable to find Continent Tracker cog!")
-                return
-            
-
-            BUPrint.Debug("Connecting continent tracker")
-
-            await contTrackerCog.auraxClient.connect()            
+            BUPrint.Info("	> Connecting continent tracker client.")
+            await self.contTrackerCog.auraxClient.connect()            
 
 
 
@@ -147,6 +139,7 @@ class Bot(commands.Bot):
         if vAdminChan != None:
             await vAdminChan.send("**Bot shutting down.**")
 
+        # Ensure temp cleanup happens first: any files saved to temp after this are going to be used on next startup.
         BUPrint.Info("Bot shutting down. Performing cleanup...")
         botUtils.FilesAndFolders.CleanupTemp()
 
@@ -172,6 +165,10 @@ class Bot(commands.Bot):
         if settings.BotSettings.botFeatures.continentTracker:
             BUPrint.Info("	> Closing continent tracker client")
             await self.vcontTrackerClient.close()
+
+            if settings.ContinentTrack.bSaveOnShutdown:
+                self.contTrackerCog.SaveContinentData()
+                
 
 
         BUPrint.Info("	> Closing bot connections")

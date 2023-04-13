@@ -7,21 +7,20 @@ Booleans relating to a continent being open or closed should follow:
 FALSE - Open 	| TRUE - Closed
 """
 
-from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit, Messages
+from botData.settings import BotSettings, ContinentTrack, Channels, CommandLimit, Messages, Directories
 from botData.dataObjects import CommanderStatus, WarpgateCapture, ContinentStatus
-from botUtils import BotPrinter as BUPrint
-from botUtils import GetDiscordTime, UserHasCommandPerms
+from botUtils import BotPrinter as BUPrint, GetDiscordTime, UserHasCommandPerms, FilesAndFolders
 from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs, PS2ContMessageType
 from discord.ext.commands import GroupCog, Bot
 from discord.ext import tasks
-from discord.app_commands import command
-from discord import Interaction, Embed, errors
+from discord.app_commands import command, rename, Choice
+from discord import Interaction, Embed
 from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
 from auraxium.ps2 import Zone, MapRegion, World, Outfit
 from opsManager import OperationManager
 from datetime import datetime, timezone
-from dateutil.relativedelta import relativedelta
 import asyncio
+import pickle
 
 class ContinentTrackerCog(GroupCog, name="continents"):
 	def __init__(self, p_bot:Bot):
@@ -43,6 +42,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		super().__init__()
 		BUPrint.Info("COG: ContinentTracker loaded.")
+
+		if ContinentTrack.bSaveOnShutdown:
+			BUPrint.Info("	> Loading saved continent data")
+			self.LoadContinentData()
+
 
 
 	@command(name="details", description="Posts a message of all continent statuses.")
@@ -68,6 +72,66 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		await self.ReconnectClient()
 
 		await p_interaction.edit_original_response(content="Continent Tracker reconnected")
+
+
+
+	@command(name="set", description="Manually sets the status of a continent.")
+	@rename(p_continentName="continent", p_isLocked="locked", p_timestamp="timestamp")
+	async def CommandSetContinentStatus(self, p_interaction:Interaction, p_continentName:str, p_isLocked:bool, p_timestamp:int):
+		"""# Command: set Continent Status
+		Command related fuction to set a continents status.
+
+		Manually sets the continent status and its time stamp.
+
+		Not to be confused with `SetLocked`.  
+		This function is soley for slash command and will call SetLocked.
+		"""
+		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.continentTrackerAdmin), p_interaction):
+			return
+
+
+		if p_continentName not in [enumEntry.name for enumEntry in PS2ZoneIDs]:
+			BUPrint.Debug(f"Valid names: {[enumEntry.name for enumEntry in PS2ZoneIDs]}")
+			await p_interaction.response.send_message("Invalid continent name given!", ephemeral=True)
+			return
+		
+		try:
+			dateObj = datetime.fromtimestamp(p_timestamp, timezone.utc)
+		except ValueError:
+			await p_interaction.response.send_message("Invalid timestamp given!", ephemeral=True)
+			return
+
+		BUPrint.Info(f"Manually setting {p_continentName}...")
+
+		for continent in self.GetContinentsAsArray(False):
+			if continent.ps2Zone.name == p_continentName:
+				continent.SetLocked(p_isLocked, dateObj)
+
+				await p_interaction.response.send_message(f"{continent.ps2Zone.name} updated!", ephemeral=True)
+
+		
+
+	@CommandSetContinentStatus.autocomplete("p_continentName")
+	async def AutoCompleteContinentName(self, p_interaction:Interaction, p_typedStr:str):
+		"""# Auto Complete: Continent Name
+
+		Autocomplete function for CommandSetContinentStatus.
+		"""
+		validOptions = [zoneEnum.name for zoneEnum in PS2ZoneIDs]
+		returnOpts = []
+
+		if p_typedStr == "":
+			for contName in validOptions:
+				if contName != PS2ZoneIDs.allIDs.name:
+					returnOpts.append(Choice(name=contName, value=contName))
+
+		else:
+			for contName in validOptions:
+				if contName.lower().__contains__(p_typedStr):
+					returnOpts.append(Choice(name=contName, value=contName))
+
+		return returnOpts
+
 
 
 
@@ -552,3 +616,56 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		return True
 
 
+	def LoadContinentData(self):
+		"""# Load Continent Data
+		Sets the continent objects with saved data from file.
+		"""
+		BUPrint.Info("Loading continent data from file...")
+		
+		contFiles = FilesAndFolders.GetFiles(Directories.tempDir, ".cont")
+
+		for continentDataFilepath in contFiles:
+			try:
+				BUPrint.Debug(f"	> Unpickling: {continentDataFilepath}")
+				with open(f"{Directories.tempDir}{continentDataFilepath}", "rb") as continentDataFile:
+					continentData:ContinentStatus = pickle.load(continentDataFile)
+			
+
+			except pickle.UnpicklingError as vError:
+				BUPrint.LogErrorExc("Invalid object passed to load.", vError)
+				break
+
+			except pickle.PickleError:
+				BUPrint.LogError("Unable to load continent data", "PICKLE ERROR")
+				break
+			
+
+			for continent in self.GetContinentsAsArray(False):
+				if continent.ps2Zone == continentData.ps2Zone:
+					BUPrint.Info(f"	> Setting {continent.ps2Zone.name} status")
+					continent.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+
+
+
+	def SaveContinentData(self):
+		"""# Save Continent Data
+		Saves the continent objects data to file.
+		"""
+		BUPrint.Info("Saving continent data to file...")
+		
+		continents = self.GetContinentsAsArray()
+
+		for continent in continents:
+			try:
+				BUPrint.Debug(f"	> Pickling: {continent.ps2Zone.name}")
+				filePath = f"{Directories.tempDir}{continent.ps2Zone.name}.cont"
+				with open(filePath, "wb") as vFile:
+					pickle.dump(continent, vFile, BotSettings.pickleProtocol)
+
+			except pickle.PicklingError as vError:
+				BUPrint.LogErrorExc("Invalid object passed to dump.", vError)
+				break
+
+			except pickle.PickleError:
+				BUPrint.LogError("Unable to save continent data", "PICKLE ERROR")
+				break
