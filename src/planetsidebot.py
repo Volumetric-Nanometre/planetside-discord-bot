@@ -139,6 +139,7 @@ class Bot(commands.Bot):
         if vAdminChan != None:
             await vAdminChan.send("**Bot shutting down.**")
 
+        # Ensure temp cleanup happens first: any files saved to temp after this are going to be used on next startup.
         BUPrint.Info("Bot shutting down. Performing cleanup...")
         botUtils.FilesAndFolders.CleanupTemp()
 
@@ -164,6 +165,10 @@ class Bot(commands.Bot):
         if settings.BotSettings.botFeatures.continentTracker:
             BUPrint.Info("	> Closing continent tracker client")
             await self.vcontTrackerClient.close()
+
+            if settings.ContinentTrack.bSaveOnShutdown:
+                self.contTrackerCog.SaveContinentData()
+                
 
 
         BUPrint.Info("	> Closing bot connections")

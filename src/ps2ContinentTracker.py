@@ -13,7 +13,7 @@ from botUtils import BotPrinter as BUPrint, GetDiscordTime, UserHasCommandPerms,
 from botData.utilityData import PS2ZoneIDs, PS2WarpgateIDs, PS2ContMessageType
 from discord.ext.commands import GroupCog, Bot
 from discord.ext import tasks
-from discord.app_commands import command
+from discord.app_commands import command, rename, Choice
 from discord import Interaction, Embed
 from auraxium.event import EventClient, ContinentLock, Trigger, FacilityControl
 from auraxium.ps2 import Zone, MapRegion, World, Outfit
@@ -43,6 +43,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		super().__init__()
 		BUPrint.Info("COG: ContinentTracker loaded.")
 
+		if ContinentTrack.bSaveOnShutdown:
+			BUPrint.Info("	> Loading saved continent data")
+			self.LoadContinentData()
+
+
 
 	@command(name="details", description="Posts a message of all continent statuses.")
 	async def GetOldestContinentLock(self, p_interaction:Interaction):
@@ -67,6 +72,66 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		await self.ReconnectClient()
 
 		await p_interaction.edit_original_response(content="Continent Tracker reconnected")
+
+
+
+	@command(name="set", description="Manually sets the status of a continent.")
+	@rename(p_continentName="continent", p_isLocked="locked", p_timestamp="timestamp")
+	async def CommandSetContinentStatus(self, p_interaction:Interaction, p_continentName:str, p_isLocked:bool, p_timestamp:int):
+		"""# Command: set Continent Status
+		Command related fuction to set a continents status.
+
+		Manually sets the continent status and its time stamp.
+
+		Not to be confused with `SetLocked`.  
+		This function is soley for slash command and will call SetLocked.
+		"""
+		if not await UserHasCommandPerms(p_interaction.user, (CommandLimit.continentTrackerAdmin), p_interaction):
+			return
+
+
+		if p_continentName not in [enumEntry.name for enumEntry in PS2ZoneIDs]:
+			BUPrint.Debug(f"Valid names: {[enumEntry.name for enumEntry in PS2ZoneIDs]}")
+			await p_interaction.response.send_message("Invalid continent name given!", ephemeral=True)
+			return
+		
+		try:
+			dateObj = datetime.fromtimestamp(p_timestamp, timezone.utc)
+		except ValueError:
+			await p_interaction.response.send_message("Invalid timestamp given!", ephemeral=True)
+			return
+
+		BUPrint.Info(f"Manually setting {p_continentName}...")
+
+		for continent in self.GetContinentsAsArray(False):
+			if continent.ps2Zone.name == p_continentName:
+				continent.SetLocked(p_isLocked, dateObj)
+
+				await p_interaction.response.send_message(f"{continent.ps2Zone.name} updated!", ephemeral=True)
+
+		
+
+	@CommandSetContinentStatus.autocomplete("p_continentName")
+	async def AutoCompleteContinentName(self, p_interaction:Interaction, p_typedStr:str):
+		"""# Auto Complete: Continent Name
+
+		Autocomplete function for CommandSetContinentStatus.
+		"""
+		validOptions = [zoneEnum.name for zoneEnum in PS2ZoneIDs]
+		returnOpts = []
+
+		if p_typedStr == "":
+			for contName in validOptions:
+				if contName != PS2ZoneIDs.allIDs.name:
+					returnOpts.append(Choice(name=contName, value=contName))
+
+		else:
+			for contName in validOptions:
+				if contName.lower().__contains__(p_typedStr):
+					returnOpts.append(Choice(name=contName, value=contName))
+
+		return returnOpts
+
 
 
 
@@ -559,40 +624,46 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		
 		contFiles = FilesAndFolders.GetFiles(Directories.tempDir, ".cont")
 
-		for continentDataFile in contFiles:
+		for continentDataFilepath in contFiles:
 			try:
-				BUPrint.Debug(f"	> Unpickling: {continentDataFile}")
-				continentData:ContinentStatus = pickle.load(continentDataFile)
+				BUPrint.Debug(f"	> Unpickling: {continentDataFilepath}")
+				with open(f"{Directories.tempDir}{continentDataFilepath}", "rb") as continentDataFile:
+					continentData:ContinentStatus = pickle.load(continentDataFile)
 			
 
-			except pickle.PicklingError as vError:
-				BUPrint.LogErrorExc("Invalid object passed to dump.", vError)
+			except pickle.UnpicklingError as vError:
+				BUPrint.LogErrorExc("Invalid object passed to load.", vError)
 				break
 
 			except pickle.PickleError:
-				BUPrint.LogError("Unable to save continent data", "PICKLE ERROR")
+				BUPrint.LogError("Unable to load continent data", "PICKLE ERROR")
 				break
 			
 
-			if continentData.ps2Zone == PS2ZoneIDs.Amerish:
-				BUPrint.Info("	> Setting AMERISH status")
-				self.amerishStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+			for continent in self.GetContinentsAsArray(False):
+				if continent.ps2Zone == continentData.ps2Zone:
+					BUPrint.Info(f"	> Setting {continent.ps2Zone.name} status")
+					continent.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
 
-			if continentData.ps2Zone == PS2ZoneIDs.Esamir:
-				BUPrint.Info("	> Setting ESAMIR status")
-				self.esamirStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+			# if continentData.ps2Zone == PS2ZoneIDs.Amerish:
+			# 	BUPrint.Info("	> Setting AMERISH status")
+			# 	self.amerishStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
 
-			if continentData.ps2Zone == PS2ZoneIDs.Hossin:
-				BUPrint.Info("	> Setting HOSSIN status")
-				self.hossinStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+			# if continentData.ps2Zone == PS2ZoneIDs.Esamir:
+			# 	BUPrint.Info("	> Setting ESAMIR status")
+			# 	self.esamirStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
 
-			if continentData.ps2Zone == PS2ZoneIDs.Indar:
-				BUPrint.Info("	> Setting INDAR status")
-				self.indarStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+			# if continentData.ps2Zone == PS2ZoneIDs.Hossin:
+			# 	BUPrint.Info("	> Setting HOSSIN status")
+			# 	self.hossinStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
 
-			if continentData.ps2Zone == PS2ZoneIDs.Oshur:
-				BUPrint.Info("	> Setting OSHUR status")
-				self.indarStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+			# if continentData.ps2Zone == PS2ZoneIDs.Indar:
+			# 	BUPrint.Info("	> Setting INDAR status")
+			# 	self.indarStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
+
+			# if continentData.ps2Zone == PS2ZoneIDs.Oshur:
+			# 	BUPrint.Info("	> Setting OSHUR status")
+			# 	self.indarStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
 
 
 
@@ -607,7 +678,9 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		for continent in continents:
 			try:
 				BUPrint.Debug(f"	> Pickling: {continent.ps2Zone.name}")
-				pickle.dump(continent, f"{Directories.tempDir}{continent.ps2Zone.name}.cont", BotSettings.pickleProtocol)
+				filePath = f"{Directories.tempDir}{continent.ps2Zone.name}.cont"
+				with open(filePath, "wb") as vFile:
+					pickle.dump(continent, vFile, BotSettings.pickleProtocol)
 
 			except pickle.PicklingError as vError:
 				BUPrint.LogErrorExc("Invalid object passed to dump.", vError)
