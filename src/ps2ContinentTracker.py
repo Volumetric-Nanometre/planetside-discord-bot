@@ -645,26 +645,6 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 					BUPrint.Info(f"	> Setting {continent.ps2Zone.name} status")
 					continent.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
 
-			# if continentData.ps2Zone == PS2ZoneIDs.Amerish:
-			# 	BUPrint.Info("	> Setting AMERISH status")
-			# 	self.amerishStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
-
-			# if continentData.ps2Zone == PS2ZoneIDs.Esamir:
-			# 	BUPrint.Info("	> Setting ESAMIR status")
-			# 	self.esamirStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
-
-			# if continentData.ps2Zone == PS2ZoneIDs.Hossin:
-			# 	BUPrint.Info("	> Setting HOSSIN status")
-			# 	self.hossinStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
-
-			# if continentData.ps2Zone == PS2ZoneIDs.Indar:
-			# 	BUPrint.Info("	> Setting INDAR status")
-			# 	self.indarStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
-
-			# if continentData.ps2Zone == PS2ZoneIDs.Oshur:
-			# 	BUPrint.Info("	> Setting OSHUR status")
-			# 	self.indarStatus.SetLocked(continentData.bIsLocked, continentData.lastEventTime)
-
 
 
 	def SaveContinentData(self):
