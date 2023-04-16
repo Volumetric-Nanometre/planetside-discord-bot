@@ -47,6 +47,9 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			BUPrint.Info("	> Loading saved continent data")
 			self.LoadContinentData()
 
+		BUPrint.Debug("	> Starting auto reconnect task")
+		self.ReconnectClient.start()
+
 
 
 	@command(name="details", description="Posts a message of all continent statuses.")

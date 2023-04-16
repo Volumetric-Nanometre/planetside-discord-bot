@@ -36,7 +36,6 @@ class Bot(commands.Bot):
 
         self.vGuildObj: discord.Guild
         self.vOpsManager = opsManager.OperationManager()
-        self.vcontTrackerClient = None
         self.contTrackerCog: ContinentTrackerCog = None
 
     async def setup_hook(self):
@@ -85,7 +84,6 @@ class Bot(commands.Bot):
         """
         if settings.BotSettings.botFeatures.continentTracker:
             self.contTrackerCog = ContinentTrackerCog(self)
-            self.vcontTrackerClient = self.contTrackerCog.auraxClient
             await self.contTrackerCog.CreateTriggers()
             await self.add_cog(self.contTrackerCog)
 
@@ -164,7 +162,8 @@ class Bot(commands.Bot):
 
         if settings.BotSettings.botFeatures.continentTracker:
             BUPrint.Info("	> Closing continent tracker client")
-            await self.vcontTrackerClient.close()
+            await self.contTrackerCog.auraxClient.close()
+            await self.contTrackerCog.ReconnectClient.stop()
 
             if settings.ContinentTrack.bSaveOnShutdown:
                 self.contTrackerCog.SaveContinentData()
