@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import Enum, IntEnum
 from discord import Member, Message, Guild
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -87,7 +87,7 @@ class UserSettings:
 		return vStr
 
 
-class EntryRetention(Enum):
+class EntryRetention(IntEnum):
 	"""# ENTRY RETENTION
 	Enum for the entry load setting.
 	- `always loaded` Entries are always loaded in memory.
@@ -150,7 +150,7 @@ class UserInboxItem:
 
 
 
-class LibraryViewPage(Enum):
+class LibraryViewPage(IntEnum):
 	"""
 	# LIBRARY VIEW: PAGE
 	Enum to mark the current page being viewed.
@@ -248,7 +248,7 @@ class NewUserData:
 
 	############################################################################
 # OP COMMANDER
-class CommanderStatus(Enum):
+class CommanderStatus(IntEnum):
 	"""
 	# COMMANDER STATUS
 	Enum to contain the status of a commander.  
@@ -272,7 +272,7 @@ class CommanderStatus(Enum):
 
 
 
-class PS2EventAttended(Enum):
+class PS2EventAttended(IntEnum):
 	"""# PS2 EVENT ATTENDED:
 	An enum with values to denote when a participant of an event is marked attended.
 	This is used synonymously with the UserLibrary & session saving.
@@ -552,22 +552,25 @@ class ForFunVehicleDeath:
 	Small data object for vehicle death for-fun events: 
 	Used to ensure only one event is broadcast since the DEATH trigger will be called for each participants death.
 	"""
-	# Killer/Driver Vehicle ID: Probably redundant, but here anyway.
 	driverVehicleID:int = -1
-	# Killer/Driver Character ID: PS2 Character ID of the killer.
+	"""Killer/Driver Vehicle ID: Probably redundant, but here anyway."""
+	
 	driverCharID: int = -1
+	"""Killer/Driver Character ID: PS2 Character ID of the killer."""
 
-	# For discord purposes: Killer and Killed mentions.
 	driverMention:str = ""
+	"""the discord mention of the driver."""
+
 	killedMentions:str = ""
+	"""A compiled string of mention(s) of killed players."""
 
-	# Message: the randomly message chosen randomly by the OpsEventTracker
 	message:str = ""
+	"""The randomly chosen message."""
 
-	# Has Set Schedule Task: Should be set to true on first call, creates a delayed task on the Commander to post a message.
-	# Delay is to ensure all (or most of) the users involved has their death event register.
 	bHasSetSchedTask = False
-
+	"""	# Has Set Schedule Task: 
+	Should be set to true on first call, creates a delayed task on the Commander to post a message.
+	Delay is to ensure all (or most of) the users involved has their death event register."""
 
 
 #############################################################
@@ -643,7 +646,7 @@ class SchedulerOpInfo:
 	bCanPost:bool = False
 
 
-class OpsStatus(Enum):
+class OpsStatus(IntEnum):
 	"""
 	# OPS STATUS
 	
@@ -694,10 +697,27 @@ class OpRoleData:
 	
 	Data pertaining to an individual role on an Operation
 	"""
-	players : list = field(default_factory=list) #User IDs
+	players : list[int] = field(default_factory=list) #User IDs
+	"""List of player IDs assigned to this role."""
+
 	roleName : str = ""
+	"""The role name assigned to this role.
+
+		It is NOT the compiled name that includes the assigned/max/icon. """
+
 	roleIcon : str = ""
+	"""String for the role's icon.
+	
+	NOTE If not set, it must be `-`"""
+
 	maxPositions : int = 0
+	"""Integer for the max amount of signups allowed for the role.
+	
+	### NOTE:
+	 - Values above 0 denote a maximum value.
+	 - Value of 0 disables the role.
+	 - Values below 0 denote unlimited signup.
+	"""
 
 	def GetRoleName(self):
 		"""
@@ -719,6 +739,26 @@ class OpRoleData:
 			vRolename += f" ({len(self.players)})"
 
 		return vRolename
+	
+
+
+	def __repr__(self) -> str:
+		outputStr = f"{self.roleName} "
+		
+		if self.maxPositions == 0:
+			outputStr += "[DISABLED]"
+
+		elif self.maxPositions > 0:
+			outputStr += f"[{len(self.players)}/"
+			outputStr += f"{self.maxPositions}] "
+
+		else:
+			outputStr += f"[{len(self.players)}/"
+			outputStr += f"UNLIMITED] "
+
+
+		if self.roleIcon != "-":
+			outputStr += f"[{self.roleIcon}]\n"
 
 
 
@@ -731,31 +771,59 @@ class OperationData:
 	"""
 
 	# Op Details:
-	roles : list[OpRoleData] = field(default_factory=list) # List of OpRoleData objects
-	reserves : list = field(default_factory=list) # Since there's no need for special data for reserves, they just have a simple UserID list.
+	roles : list[OpRoleData] = field(default_factory=list)
+	"""List of `OpRoleData` objects for each role assigned to the operation."""
+
+	reserves : list = field(default_factory=list)
+	"""List of user IDs who signed up or got delegated reserve."""
+
 	name : str = ""
+	"""The name of the operation."""
+
 	fileName: str = ""
+	"""The filename of the operation.  This includes a date & time and is set by the `GenerateFileName` function."""
+
 	date : datetime = datetime.now()
+	"""The date (and time) the operation starts."""
+
 	description : str = ""
+	"""The description of the operation."""
+
 	customMessage : str = ""
+	"""An optional custom message that differs from the normal description, that may be appended at posting."""
+
 	managedBy:str = ""
 	"""# Managed By
 	The user who is managing the event.
 	Can be either an Int value or the users name.
 	
 	Must always be set as a String, even if using an int value."""
-	pingables : list[str] = field(default_factory=list) # roles to mention/ping in relation to this ops.
+	
+	pingables : list[str] = field(default_factory=list)
+	"""Pingables: a list of roles that are mentioned in the signup & commander notifications."""
 
 	# Backend variables
-	messageID : str = "" 
+	messageID : str = ""
+	"""The id of the signup message.  used to find, edit and update the signup post."""
+
 	status : OpsStatus = OpsStatus.open
+	"""`OpsStatus` for the operation.  Defaults to `open` on creation."""
+
 	targetChannel: str = ""
+	"""Target channel: string name for the channel the signup is posted to."""
+
 	options: OperationOptions = OperationOptions()
+	"""The `OperationOptions` for the operation, created with the defaults."""
+
 	jumpURL: str = ""
+	"""Jump URL: the url of the signup message, held here to avoid repetitious fetching."""
 
 	# Factory fields
 	voiceChannels: list[str] = field(default_factory=list)
+	"""List of custom voice channel names."""
+
 	arguments: list[str] = field(default_factory=list)
+	"""Arguments: a list of string arguments used to modify the options outside of the UI buttons."""
 
 
 	def GenerateFileName(self):
@@ -995,8 +1063,7 @@ class OperationData:
 
 
 	def __repr__(self) -> str:
-		vOutputStr = "	OPERATION DATA\n"
-		vOutputStr += f"	-> Name|FileName: {self.name} | {self.fileName}\n"
+		vOutputStr = f"Operation Data for: {self.name} ({self.fileName})/n"
 		vOutputStr += f"	-> Date: {self.date}\n"
 		vOutputStr += f"	-> Description: {self.description}\n"
 		vOutputStr += f"	-> Additional Info: {self.customMessage}\n"
@@ -1016,18 +1083,23 @@ class DefaultChannels:
 	# DEFAULT CHANNELS
 	Name of channels used during Operations.
 	"""
-	# Text chanels created for every Op
 	textChannels:list[str]
-	# Op Commander Channel: Name of the channel used for the Ops Commander
+	"""Text channels created for every op.  These do not include the notification & commander channels!"""
+
 	opCommander:str
-	# Notification Channel: Name of channel used to send op auto alerts and interactive debrief messages.
+	"""NAME of the commander channel."""
+
 	notifChannel:str
-	# Standby channel- the channel(name) users are moved into if they are connected during Ops soft start
+	"""NAME of the notification channel."""
+
 	standByChannel:str
-	# Persistent Voice channels are channels that are ALWAYS created for every operation
+	"""NAME of the standby channel."""
+
 	persistentVoice:list[str]
-	# If voice channels are not specified in the ops data, these are used instead
+	"""List of voice channels that are created for EVERY operation, regardless of whether custom voice channels are set or not."""
+
 	voiceChannels:list[str]
+	"""Default voice channels:  List of voice channels created when custom voice channels are not specified."""
 
 	def __repr__(self) -> str:
 		vString = "\n"
