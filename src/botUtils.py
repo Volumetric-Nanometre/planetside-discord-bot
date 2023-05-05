@@ -77,10 +77,15 @@ class BotPrinter():
 
 # Used to clear up repeating code
 def GetPOSIXTime( pDate: datetime.datetime ):
-	return pDate.strftime("%s")	
+	"""# Get POSSIX Time
+	Returns a POSSIX timestamp from a provided datetime object.."""
 
-# Returns a specially formatted time for discord messages, defaults to dynamic type: "in X days. In 30 minutes" etc...
+	return pDate.strftime("%s")
+
 def GetDiscordTime(pDate: datetime.datetime, pFormat: UtilityData.DateFormat = UtilityData.DateFormat.Dynamic):
+	"""# Get Discord Time:
+	
+	Returns a specially formatted time for discord messages, defaults to dynamic type: "in X days. In 30 minutes" etc..."""
 	return f"<t:{GetPOSIXTime(pDate)}{pFormat.value}>"
 
 
@@ -203,13 +208,16 @@ class FilesAndFolders():
 
 
 	def IsLocked(p_opLockFile):
-		"""
-		IS LOCKED:
+		"""# IS LOCKED:
 		Checks if the file path given has an associated lock file. to prevent concurrent load/saving.
 
-		RETURNS: 
-		TRUE if a file is locked.
-		False if a file is lockable.
+		## NOTE 
+		- Must be given the path to the lock file, and not the file itself.
+		- Use the `GetLockFilePath`/`Generic` functions to get this path. 
+
+		## RETURNS: 
+		- TRUE if a file is locked.
+		- False if a file is lockable.
 		"""
 		# lockFile = f"{FilesAndFolders.GetOpsFolder}{p_opFileName}{settings.lockFileAffix}"
 		if (os.path.exists( p_opLockFile )):
