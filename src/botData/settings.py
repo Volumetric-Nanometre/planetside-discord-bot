@@ -253,6 +253,25 @@ class Roles:
 	"""Add Roles: Games 3:  Roles listed in the "Games 3" selector for the /roles commands."""
 
 
+@dataclass(frozen=True)
+class SelfAssignableRoles:
+	"""# Self Assignable Roles:
+	Settings related to the self assignable role feature.  
+	If these are changed, 
+	"""
+
+	fileNameAffix = "selfAssignableRoles.txt"
+	"""# FilenameAffix: 
+	
+	The file name where the roles are saved to.
+	This is affixed to two different files for tdkd and game roles."""
+
+
+	deliminator = ":"
+	"""The deliminator within the saved file to separate name and value."""
+
+
+
 
 class CommandRestrictionLevels(Enum):
 	"""
@@ -392,6 +411,12 @@ class Channels:
 	"""# Schedule ID:
 	ID of the schedule text channel"""
 
+
+	otherGameCatID = 1080170944791855124
+	"""Other games category OD
+	ID of the category that contains other games.
+
+	Used in the event of adding a new user assignable role where the channel is not specified."""
 
 
 
@@ -879,6 +904,8 @@ class Directories:
 
 	Directories used by the bot.
 
+	Includes settings pertaining to file management/retention within these directories.
+
 	If changing the values, make sure slashes are present when needed.
 	"""
 
@@ -906,6 +933,10 @@ class Directories:
 	tempDir = f"{prefixDir}temp/"
 	"""# Temp Directory:
 	Directory of a temporary folder which is periodically cleaned out."""
+
+	runtimeConfigurable = f"{prefixDir}runtime/"
+	"""# Runtime Configurable:
+	Directory for files which can be edited during runtime for bot functionality."""
 
 	lockFileAffix = ".LOCK"
 	"""# Lock File Affix:
