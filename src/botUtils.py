@@ -26,6 +26,11 @@ class Singleton(type):
 		return self._instances[self]
 
 
+emptyStrings = [None, "", " ", "_"]
+"""# Empty String:
+A list of possible 'empty' strings."""
+
+
 class BotPrinter():
 	"""
 	BOT PRINTER

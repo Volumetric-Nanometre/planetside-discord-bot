@@ -9,7 +9,7 @@ from os import path
 import botData.settings 
 import botUtils
 from botUtils import BotPrinter as BUPrint
-from botUtils import UserHasCommandPerms
+from botUtils import UserHasCommandPerms, emptyStrings
 from botData.settings import CommandRestrictionLevels, SelfAssignableRoles, Directories
 
 
@@ -81,13 +81,15 @@ class RoleManager(discord.ui.View):
 
 
 		selector = TDKDRoles()
-		self.selectors.append(selector)
-		self.add_item( selector )
+		if bool(len(selector.options)):
+			self.selectors.append(selector)
+			self.add_item( selector )
 
 
 		for sublist in UserAssignableRoleManager().GetGameRoles():
 			if bool(len(sublist)):
-				selector = self.add_item(GameRoles( sublist ))
+				selector = GameRoles( sublist )
+				self.add_item( selector )
 				self.selectors.append(selector)
 
 		self.bAddRoles = pIsAdding
@@ -114,7 +116,7 @@ class RoleManager(discord.ui.View):
 		# This will be used later to check and remove unassigned roles.
 		vOptionList = UserAssignableRoleManager().tdkdRoles + UserAssignableRoleManager().gameRoles
 		vUserRoleIDs: list[int] = [int(role.value) for role in vOptionList]
-		vUserSelectedRoles = [int(selected.values) for selected in self.selectors]
+		vUserSelectedRoles = [value for selector in self.selectors for value in selector.values]
 
 		BUPrint.Debug(f"User Role ID List: {vUserRoleIDs}")
 		BUPrint.Debug(f"Selected Roles: {vUserSelectedRoles}")
@@ -157,7 +159,7 @@ class RoleSelection(discord.ui.Select):
 		await pInteraction.response.defer(ephemeral=True, thinking=False)
 
 ###
-# ADDING NEW ROLES : go to botData -> Settings -> class Roles
+# ADDING NEW ROLES : wait for the bot to create the two files, then either use the admin command or add them manually to the files.
 # 'max_values' should always equate to the maximum number of roles available.
 # Unless you wish for users to repeateldy run the command to add/remove roles. :p
 
@@ -234,7 +236,7 @@ class UserAssignableRoleManager():
 
 
 	
-	def AddNewRole(self, p_isTDKDRole:bool, p_roleName:str, p_roleID:str, p_emoji:str = ""):
+	def AddNewRole(self, p_isTDKDRole:bool, p_roleName:str, p_roleID:str, p_emoji:str = "", p_desc:str=""):
 		"""# Add New Role:
 		Function to add a new role and saves the modified file.
 
@@ -244,29 +246,42 @@ class UserAssignableRoleManager():
 		- `p_roleName` : Name of the displayed role/select item.
 		- `p_roleID` : ID of the self-assignable role.
 		- `p_emoji` : Optional emoji string.
+		- `p_desc` : Optional description.
+
+		Saves the roles after a successful add.
 		"""
 
-		BUPrint.Info(f"Adding new assignable role: {p_roleName} | {p_roleID} | {p_emoji}")
+		BUPrint.Info(f"Adding new assignable role: {p_roleName} | {p_roleID} | {p_emoji} | {p_desc}")
+
+
+		# Sanitise entries:
+		if p_desc == "":
+			p_desc = None
+
+		if p_emoji == "":
+			p_emoji = None
 
 		if p_isTDKDRole:
 			if len(self.tdkdRoles) == 25:
 				return False
 
-			if p_emoji != "":
-				self.tdkdRoles.append(discord.SelectOption(label=p_roleName, value=p_roleID, emoji=p_emoji))
-			else:
-				self.tdkdRoles.append(discord.SelectOption(label=p_roleName, value=p_roleID))
+
+			self.tdkdRoles.append(discord.SelectOption(label=p_roleName, value=p_roleID, 
+						emoji=p_emoji, 
+						description=p_desc
+						)
+			)
 
 
 		else:
 			if len(self.gameRoles) == 75:
 				return False
 
-			if p_emoji != "":
-				self.gameRoles.append(discord.SelectOption(label=p_roleName, value=p_roleID, emoji=p_emoji))
-			else:
-				self.gameRoles.append(discord.SelectOption(label=p_roleName, value=p_roleID))
-
+			self.gameRoles.append(discord.SelectOption(label=p_roleName, value=p_roleID, 
+						emoji=p_emoji, 
+						description=p_desc
+						)
+			)
 		
 		self.SaveRoles()
 
@@ -336,11 +351,24 @@ class UserAssignableRoleManager():
 		Takes all user assignable roles currently in the passed array and saves them to file.
 		"""
 		linesToWrite = []
-		try:
-			with open(p_filePath, "wb") as savedFile:
-				for role in p_array:
-					linesToWrite.append(f"{role.label}{SelfAssignableRoles.deliminator}{role.value}{SelfAssignableRoles.deliminator}{role.emoji}\n")
+		for role in p_array:
+			currentLine = f"{role.label}{SelfAssignableRoles.deliminator}{role.value}{SelfAssignableRoles.deliminator}"
 			
+			
+			if role.emoji == None or role.emoji == "":
+				currentLine += f"{SelfAssignableRoles.deliminator}"
+			else:
+				currentLine += f"{role.emoji}{SelfAssignableRoles.deliminator}"
+			
+			if role.description == None or role.description == "":
+				currentLine += f""
+			else:
+				currentLine += f"{role.description}"
+		
+			linesToWrite.append(f"{currentLine}")
+
+		try:
+			with open(p_filePath, "wt") as savedFile:
 				savedFile.writelines(linesToWrite)
 		
 		except OSError:
@@ -363,6 +391,14 @@ class UserAssignableRoleManager():
 			nameString = splitString[0]
 			valueString = splitString[1]
 			emojiString = splitString[2]
+			if emojiString in emptyStrings:
+				BUPrint.Debug("Emoji string not set.")
+				emojiString = None
+
+			descString = splitString[3]
+			if descString in emptyStrings:
+				BUPrint.Debug("Description string not set.")
+				descString = ""
 		
 		except IndexError:
 			return None
@@ -371,8 +407,4 @@ class UserAssignableRoleManager():
 			return None
 
 
-		if len(emojiString):	
-			return discord.SelectOption(label=nameString, value=valueString)
-				
-		else:
-			return discord.SelectOption(label=nameString, value=valueString, emoji=emojiString)
+		return discord.SelectOption(label=nameString, value=valueString, emoji=emojiString, description=descString)
