@@ -163,7 +163,7 @@ class Bot(commands.Bot):
         if settings.BotSettings.botFeatures.continentTracker:
             BUPrint.Info("	> Closing continent tracker client")
             await self.contTrackerCog.auraxClient.close()
-            await self.contTrackerCog.ReconnectClient.stop()
+            # await self.contTrackerCog.ReconnectClient.stop()
 
             if settings.ContinentTrack.bSaveOnShutdown:
                 self.contTrackerCog.SaveContinentData()

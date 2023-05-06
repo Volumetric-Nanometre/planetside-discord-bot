@@ -5,12 +5,12 @@ import discord.ext
 from discord.ext import commands
 import discord.utils
 import asyncio
-
+from os import path
 import botData.settings 
 import botUtils
 from botUtils import BotPrinter as BUPrint
-from botUtils import UserHasCommandPerms
-from botData.settings import CommandRestrictionLevels
+from botUtils import UserHasCommandPerms, emptyStrings
+from botData.settings import CommandRestrictionLevels, SelfAssignableRoles, Directories
 
 
 class UserRoles(commands.GroupCog, name="roles", description="Add or remove user-assignable roles"):
@@ -21,7 +21,10 @@ class UserRoles(commands.GroupCog, name="roles", description="Add or remove user
 	def __init__(self, p_bot):
 		super().__init__()
 		self.bot: commands.Bot = p_bot
+		UserAssignableRoleManager().LoadRoles()
+
 		BUPrint.Info("COG: User Roles loaded")
+
 
 
 
@@ -74,26 +77,24 @@ class RoleManager(discord.ui.View):
 		self.vUser = p_user
 		self.vGuild:discord.Guild 
 		self.vInteraction: discord.Interaction
-		self.lock = asyncio.Lock()
+		self.selectors:list[RoleSelection] = []
 
-		self.vTDKDRoles = TDKDRoles()
-		self.vGameRoles1 = GameRoles( botData.settings.Roles.addRoles_games1 )
-		self.vGameRoles2 = GameRoles( botData.settings.Roles.addRoles_games2 )
-		self.vGameRoles3 = GameRoles( botData.settings.Roles.addRoles_games3 )
+
+		selector = TDKDRoles()
+		if bool(len(selector.options)):
+			self.selectors.append(selector)
+			self.add_item( selector )
+
+
+		for sublist in UserAssignableRoleManager().GetGameRoles():
+			if bool(len(sublist)):
+				selector = GameRoles( sublist )
+				self.add_item( selector )
+				self.selectors.append(selector)
 
 		self.bAddRoles = pIsAdding
 		BUPrint.Debug(f"{p_user.name} is updating roles.  Adding new roles: {self.bAddRoles}")
 		
-		self.add_item(self.vTDKDRoles)
-		if len(self.vGameRoles1.options):
-			self.add_item(self.vGameRoles1)
-
-		if len(self.vGameRoles2.options):
-			self.add_item(self.vGameRoles2)
-
-		if len(self.vGameRoles3.options):
-			self.add_item(self.vGameRoles3)
-
 
 
 	@discord.ui.button(label="Update", style=discord.ButtonStyle.primary, row=4)
@@ -113,9 +114,9 @@ class RoleManager(discord.ui.View):
 
 		# Create a list of all the roles a user can self-assign.
 		# This will be used later to check and remove unassigned roles.
-		vOptionList = self.vTDKDRoles.options + self.vGameRoles1.options + self.vGameRoles2.options + self.vGameRoles3.options
+		vOptionList = UserAssignableRoleManager().tdkdRoles + UserAssignableRoleManager().gameRoles
 		vUserRoleIDs: list[int] = [int(role.value) for role in vOptionList]
-		vUserSelectedRoles = self.vTDKDRoles.values + self.vGameRoles1.values + self.vGameRoles2.values
+		vUserSelectedRoles = [value for selector in self.selectors for value in selector.values]
 
 		BUPrint.Debug(f"User Role ID List: {vUserRoleIDs}")
 		BUPrint.Debug(f"Selected Roles: {vUserSelectedRoles}")
@@ -158,18 +159,252 @@ class RoleSelection(discord.ui.Select):
 		await pInteraction.response.defer(ephemeral=True, thinking=False)
 
 ###
-# ADDING NEW ROLES : go to botData -> Settings -> class Roles
+# ADDING NEW ROLES : wait for the bot to create the two files, then either use the admin command or add them manually to the files.
 # 'max_values' should always equate to the maximum number of roles available.
 # Unless you wish for users to repeateldy run the command to add/remove roles. :p
 
 
 class TDKDRoles(RoleSelection):
 	def __init__(self):
-		vOptions = botData.settings.Roles.addRoles_TDKD
-
-		super().__init__(placeholder="TDKD/PS2 Notification roles", min_values=0, max_values=len(botData.settings.Roles.addRoles_TDKD), options=vOptions)
+		super().__init__(placeholder="TDKD/PS2 Notification roles", min_values=0, max_values=len(UserAssignableRoleManager().tdkdRoles), options=UserAssignableRoleManager.tdkdRoles)
 
 
 class GameRoles(RoleSelection):
 	def __init__(self, p_options:list):
 		super().__init__(placeholder="Other Games roles", min_values=0, max_values=len(p_options), options=p_options)
+
+
+
+class UserAssignableRoleManager():
+	"""#User Assignable Role Manager:
+	A class for self assignable roles that allow game roles to be added and removed at run-time.
+	"""
+
+	gameRoles:list[discord.SelectOption] = []
+	"""List of SelectOptions for GAME roles.
+	Set and specified within the saved file.
+	"""
+
+	tdkdRoles: list[discord.SelectOption] = []
+	"""List of selectOptions for TDKD/PS2 roles."""
+
+
+	tdkdFilePath = f"{Directories.runtimeConfigurable}tdkd_{SelfAssignableRoles.fileNameAffix}"
+	"""Filepath for the tdkd/ps2 roles."""
+	
+	gameFilePath = f"{Directories.runtimeConfigurable}games_{SelfAssignableRoles.fileNameAffix}"
+	"""File path for the game roles."""
+
+
+	def __init__(self) -> None:
+		if not path.exists(self.tdkdFilePath):
+			BUPrint.Info("TDKD roles file not found.  Creating empty file.")
+			self.WriteRolesToFile(self.tdkdFilePath, self.tdkdRoles)
+
+		if not path.exists(self.gameFilePath):
+			BUPrint.Info("Game roles file not found.  Creating empty file.")
+			self.WriteRolesToFile(self.gameFilePath, self.gameRoles)
+
+
+	def GetGameRoles(self) -> list[list]:
+		"""# Get Game Roles: 
+		
+		Returns a list of lists, containing selectOptions.
+		
+		Due to the limitation of 25 items per list, the results are split into lists of 25."""
+		returnList = []
+
+		currentList = []
+		indexCount = 0
+		for currentIndex in self.gameRoles:
+			if indexCount == 25:
+				currentList.append(currentIndex)
+				returnList.append(currentList)
+				
+				indexCount = 0
+				currentList = list()
+
+			else:
+				indexCount += 1
+				currentList.append(currentIndex)
+
+
+		if bool( len(currentList) ):
+			returnList.append(currentList)
+
+		return returnList
+
+
+	
+	def AddNewRole(self, p_isTDKDRole:bool, p_roleName:str, p_roleID:str, p_emoji:str = "", p_desc:str=""):
+		"""# Add New Role:
+		Function to add a new role and saves the modified file.
+
+		Returns FALSE if unable to add a new role (over limit)
+
+		### PARAMETERS
+		- `p_roleName` : Name of the displayed role/select item.
+		- `p_roleID` : ID of the self-assignable role.
+		- `p_emoji` : Optional emoji string.
+		- `p_desc` : Optional description.
+
+		Saves the roles after a successful add.
+		"""
+
+		BUPrint.Info(f"Adding new assignable role: {p_roleName} | {p_roleID} | {p_emoji} | {p_desc}")
+
+
+		# Sanitise entries:
+		if p_desc == "":
+			p_desc = None
+
+		if p_emoji == "":
+			p_emoji = None
+
+		if p_isTDKDRole:
+			if len(self.tdkdRoles) == 25:
+				return False
+
+
+			self.tdkdRoles.append(discord.SelectOption(label=p_roleName, value=p_roleID, 
+						emoji=p_emoji, 
+						description=p_desc
+						)
+			)
+
+
+		else:
+			if len(self.gameRoles) == 75:
+				return False
+
+			self.gameRoles.append(discord.SelectOption(label=p_roleName, value=p_roleID, 
+						emoji=p_emoji, 
+						description=p_desc
+						)
+			)
+		
+		self.SaveRoles()
+
+
+
+
+	def LoadRoles(self):
+		"""# Load Roles:
+		Loads roles from the files and assigns them to the respective variables.
+		"""
+		BUPrint.Info("Loading roles from file...")
+
+		self.ReadRolesFile(self.tdkdFilePath, self.tdkdRoles)
+
+		self.ReadRolesFile(self.gameFilePath, self.gameRoles)
+
+
+
+
+	def ReadRolesFile(self, p_filePath:str, p_roleArray:list) -> bool:
+		"""Read Roles File:
+		Loads and reads the role file given, then parses passed strings and sets the array with the new options.
+
+		Returns False if an error occurs.
+		"""
+		roleTextLines = ""
+		try:
+			with open(p_filePath, "rt") as openFile:
+				roleTextLines = openFile.readlines()
+		
+		except FileNotFoundError:
+			BUPrint.LogError(p_titleStr="File not found", p_string=f"Unable to load roles. (file: {p_filePath})")
+			return False
+
+		except OSError:
+			BUPrint.LogError(p_titleStr="Error reading file", p_string=f"Unable to load roles from {p_filePath}")
+			return False
+
+		if roleTextLines != None:
+			p_roleArray.clear()
+
+			for roleTxtLine in roleTextLines:
+				BUPrint.Debug(f"		-> {roleTxtLine.strip()}")
+				roleOption = self.GetRoleFromLine(roleTxtLine)
+
+				if roleOption != None:
+					p_roleArray.append( roleOption )
+
+		return True
+
+
+
+	def SaveRoles(self):
+		"""# Save Roles:
+		Convenience function:
+		Saves all the roles to file using `WriteRoleToFile`"""
+
+		BUPrint.Info("Saving modified user assignable roles to file...")
+		self.WriteRolesToFile(self.tdkdFilePath, self.tdkdRoles)
+		self.WriteRolesToFile(self.gameFilePath, self.gameRoles)
+
+
+
+	def WriteRolesToFile(self, p_filePath:str, p_array:list[discord.SelectOption]):
+		"""# Write Roles to File:
+		
+		Takes all user assignable roles currently in the passed array and saves them to file.
+		"""
+		linesToWrite = []
+		for role in p_array:
+			currentLine = f"{role.label}{SelfAssignableRoles.deliminator}{role.value}{SelfAssignableRoles.deliminator}"
+			
+			
+			if role.emoji == None or role.emoji == "":
+				currentLine += f"{SelfAssignableRoles.deliminator}"
+			else:
+				currentLine += f"{role.emoji}{SelfAssignableRoles.deliminator}"
+			
+			if role.description == None or role.description == "":
+				currentLine += f""
+			else:
+				currentLine += f"{role.description}"
+		
+			linesToWrite.append(f"{currentLine}")
+
+		try:
+			with open(p_filePath, "wt") as savedFile:
+				savedFile.writelines(linesToWrite)
+		
+		except OSError:
+			BUPrint.LogError(p_titleStr="Failed to write file", p_string=f"{p_filePath}")
+
+
+
+	def GetRoleFromLine(self, p_string:str) -> discord.SelectOption:
+		"""#Get Role from Line
+		Convenience function to create and return a SelectOption from a string.
+		
+		returns NONE if:
+		 - Invalid value is present.
+		 - Index error occurs (incorrectly manually adjusted file)
+		"""
+
+		splitString = p_string.split(SelfAssignableRoles.deliminator)
+
+		try:
+			nameString = splitString[0]
+			valueString = splitString[1]
+			emojiString = splitString[2]
+			if emojiString in emptyStrings:
+				BUPrint.Debug("Emoji string not set.")
+				emojiString = None
+
+			descString = splitString[3]
+			if descString in emptyStrings:
+				BUPrint.Debug("Description string not set.")
+				descString = ""
+		
+		except IndexError:
+			return None
+		
+		if not valueString.isnumeric():
+			return None
+
+
+		return discord.SelectOption(label=nameString, value=valueString, emoji=emojiString, description=descString)

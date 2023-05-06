@@ -3,7 +3,7 @@ import sys
 import datetime
 import time
 from sys import stderr
-from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib, CommandLimit, Roles, Channels, ContinentTrack
+from botData.settings import BotSettings, CommandRestrictionLevels, Directories, Messages, Commander, NewUsers, SignUps, UserLib, CommandLimit, Roles, SelfAssignableRoles, Channels, ContinentTrack
 from botData.dataObjects import EntryRetention
 import botData.utilityData as UtilityData
 import traceback
@@ -24,6 +24,11 @@ class Singleton(type):
 		if self not in self._instances:
 			self._instances[self] = super().__call__(*arguments, **keywords)
 		return self._instances[self]
+
+
+emptyStrings = [None, "", " ", "_"]
+"""# Empty String:
+A list of possible 'empty' strings."""
 
 
 class BotPrinter():
@@ -77,10 +82,15 @@ class BotPrinter():
 
 # Used to clear up repeating code
 def GetPOSIXTime( pDate: datetime.datetime ):
-	return pDate.strftime("%s")	
+	"""# Get POSSIX Time
+	Returns a POSSIX timestamp from a provided datetime object.."""
 
-# Returns a specially formatted time for discord messages, defaults to dynamic type: "in X days. In 30 minutes" etc...
+	return pDate.strftime("%s")
+
 def GetDiscordTime(pDate: datetime.datetime, pFormat: UtilityData.DateFormat = UtilityData.DateFormat.Dynamic):
+	"""# Get Discord Time:
+	
+	Returns a specially formatted time for discord messages, defaults to dynamic type: "in X days. In 30 minutes" etc..."""
 	return f"<t:{GetPOSIXTime(pDate)}{pFormat.value}>"
 
 
@@ -91,10 +101,13 @@ class FilesAndFolders():
 
 		Create the folders the bot uses.
 		"""
-		FilesAndFolders.GenerateDefaultOpsFolder()
-		FilesAndFolders.GenerateLiveOpsFolder()
-		FilesAndFolders.GenerateUserLibraryFolder()
-		FilesAndFolders.GenerateTempFolder()
+		FilesAndFolders.CreateFolderPath(Directories.savedDefaultsDir)
+		FilesAndFolders.CreateFolderPath(Directories.liveOpsDir)
+		FilesAndFolders.CreateFolderPath(Directories.userLibrary)
+		FilesAndFolders.CreateFolderPath(Directories.userLibraryRecruits)
+		FilesAndFolders.CreateFolderPath(Directories.tempDir)
+		FilesAndFolders.CreateFolderPath(Directories.runtimeConfigurable)
+
 
 	def CleanupTemp():
 		"""
@@ -132,48 +145,18 @@ class FilesAndFolders():
 		return vDataFiles
 
 
-	def GenerateDefaultOpsFolder():
-		BotPrinter.Debug("Creating default ops folder (if non existant)")
-		if (not os.path.exists( Directories.savedDefaultsDir ) ):
+
+	def CreateFolderPath(p_folderPath:str):
+		"""# Create Folder Path
+		Creates the specified folder(s) if it doesn't already exist."""
+		BotPrinter.Debug(f"Creating folder {p_folderPath} (if non existant).")
+		if (not os.path.exists( p_folderPath ) ):
 			try:
-				os.makedirs(f"{ Directories.savedDefaultsDir }")
+				os.makedirs(f"{ p_folderPath }")
+
 			except OSError:
-				BotPrinter.LogError("Failed to create folder for default Ops data!")
+				BotPrinter.LogError(p_titleStr="Failed to create folder(s)!", p_string=p_folderPath)
 
-
-	def GenerateLiveOpsFolder():
-		BotPrinter.Debug("Creating live ops folder (if non existant)")
-		if (not os.path.exists( Directories.liveOpsDir ) ):
-			try:
-				os.makedirs(f"{ Directories.liveOpsDir }")
-			except OSError:
-				BotPrinter.LogError("Failed to create folder for Live Op data!")
-
-
-	def GenerateUserLibraryFolder():
-		BotPrinter.Debug("Creating User Library folder (if non existant)")
-		if (not os.path.exists( Directories.userLibrary ) ):
-			try:
-				os.makedirs(Directories.userLibrary)
-			except OSError:
-				BotPrinter.LogError("Failed to create folder for User Library!")
-
-		BotPrinter.Debug("Creating User Library: Recruits folder (if non existant)")
-		if (not os.path.exists( Directories.userLibraryRecruits ) ):
-			try:
-				os.makedirs(Directories.userLibraryRecruits)
-			except OSError:
-				BotPrinter.LogError("Failed to create folder for User Library!")
-
-
-
-	def GenerateTempFolder():
-		BotPrinter.Debug("Creating Temporary folder (if non existant).")
-		if (not os.path.exists( Directories.tempDir ) ):
-			try:
-				os.makedirs(f"{ Directories.tempDir }")
-			except OSError:
-				BotPrinter.LogError("Failed to create temporary folder!")
 
 
 	def GetOpFullPath(p_opFileName):
@@ -203,13 +186,16 @@ class FilesAndFolders():
 
 
 	def IsLocked(p_opLockFile):
-		"""
-		IS LOCKED:
+		"""# IS LOCKED:
 		Checks if the file path given has an associated lock file. to prevent concurrent load/saving.
 
-		RETURNS: 
-		TRUE if a file is locked.
-		False if a file is lockable.
+		## NOTE 
+		- Must be given the path to the lock file, and not the file itself.
+		- Use the `GetLockFilePath`/`Generic` functions to get this path. 
+
+		## RETURNS: 
+		- TRUE if a file is locked.
+		- False if a file is lockable.
 		"""
 		# lockFile = f"{FilesAndFolders.GetOpsFolder}{p_opFileName}{settings.lockFileAffix}"
 		if (os.path.exists( p_opLockFile )):
@@ -609,6 +595,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> DefaultsDir:	{Directories.savedDefaultsDir}\n" 
 	vString += f"	> UserLib Dir:	{Directories.userLibrary}\n"
 	vString += f"	> RecruitsDir:	{Directories.userLibraryRecruits}\n"
+	vString += f"	> RuntimeDir :	{Directories.runtimeConfigurable}\n"
 	vString += f"	> LockFile Affix:	{Directories.lockFileAffix} | Retries: {Directories.lockFileRetry}\n"
 	vString += f"	> Feedback Prefix:	{Directories.feedbackPrefix}\n"
 	vString += f"	> Clean Temp Every:	{Directories.cleanTempEvery} hours ({Directories.cleanTempEvery/24} days)\n"
@@ -653,6 +640,9 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Recruit ID:		{Roles.recruit}\n"
 	vString += f"	> Promoted Role ID:	{Roles.recruitPromotion}\n"
 	vString += f"	> Auto Assign on Accept:{Roles.autoAssignOnAccept}\n"
+	if BotSettings.botFeatures.UserRoles:
+		vString += f"	> Filename Affix: {SelfAssignableRoles.fileNameAffix}\n"
+		vString += f"	> Deliminator: {SelfAssignableRoles.deliminator}\n"
 
 
 	vString += "\nCHANNELS\n"
@@ -668,6 +658,7 @@ def PrintSettings(bGetOnly = False):
 	vString += f"	> Protected Categories:\n		> {Channels.protectedCategoriesID}\n"
 	vString += f"	> Quotes:	{Channels.quoteID}\n"
 	vString += f"	> Schedule:	{Channels.scheduleID}\n"
+	vString += f"	> Other Games:	{Channels.otherGameCatID}\n"
 
 
 
