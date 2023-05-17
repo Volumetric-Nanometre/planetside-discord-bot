@@ -197,8 +197,11 @@ class SelfAssignableRoles:
 	This is affixed to two different files for tdkd and game roles."""
 
 
-	deliminator = ":"
-	"""The deliminator within the saved file to separate name and value."""
+	deliminator = "|"
+	"""The deliminator within the saved file to separate the entries values (name/id/emoji/description).
+	
+	NOTE: The deliminator should be a character or characters that are not used elsewhere.
+		 Example- `:` is used within the emoji string and would cause an issue."""
 
 
 

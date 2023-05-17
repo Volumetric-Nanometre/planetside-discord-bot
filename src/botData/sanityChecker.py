@@ -146,27 +146,6 @@ class SanityCheck():
 				BUPrint.LogError(p_titleStr="INVALID ROLE |  UserLib: Sleeper", p_string=str(Roles.recruitPromotion))
 				bFailedCheck = True
 
-		if botFeatures.UserRoles:
-			# TDKD ROLES
-			for selectOpt in Roles.addRoles_TDKD:
-				if not SanityCheck.RoleInRoles(selectOpt.value, allRoles):
-					BUPrint.LogError(p_titleStr="INVALID ROLE |  Role Selector: TDKD", p_string=selectOpt.value)
-					bFailedCheck = True
-
-			for selectOpt in Roles.addRoles_games1:
-				if not SanityCheck.RoleInRoles(selectOpt.value, allRoles):
-					BUPrint.LogError(p_titleStr="INVALID ROLE |  Role Selector: Games 1", p_string=selectOpt.value)
-					bFailedCheck = True
-
-			for selectOpt in Roles.addRoles_games2:
-				if not SanityCheck.RoleInRoles(selectOpt.value, allRoles):
-					BUPrint.LogError(p_titleStr="INVALID ROLE |  Role Selector: Games 2", p_string=selectOpt.value)
-					bFailedCheck = True
-
-			for selectOpt in Roles.addRoles_games3:
-				if not SanityCheck.RoleInRoles(selectOpt.value, allRoles):
-					BUPrint.LogError(p_titleStr="INVALID ROLE |  Role Selector: Games 3", p_string=selectOpt.value)
-					bFailedCheck = True 
 
 		if bFailedCheck:
 			if BotSettings.bDebugEnabled:
