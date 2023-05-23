@@ -528,23 +528,21 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				else:
 					BUPrint.Debug("Mismatched factions. Continent open!")
 					
-					# Must be set before SetContinents as that updates the timestamps (to current), resulting in a loop.
+					# Must be set before SetContinents as that updates the timestamps (to current), preventing a loop.
 					bCanPost = self.AntiSpamCanPost()
 
 					self.SetContinentIsLocked(False, gate.warpgateID)
 
-					if not bCanPost:
-						return
+					if bCanPost:
+						if ContinentTrack.contUnlockMessageType == PS2ContMessageType.NoMessage:
+							BUPrint.Debug("Unlock event occured, but configured to ignore.")
+							pass
 
-					if ContinentTrack.contUnlockMessageType == PS2ContMessageType.NoMessage:
-						BUPrint.Debug("Unlock event occured, set to ignore.")
-						pass
+						elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Detailed:
+							await self.PostMessage_Long()
 
-					elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Detailed:
-						await self.PostMessage_Long()
-
-					elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Simple:
-						await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
+						elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Simple:
+							await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
 
 
 		# Check if more than 2 warpgate entries are saved.  In this event, clear the warpgate list.
