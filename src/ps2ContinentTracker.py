@@ -330,11 +330,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 	def SetContinentIsLocked(self, p_isLocked:bool, p_id:int):
 		"""# Set Continent Is Locked
-		Will take either a warpgate or continent ID.
+		Sets the lock status of a continent.  The time of the un/lock is set on call of this function.
 
 		## PARMETERS
 		- p_isLocked - The new locked status.
-		- p_id - Either a WARPGATE ID, or a Continent ID.
+		- p_id - Either a `WARPGATE` ID, or a `Continent` ID.
 		"""
 
 		BUPrint.Debug(f"Setting continent(zone/WG ID {p_id}) locked status({p_isLocked})")
