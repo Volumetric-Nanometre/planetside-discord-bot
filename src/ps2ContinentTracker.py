@@ -609,7 +609,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			BUPrint.Debug(f"	>> Event is occuring within spam minimal timeframe. (Antispam count: {self.antiSpamUpdateCount})")
 
 			if self.antiSpamUpdateCount >= ContinentTrack.antiSpamAllowedPosts:
-				BUPrint.Info(f"	>> Continent Tracker AntiSpam prevented a message from being sent. {self.antiSpamUpdateCount} Messages blocked.")
+				BUPrint.Info(f"	>> Continent Tracker AntiSpam prevented a message from being sent. {self.antiSpamUpdateCount - ContinentTrack.antiSpamAllowedPosts} Messages blocked.")
 				return False
 		
 		else:
