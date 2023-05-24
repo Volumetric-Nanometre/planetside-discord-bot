@@ -703,7 +703,7 @@ class UserLib:
 	When true, when a user uses "/my_events", the result message includes a view with jump buttons to signupable events."""
 
 
-	# FUN STUFF: Settings here pertain to little funny things: due to their nonserious nature, they're not displayed in /Config or Console output.
+	# For Fun related:  settings related to 'for fun' functionality.
 
 	topQuoteReactions = 5
 	"""# Top Quote: 

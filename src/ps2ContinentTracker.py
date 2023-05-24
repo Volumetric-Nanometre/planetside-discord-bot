@@ -190,15 +190,21 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			BUPrint.Debug("No trigger for facility control setup/found.")
 
 
+		worldToMonitor = await self.auraxClient.get(type_=World, world_id=ContinentTrack.worldID)
 
-		# worldToMonitor = await self.auraxClient.get(World, ContinentTrack.worldID)
-		# Currently unused.  Uncommenting will cause the bot to not run.
+		if worldToMonitor == None:
+			BUPrint.LogError("Continent tracker triggers not set.", "Invalid world ID")
+			return
+		else:
+			BUPrint.Debug(f"Continent tracker World: {worldToMonitor.name} -- ID: {worldToMonitor.id}")
+
+
 		if ContinentTrack.contLockMessageType != PS2ContMessageType.NoMessage:
 			self.auraxClient.add_trigger(
 				Trigger(
 					name="CONTTRACK_Lock",
-					event="ContinentLock",
-					# worlds=[worldToMonitor],
+					event=ContinentLock,
+					worlds=[worldToMonitor],
 					action=self.ContinentLockCallback
 				)
 			) # END: Add trigger- Continent Lock
@@ -207,13 +213,13 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		self.auraxClient.add_trigger(
 			Trigger(
 				name="CONTTRACK_Facility",
-				event="FacilityControl",
-				# worlds=[worldToMonitor],
+				event=FacilityControl,
+				worlds=[worldToMonitor],
 				action=self.FacilityControlCallback
 			)
 		) # END: Add Trigger: Facility Control
 
-
+	
 
 	async def ContinentLockCallback(self, p_event:ContinentLock):
 		"""# Continent Lock Callback
@@ -330,11 +336,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 	def SetContinentIsLocked(self, p_isLocked:bool, p_id:int):
 		"""# Set Continent Is Locked
-		Will take either a warpgate or continent ID.
+		Sets the lock status of a continent.  The time of the un/lock is set on call of this function.
 
 		## PARMETERS
 		- p_isLocked - The new locked status.
-		- p_id - Either a WARPGATE ID, or a Continent ID.
+		- p_id - Either a `WARPGATE` ID, or a `Continent` ID.
 		"""
 
 		BUPrint.Debug(f"Setting continent(zone/WG ID {p_id}) locked status({p_isLocked})")
@@ -528,23 +534,21 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				else:
 					BUPrint.Debug("Mismatched factions. Continent open!")
 					
-					# Must be set before SetContinents as that updates the timestamps (to current), resulting in a loop.
+					# Must be set before SetContinents as that updates the timestamps (to current), preventing a loop.
 					bCanPost = self.AntiSpamCanPost()
 
 					self.SetContinentIsLocked(False, gate.warpgateID)
 
-					if not bCanPost:
-						return
+					if bCanPost:
+						if ContinentTrack.contUnlockMessageType == PS2ContMessageType.NoMessage:
+							BUPrint.Debug("Unlock event occured, but configured to ignore.")
+							pass
 
-					if ContinentTrack.contUnlockMessageType == PS2ContMessageType.NoMessage:
-						BUPrint.Debug("Unlock event occured, set to ignore.")
-						pass
+						elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Detailed:
+							await self.PostMessage_Long()
 
-					elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Detailed:
-						await self.PostMessage_Long()
-
-					elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Simple:
-						await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
+						elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Simple:
+							await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
 
 
 		# Check if more than 2 warpgate entries are saved.  In this event, clear the warpgate list.
@@ -609,7 +613,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			BUPrint.Debug(f"	>> Event is occuring within spam minimal timeframe. (Antispam count: {self.antiSpamUpdateCount})")
 
 			if self.antiSpamUpdateCount >= ContinentTrack.antiSpamAllowedPosts:
-				BUPrint.Info(f"	>> Continent Tracker AntiSpam prevented a message from being sent. {self.antiSpamUpdateCount} Messages blocked.")
+				BUPrint.Info(f"	>> Continent Tracker AntiSpam prevented a message from being sent. {self.antiSpamUpdateCount - ContinentTrack.antiSpamAllowedPosts} Messages blocked.")
 				return False
 		
 		else:
