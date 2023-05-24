@@ -905,92 +905,111 @@ class Messages:
 	Messages used throughout the bot, typically for end-users, stored here for convenient editing purposes.
 	"""
 	
-	# Displayed in the GATE channel on bot startup (after purging).
 	gateChannelDefaultMsg = "Welcome to TDKD.\nUse the button below to get started!"
+	"""Displayed in the GATE channel, posted on bot startup (after purging), for new users."""
 
-	# Displayed in the embed for new users in their gate message.
 	newUserInfo = "Use the buttons below to provide your Planetside 2 character name (if you have one) and accept the rules.\nThen you can request access, and wait for one of our admins to get you set up!"
+	"""Displayed in the embed for new users in their gate message."""
 
-	# Displayed in the embed for new users in their gate message, under ACCEPTANCE OF RULES.
 	newUserRuleDeclaration = "By pressing 'ACCEPT', you are confirming **you have read**, **understand**, and **agree to adhere** by the rules."
+	"""Displayed in the embed for new users in their gate message, under ACCEPTANCE OF RULES."""
 
-	# Confirmation message sent to users who have accepted the rules
 	newUserAcceptedRules = "Thank you for accepting the rules.  You may now request access!"
+	"""Confirmation message sent to users who have accepted the rules"""
 
-	# Displayed when a new user is accepted.  Use _ROLE and _MENTION to have the assigned role and/or mention inserted.
 	newUserWelcome = f"""Welcome, _MENTION!
 	You have been assigned the role: _ROLE.
 	
 	Make sure to use either the button, or the `/roles add` command to add planetside2 and other game roles!
 	We play more than just planetside, but to keep the server tidy, they are hidden with roles."""
+	"""Displayed when a new user is accepted.  Use _ROLE and _MENTION to have the assigned role and/or mention inserted."""
 
-	# Displayed when a user is choosing roles to ADD.
 	userAddingRoles = "Select the roles you wish to **ADD** using the dropdowns, then click update.\n\nDropdown is multiple choice."
+	"""Displayed when a user is choosing roles to ADD."""
 
-	# Displayed when a user is choosing roles to REMOVE.
 	userRemovingRoles = "Select the roles you wish to **REMOVE** using the dropdowns, then click Update."
+	"""Displayed when a user is choosing roles to REMOVE."""
 
-	# Operations Auto Move warning: Shown on Ops Notifications if autoMoveVC is enabled.
 	OpsAutoMoveWarn = "If you are already in a voice channel, you will be moved when the ops starts!"
-
-	# Ops Starting Soon: Message appended to Ops messages when the status is PRESTART.
+	"""# Operations Auto Move warning: 
+	Shown on Ops Notifications if autoMoveVC is enabled."""
+	
 	OpsStartSoon = "This event is starting soon!  Sign up now to be considered a participant!"
+	"""# Ops Starting Soon: 
+	Message appended to Ops messages when the status is PRESTART."""
 
-	# Ops Started: Message appended to Ops signup messages when the status is STARTED
 	OpsStarted = "Sorry, this event has already started and is no longer taking applicants!"
+	"""# Ops Started: 
+	Message appended to Ops signup messages when the status is STARTED"""
 
-	# Op Being Edited: Message appended to ops signup messages when being edited.
 	OpsBeingEdited = "This event is currently being edited, please wait to sign up!"
+	"""# Op Being Edited: 
+	Message appended to ops signup messages when being edited."""
 
-	# Dismiss Editor: Shown when a user sends/updates an operation.
 	dismissEditor = "You may now dismiss the editor, if it hasn't automatically closed."
+	"""# Dismiss Editor: 
+	Shown when a user sends/updates an operation."""
 
-	# Editor Error: shown when an error occured while posting an operation.
 	editorError = "An error occured while posting the message. Check all modified entries and try again.\nHint: Use the Keyboard Up arrow to retype the command with all but the opType pre-filled."
+	"""# Editor Error: 
+	shown when an error occured while posting an operation."""
 
-	# No Matching PS2 Character name found, sent as a single message tagging participants, telling them no matching PS2 Char name is present.
 	noMatchingPS2Char = """No matching Planetside 2 Character was found with your current discord name.
 	If you wish for your statistics to be tracked, you can either:
 	 - Rename yourself to your Planetside2 Character.
 	 - Use `/about` and press `Setup`.
 	Make sure you do this BEFORE the event starts, otherwise you will not be tracked!
 	"""
+	"""# No Matching PS2 Character name found
+	Sent as a single message tagging participants, telling them no matching PS2 Char name is present."""
 
-	# Not Being Tracked: Shown when users aren't being tracked on a non-PS2 event.
 	nonPS2TrackReqsNotMet = "This session won't be added to your session history!\nMake sure to be in the events voice channels before it starts to have it added."
+	"""# Not Being Tracked: 
+	Shown when users aren't being tracked on a non-PS2 event."""
 	
-	# Invalid Command Permission : Displayed to users who don't have the required permissions to run a command.
 	invalidCommandPerms = "You do not have the required permission to use that command!"
+	"""	# Invalid Command Permission : 
+	Displayed to users who don't have the required permissions to run a command."""
 
-	# Invalid Birthdate: Displayed to the user when they configure their userLibrary entry and provide an invalid birthdate.
 	invalidBirthdate = "The date provided was an invalid format. Make sure to include leading zeros (eg: 03/05), and if providing the year, ensure it's 4 digits not 2!."
+	"""# Invalid Birthdate: 
+	Displayed to the user when they configure their userLibrary entry and provide an invalid birthdate."""
 
-	# Feedback Overflow: Shown in feedback embeds if characters exceeds the max of 1024.
 	feedbackOverflow = "\n**UNABLE TO FIT ENTIRE FEEDBACK WITHIN EMBED!\nDownload Feedback to see it all.**"
+	"""# Feedback Overflow: 
+	Shown in feedback embeds if characters exceeds the max of 1024."""
 
-	# New Operation- Corrupt Data: Shown when adding a new Op but unable to read the default.
 	newOpCorruptData = "The default you tried to use is corrupt and has been removed.  Please try again using another default, or create a new one."
+	"""# New Operation- Corrupt Data: 
+	Shown when adding a new Op but unable to read the default."""
 
-	# COMMANDER AutoStart: Displayed on the commander when autostart is enabled.
 	commanderAutoStart = "Auto-Start is enabled.\n> *This Commander will automatically start the operation.*\n> *To start the operation early, press* ***START***."
+	"""# COMMANDER AutoStart: 
+	Displayed on the commander when autostart is enabled."""
 
-	# No Library Entry- Shown when someone tries to view a users library entry and there is none.
 	noUserEntry = "This user has no library entry. :("
+	"""# No Library Entry: 
+	Shown when someone tries to view a users library entry and there is none."""
 	
-	# No User Entry Self: Shown when a user tries to view their own entry and userAutoCreate is disabled.
 	NoUserEntrySelf = "You have no entry.  Ask an administrator to make one for you."
+	"""# No User Entry Self: 
+	Shown when a user tries to view their own entry and userAutoCreate is disabled."""
 
-	# No signed up Events: Shown to user when they use "show_events" and they're not in any.
 	noSignedUpEvents = f"You're not signed up to any events!\nUse the buttons below to jump to an event listing and sign up!"
+	"""# No signed up Events: 
+	Shown to user when they use "show_events" and they're not in any."""
 
-	# No Events: Similar to above, except there's no events.
 	noEvents = "There are no events to be signed up to."
+	"""# No Events: 
+	Similar to `noSignedUpEvents`, except there's no events currently available.."""
 
-	# Feature Disabled: Shown when a command that depends on another feature is disabled.
 	featureDisabled = "That feature has been disabled."
+	"""# Feature Disabled: 
+	Shown when a command that depends on another feature is disabled."""
 
-	# No Continent Data: When a user uses a continent command and there's no collected data yet.
 	noContinentData = "No continent data!  The bot has been restarted and needs to wait for continents to un/lock.  Try again later!"
+	"""# No Continent Data: 
+	When a user uses a continent command and there's no collected data yet."""
 
 	
 	facilityOutfitCapture = "TDKD secured _DATA !"
