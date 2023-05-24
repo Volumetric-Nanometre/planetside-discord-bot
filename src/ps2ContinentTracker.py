@@ -203,7 +203,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			self.auraxClient.add_trigger(
 				Trigger(
 					name="CONTTRACK_Lock",
-					event="ContinentLock",
+					event=ContinentLock,
 					worlds=[worldToMonitor],
 					action=self.ContinentLockCallback
 				)
@@ -213,7 +213,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		self.auraxClient.add_trigger(
 			Trigger(
 				name="CONTTRACK_Facility",
-				event="FacilityControl",
+				event=FacilityControl,
 				worlds=[worldToMonitor],
 				action=self.FacilityControlCallback
 			)
