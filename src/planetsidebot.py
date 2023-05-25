@@ -84,7 +84,7 @@ class Bot(commands.Bot):
         """
         if settings.BotSettings.botFeatures.continentTracker:
             self.contTrackerCog = ContinentTrackerCog(self)
-            await self.contTrackerCog.CreateTriggers()
+            self.contTrackerCog.CreateTriggers()
             await self.add_cog(self.contTrackerCog)
 
             BUPrint.Info("	> Connecting continent tracker client.")
