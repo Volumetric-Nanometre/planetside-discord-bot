@@ -162,7 +162,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		mainLoop = asyncio.get_event_loop()
 
 		BUPrint.Info("	>> Recreating triggers.")
-		await self.CreateTriggers()
+		self.CreateTriggers()
 
 		BUPrint.Info("	>> Recreating task loop.")
 		await mainLoop.create_task(self.auraxClient.connect())
@@ -171,7 +171,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 
 
-	async def CreateTriggers(self):
+	def CreateTriggers(self):
 		"""# Create Triggers
 		Adds the continent lock and facility control triggers used for continent tracking.
 
@@ -190,21 +190,12 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			BUPrint.Debug("No trigger for facility control setup/found.")
 
 
-		worldToMonitor = await self.auraxClient.get(type_=World, world_id=ContinentTrack.worldID)
-
-		if worldToMonitor == None:
-			BUPrint.LogError("Continent tracker triggers not set.", "Invalid world ID")
-			return
-		else:
-			BUPrint.Debug(f"Continent tracker World: {worldToMonitor.name} -- ID: {worldToMonitor.id}")
-
-
 		if ContinentTrack.contLockMessageType != PS2ContMessageType.NoMessage:
 			self.auraxClient.add_trigger(
 				Trigger(
 					name="CONTTRACK_Lock",
 					event=ContinentLock,
-					worlds=[worldToMonitor],
+					worlds=[ContinentTrack.worldID],
 					action=self.ContinentLockCallback
 				)
 			) # END: Add trigger- Continent Lock
@@ -214,7 +205,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			Trigger(
 				name="CONTTRACK_Facility",
 				event=FacilityControl,
-				worlds=[worldToMonitor],
+				worlds=[ContinentTrack.worldID],
 				action=self.FacilityControlCallback
 			)
 		) # END: Add Trigger: Facility Control
