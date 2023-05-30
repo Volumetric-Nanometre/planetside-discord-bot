@@ -317,7 +317,7 @@ class EditorBtn_Actions(Select):
 				self.parentEditor.newOpData.reserves.clear()
 
 			# If name, date, or signup channel is modified, recreate event (easier than attempting rename)
-			if self.parentEditor.newOpData.name != self.parentEditor.originalData.name or self.parentEditor.newOpData.date != self.parentEditor.originalData.date or self.parentEditor.newOpData.targetChannel != self.parentEditor.newOpData.targetChannel:
+			if self.parentEditor.newOpData.name != self.parentEditor.originalData.name or self.parentEditor.newOpData.date != self.parentEditor.originalData.date or self.parentEditor.newOpData.targetChannel != self.parentEditor.originalData.targetChannel:
 				await opsMan.RemoveOperation(self.parentEditor.originalData)
 
 				self.parentEditor.newOpData.GenerateFileName()
