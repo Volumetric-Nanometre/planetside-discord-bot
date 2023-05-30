@@ -316,16 +316,17 @@ class EditorBtn_Actions(Select):
 			if not self.parentEditor.newOpData.options.bUseReserve:
 				self.parentEditor.newOpData.reserves.clear()
 
-			# If name or date is modified, recreate event (easier than attempting rename)
-			if self.parentEditor.newOpData.name != self.parentEditor.originalData.name or self.parentEditor.newOpData.date != self.parentEditor.originalData.date:
+			# If name, date, or signup channel is modified, recreate event (easier than attempting rename)
+			if self.parentEditor.newOpData.name != self.parentEditor.originalData.name or self.parentEditor.newOpData.date != self.parentEditor.originalData.date or self.parentEditor.newOpData.targetChannel != self.parentEditor.newOpData.targetChannel:
 				await opsMan.RemoveOperation(self.parentEditor.originalData)
 
 				self.parentEditor.newOpData.GenerateFileName()
 				await opsMan.AddNewLiveOp(self.parentEditor.newOpData)
+				responseMsg += "[OK]	Updated event recreated."
 		
 			else:
 				await opsMan.UpdateMessage(self.parentEditor.newOpData)
-			responseMsg += "[---]	Update Event\n"
+				responseMsg += "[OK]	Update Event\n"
 	
 	# DELETE LIVE
 		if ActionBarValues.deleteLive.value in actions:
