@@ -167,7 +167,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		mainLoop = asyncio.get_event_loop()
 
 		BUPrint.Info("	>> Recreating triggers.")
-		await self.CreateTriggers()
+		self.CreateTriggers()
 
 		BUPrint.Info("	>> Recreating task loop.")
 		await mainLoop.create_task(self.auraxClient.connect())
@@ -176,7 +176,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 
 
-	async def CreateTriggers(self):
+	def CreateTriggers(self):
 		"""# Create Triggers
 		Adds the continent lock and facility control triggers used for continent tracking.
 
@@ -216,7 +216,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			)
 		) # END: Add Trigger: Facility Control
 
-
+	
 
 	async def ContinentLockCallback(self, p_event:ContinentLock):
 		"""# Continent Lock Callback
@@ -337,11 +337,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 	def SetContinentIsLocked(self, p_isLocked:bool, p_id:int):
 		"""# Set Continent Is Locked
-		Will take either a warpgate or continent ID.
+		Sets the lock status of a continent.  The time of the un/lock is set on call of this function.
 
 		## PARMETERS
 		- p_isLocked - The new locked status.
-		- p_id - Either a WARPGATE ID, or a Continent ID.
+		- p_id - Either a `WARPGATE` ID, or a `Continent` ID.
 		"""
 
 		BUPrint.Debug(f"Setting continent(zone/WG ID {p_id}) locked status({p_isLocked})")
@@ -535,23 +535,21 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 				else:
 					BUPrint.Debug("Mismatched factions. Continent open!")
 					
-					# Must be set before SetContinents as that updates the timestamps (to current), resulting in a loop.
+					# Must be set before SetContinents as that updates the timestamps (to current), preventing a loop.
 					bCanPost = self.AntiSpamCanPost()
 
 					self.SetContinentIsLocked(False, gate.warpgateID)
 
-					if not bCanPost:
-						return
+					if bCanPost:
+						if ContinentTrack.contUnlockMessageType == PS2ContMessageType.NoMessage:
+							BUPrint.Debug("Unlock event occured, but configured to ignore.")
+							pass
 
-					if ContinentTrack.contUnlockMessageType == PS2ContMessageType.NoMessage:
-						BUPrint.Debug("Unlock event occured, set to ignore.")
-						pass
+						elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Detailed:
+							await self.PostMessage_Long()
 
-					elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Detailed:
-						await self.PostMessage_Long()
-
-					elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Simple:
-						await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
+						elif ContinentTrack.contUnlockMessageType == PS2ContMessageType.Simple:
+							await self.PostMessage_Short( self.GetContinentFromID(gate.warpgateID) )
 
 
 		# Check if more than 2 warpgate entries are saved.  In this event, clear the warpgate list.
