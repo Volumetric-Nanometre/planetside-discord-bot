@@ -156,6 +156,11 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		"""
 		BUPrint.Info("Reconnecting Auraxium Client...")
 
+
+		BUPrint.Info("	>> Clearing current capture data")
+		self.warpgateCaptures.clear()
+		self.antiSpamUpdateCount = 0
+
 		BUPrint.Info("	>> Closing current continent tracker.")
 		await self.auraxClient.close()
 
@@ -190,11 +195,12 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 			BUPrint.Debug("No trigger for facility control setup/found.")
 
 
+
 		if ContinentTrack.contLockMessageType != PS2ContMessageType.NoMessage:
 			self.auraxClient.add_trigger(
 				Trigger(
 					name="CONTTRACK_Lock",
-					event=ContinentLock,
+					event="ContinentLock",
 					worlds=[ContinentTrack.worldID],
 					action=self.ContinentLockCallback
 				)
@@ -204,7 +210,7 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 		self.auraxClient.add_trigger(
 			Trigger(
 				name="CONTTRACK_Facility",
-				event=FacilityControl,
+				event="FacilityControl",
 				worlds=[ContinentTrack.worldID],
 				action=self.FacilityControlCallback
 			)
@@ -267,19 +273,23 @@ class ContinentTrackerCog(GroupCog, name="continents"):
 
 		if ContinentTrack.bMonitorFacilities:
 			if p_event.outfit_id == ContinentTrack.facilityMonitorOutfitID:
+				BUPrint.Debug("Facility capture: Outfit ID matched")
+
 				try:
 					takenFacility:MapRegion = await MapRegion.get_by_facility_id(p_event.facility_id, self.auraxClient)
 
-				except RuntimeError:
-					BUPrint.LogError(p_titleStr="Session closed.", p_string="Reconnecting client...")
-					await self.ReconnectClient()
+				except RuntimeError as error:
+					# BUPrint.LogError(p_titleStr="Session closed.", p_string="Reconnecting client...")
+					# await self.ReconnectClient()
+					BUPrint.LogErrorExc("Error occured obtaining facility.", error)
+					return
 					
 					# Retry obtaining map region
-					try:
-						takenFacility:MapRegion = await MapRegion.get_by_facility_id(p_event.facility_id, self.auraxClient)
-					except RuntimeError:
-						BUPrint.Info("Failed to obtain map region after reconnecting client, aborting.")
-						return
+					# try:
+					# 	takenFacility:MapRegion = await MapRegion.get_by_facility_id(p_event.facility_id, self.auraxClient)
+					# except RuntimeError:
+					# 	BUPrint.Info("Failed to obtain map region after reconnecting client, aborting.")
+					# 	return
 
 				if takenFacility == None:
 					BUPrint.Debug("Invalid facility ID.")
